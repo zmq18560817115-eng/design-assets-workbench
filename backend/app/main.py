@@ -53,6 +53,7 @@ def health() -> dict:
         "status": "ok",
         "vision_provider": config.VISION_PROVIDER,
         "vlm_enabled": vlm_on,
+        "vision_missing_config": config.vision_missing_config(),
         "model": config.VISION_MODEL if vlm_on else "启发式规则",
         "llm_enabled": config.llm_enabled(),
         "llm_model": config.LLM_MODEL if config.llm_enabled() else "",

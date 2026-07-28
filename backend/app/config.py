@@ -6,7 +6,15 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_DIR = BASE_DIR.parent
+
+# Local development reads secrets from the repository-level .env file.
+# Existing process environment variables keep precedence in deployments.
+load_dotenv(PROJECT_DIR / ".env", override=False)
+load_dotenv(BASE_DIR / ".env", override=False)
 
 # 上传图片存储目录
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "uploads"))
@@ -20,7 +28,12 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'design_assets.
 #   VISION_API_KEY / VISION_BASE_URL / VISION_MODEL: 对应服务的凭证与地址
 VISION_PROVIDER = os.getenv("VISION_PROVIDER", "mock").lower()
 VISION_API_KEY = os.getenv("VISION_API_KEY", "")
-VISION_BASE_URL = os.getenv("VISION_BASE_URL", "")
+_VISION_BASE_DEFAULTS = {
+    "volcengine": "https://ark.cn-beijing.volces.com/api/v3",
+}
+VISION_BASE_URL = os.getenv(
+    "VISION_BASE_URL", _VISION_BASE_DEFAULTS.get(VISION_PROVIDER, "")
+)
 VISION_MODEL = os.getenv("VISION_MODEL", "")
 
 
@@ -30,7 +43,26 @@ def vlm_enabled() -> bool:
     只要是 OpenAI 兼容接口（GPT Vision / Qwen-VL / 火山引擎豆包 / 内网自建），
     设好 provider 名 + Key + Base URL + Model 即可启用。
     """
-    return VISION_PROVIDER not in ("", "mock") and bool(VISION_API_KEY)
+    return (
+        VISION_PROVIDER not in ("", "mock")
+        and bool(VISION_API_KEY)
+        and bool(VISION_BASE_URL)
+        and bool(VISION_MODEL)
+    )
+
+
+def vision_missing_config() -> list[str]:
+    """Return configuration fields still required by the selected provider."""
+    if VISION_PROVIDER in ("", "mock"):
+        return ["VISION_PROVIDER"]
+    missing = []
+    if not VISION_API_KEY:
+        missing.append("VISION_API_KEY")
+    if not VISION_BASE_URL:
+        missing.append("VISION_BASE_URL")
+    if not VISION_MODEL:
+        missing.append("VISION_MODEL")
+    return missing
 
 
 # 文本推理 / 需求解读大模型（可选，OpenAI 兼容；如火山引擎方舟）
