@@ -35,6 +35,11 @@ VISION_BASE_URL = os.getenv(
     "VISION_BASE_URL", _VISION_BASE_DEFAULTS.get(VISION_PROVIDER, "")
 )
 VISION_MODEL = os.getenv("VISION_MODEL", "")
+VISION_TRUST_ENV = os.getenv("VISION_TRUST_ENV", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 
 def vlm_enabled() -> bool:
