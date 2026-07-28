@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      # 国内/内网构建可取消注释加速：
+      # args:
+      #   PIP_INDEX_URL: https://mirrors.aliyun.com/pypi/simple/
+    image: design-assets-backend
+    restart: unless-stopped
+    environment:
+      # 允许前端容器跨域（同栈下由前端 Node 代理，通常无需 CORS，此处保留兜底）
+      CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      # 数据库文件放在挂载卷内以持久化
+      DATABASE_URL: "sqlite:////data/design_assets.db"
+      VISION_PROVIDER: "${VISION_PROVIDER:-mock}"
+      VISION_API_KEY: "${VISION_API_KEY:-}"
+      VISION_BASE_URL: "${VISION_BASE_URL:-}"
+      VISION_MODEL: "${VISION_MODEL:-}"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_data:/data
+    ports:
+      # 便于直接访问 /docs 接口文档；仅内网用可去掉
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      # 国内/内网构建可取消注释加速：
+      # args:
+      #   NPM_REGISTRY: https://registry.npmmirror.com
+    image: design-assets-frontend
+    restart: unless-stopped
+    environment:
+      # 前端 Node 服务把 /api、/uploads 代理到后端容器
+      BACKEND_URL: "http://backend:8000"
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  backend_uploads:
+  backend_data:

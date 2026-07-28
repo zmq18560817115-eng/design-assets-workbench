@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.db
+*.db-*
+backend/uploads/*
+!backend/uploads/.gitkeep
+.venv/
+venv/
+
+# Node / Next.js
+node_modules/
+.next/
+next-env.d.ts
+npm-debug.log*
+*.log
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
