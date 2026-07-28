@@ -70,6 +70,8 @@ export interface CaseOut {
   name: string;
   content_type: string;
   product_category: string;
+  asset_category: string;
+  asset_subcategory: string;
   industry: string;
   scene: string;
   summary: string;
@@ -95,6 +97,8 @@ export const api = {
       source_url?: string;
       rights_note?: string;
       product_category?: string;
+      asset_category?: string;
+      asset_subcategory?: string;
     }
   ) => {
     const fd = new FormData();
@@ -114,6 +118,8 @@ export const api = {
       source_url?: string;
       rights_note?: string;
       product_category?: string;
+      asset_category?: string;
+      asset_subcategory?: string;
     }
   ) => {
     const fd = new FormData();
@@ -140,10 +146,12 @@ export const api = {
         concurrency: number;
       }>(r)
     ),
-  cases: (q = "", tag = "") => {
+  cases: (q = "", tag = "", assetCategory = "", assetSubcategory = "") => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (tag) p.set("tag", tag);
+    if (assetCategory) p.set("asset_category", assetCategory);
+    if (assetSubcategory) p.set("asset_subcategory", assetSubcategory);
     return fetch(`/api/cases?${p.toString()}`, { cache: "no-store" }).then((r) =>
       j<CaseOut[]>(r)
     );

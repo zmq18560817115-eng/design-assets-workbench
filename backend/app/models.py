@@ -58,6 +58,8 @@ class Case(Base):
     name = Column(String, nullable=False)
     content_type = Column(String, default="", index=True)
     product_category = Column(String, default="", index=True)
+    asset_category = Column(String, default="layout", index=True)
+    asset_subcategory = Column(String, default="", index=True)
     industry = Column(String, default="")        # 行业
     scene = Column(String, default="")           # 使用场景
     summary = Column(Text, default="")           # 一句话总结

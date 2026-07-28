@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { CaseOut } from "@/lib/api";
+import { categoryByValue } from "@/lib/categories";
 
 export function Nav() {
   const items = [
@@ -71,6 +72,16 @@ export function CaseCard({ c }: { c: CaseOut }) {
           <img src={c.image.url} alt={c.name} className="h-56 w-full bg-gray-100 object-cover transition duration-300 group-hover:scale-[1.02]" />
         )}
         <div className="p-4">
+          <div className="mb-2 flex gap-1.5 text-[10px]">
+            <span className="rounded-full bg-accent/10 px-2 py-1 text-accent">
+              {categoryByValue(c.asset_category).label}仓库
+            </span>
+            {c.asset_subcategory && (
+              <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-500">
+                {c.asset_subcategory}
+              </span>
+            )}
+          </div>
           <div className="flex items-start justify-between gap-3">
             <div className="font-medium group-hover:text-accent">{c.name}</div>
             <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[10px] text-gray-500">

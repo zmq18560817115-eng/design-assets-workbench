@@ -4,26 +4,35 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, CaseOut } from "@/lib/api";
 import { CaseCard } from "@/components/ui";
+import { ASSET_CATEGORIES, categoryByValue } from "@/lib/categories";
 
 function CasesInner() {
   const params = useSearchParams();
   const initialTag = params.get("tag") || "";
+  const initialCategory = params.get("asset_category") || "";
   const [q, setQ] = useState("");
   const [tag, setTag] = useState(initialTag);
   const [cases, setCases] = useState<CaseOut[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assetCategory, setAssetCategory] = useState(initialCategory);
+  const [assetSubcategory, setAssetSubcategory] = useState("");
 
-  const load = (query: string, t: string) => {
+  const load = (
+    query: string,
+    t: string,
+    category = assetCategory,
+    subcategory = assetSubcategory
+  ) => {
     setLoading(true);
     api
-      .cases(query, t)
+      .cases(query, t, category, subcategory)
       .then(setCases)
       .catch(() => setCases([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    load("", initialTag);
+    load("", initialTag, initialCategory, "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTag]);
 
@@ -38,6 +47,57 @@ function CasesInner() {
           多模态搜索
         </Link>
       </div>
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {ASSET_CATEGORIES.map((item) => (
+          <button
+            key={item.value}
+            onClick={() => {
+              setAssetCategory(item.value);
+              setAssetSubcategory("");
+              load(q, tag, item.value, "");
+            }}
+            className={`rounded-2xl border p-4 text-left transition ${
+              assetCategory === item.value
+                ? "border-accent bg-white shadow-sm"
+                : "border-line bg-canvas hover:bg-white"
+            }`}
+          >
+            <div className="font-semibold">{item.label}仓库</div>
+            <div className="mt-1 text-xs text-gray-500">{item.note}</div>
+          </button>
+        ))}
+      </div>
+      {assetCategory && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              setAssetSubcategory("");
+              load(q, tag, assetCategory, "");
+            }}
+            className={`rounded-full px-3 py-1.5 text-xs ${
+              !assetSubcategory ? "bg-ink text-white" : "bg-white text-gray-500"
+            }`}
+          >
+            全部{categoryByValue(assetCategory).label}
+          </button>
+          {categoryByValue(assetCategory).subcategories.map((item) => (
+            <button
+              key={item}
+              onClick={() => {
+                setAssetSubcategory(item);
+                load(q, tag, assetCategory, item);
+              }}
+              className={`rounded-full px-3 py-1.5 text-xs ${
+                assetSubcategory === item
+                  ? "bg-accent text-white"
+                  : "bg-white text-gray-500"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();

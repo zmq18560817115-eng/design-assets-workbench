@@ -101,6 +101,8 @@ def _auto_migrate():
         case_fields = {
             "content_type": "",
             "product_category": "",
+            "asset_category": "layout",
+            "asset_subcategory": "",
             "trust_status": "ai_unverified",
             "status": "public",
         }

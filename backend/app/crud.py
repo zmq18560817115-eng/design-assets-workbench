@@ -24,6 +24,8 @@ def create_case_from_analysis(
     image: models.Image,
     result: AnalysisResult,
     product_category: str = "",
+    asset_category: str = "layout",
+    asset_subcategory: str = "",
 ) -> models.Case:
     """将一次 AI 拆解结果落库为完整案例卡。"""
     case = models.Case(
@@ -31,6 +33,8 @@ def create_case_from_analysis(
         name=result.name,
         content_type=result.basics.image_type,
         product_category=product_category,
+        asset_category=asset_category,
+        asset_subcategory=asset_subcategory,
         industry=result.basics.industry,
         scene=result.basics.scene,
         summary=result.summary,
@@ -143,6 +147,8 @@ def serialize_case(case: models.Case) -> dict:
         "name": case.name,
         "content_type": getattr(case, "content_type", "") or "",
         "product_category": getattr(case, "product_category", "") or "",
+        "asset_category": getattr(case, "asset_category", "") or "layout",
+        "asset_subcategory": getattr(case, "asset_subcategory", "") or "",
         "industry": case.industry,
         "scene": case.scene,
         "summary": case.summary,
@@ -155,33 +161,50 @@ def serialize_case(case: models.Case) -> dict:
     }
 
 
-def load_image_hashes(db: Session) -> list[tuple[str, int]]:
+def load_image_hashes(
+    db: Session, asset_category: str | None = None
+) -> list[tuple[str, int]]:
     """返回 (phash, case_id) 列表，用于去重比对。"""
-    rows = (
+    query = (
         db.query(models.Image.phash, models.Case.id)
         .join(models.Case, models.Case.image_id == models.Image.id)
         .filter(models.Image.phash != "")
-        .all()
     )
+    if asset_category:
+        query = query.filter(models.Case.asset_category == asset_category)
+    rows = query.all()
     return [(h, cid) for h, cid in rows if h]
 
 
-def find_duplicate_case_id(db: Session, phash: str, threshold: int = 5) -> int | None:
+def find_duplicate_case_id(
+    db: Session,
+    phash: str,
+    threshold: int = 5,
+    asset_category: str | None = None,
+) -> int | None:
     """在已有案例中查找与 phash 近重复的案例 id。"""
     from .imagehash import hamming
 
     if not phash:
         return None
-    for h, cid in load_image_hashes(db):
+    for h, cid in load_image_hashes(db, asset_category=asset_category):
         if hamming(phash, h) <= threshold:
             return cid
     return None
 
 
 def search_cases(
-    db: Session, q: str | None = None, tag: str | None = None
+    db: Session,
+    q: str | None = None,
+    tag: str | None = None,
+    asset_category: str | None = None,
+    asset_subcategory: str | None = None,
 ) -> list[models.Case]:
     query = db.query(models.Case)
+    if asset_category:
+        query = query.filter(models.Case.asset_category == asset_category)
+    if asset_subcategory:
+        query = query.filter(models.Case.asset_subcategory == asset_subcategory)
     if tag:
         query = query.join(models.Case.tags).filter(models.Tag.name == tag)
     cases = query.order_by(models.Case.created_at.desc()).all()

@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api, CaseOut } from "@/lib/api";
 import { Card, Swatches, Tag } from "@/components/ui";
+import { ASSET_CATEGORIES, categoryByValue } from "@/lib/categories";
 
 export default function AnalyzePage() {
   const [preview, setPreview] = useState<string>("");
@@ -14,6 +15,8 @@ export default function AnalyzePage() {
   const [sourceUrl, setSourceUrl] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [rightsNote, setRightsNote] = useState("");
+  const [assetCategory, setAssetCategory] = useState("layout");
+  const [assetSubcategory, setAssetSubcategory] = useState("");
 
   const onPick = (f: File | null) => {
     setResult(null);
@@ -33,6 +36,8 @@ export default function AnalyzePage() {
           source_url: sourceUrl,
           product_category: productCategory,
           rights_note: rightsNote,
+          asset_category: assetCategory,
+          asset_subcategory: assetSubcategory,
         })
       );
     } catch (e) {
@@ -75,6 +80,36 @@ export default function AnalyzePage() {
             {loading ? "AI 分析中…" : "开始拆解"}
           </button>
           <div className="mt-4 grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <select
+                value={assetCategory}
+                onChange={(e) => {
+                  setAssetCategory(e.target.value);
+                  setAssetSubcategory("");
+                }}
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
+              >
+                {ASSET_CATEGORIES.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    素材仓库：{item.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={assetSubcategory}
+                onChange={(e) => setAssetSubcategory(e.target.value)}
+                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
+              >
+                <option value="">选择二级品类</option>
+                {categoryByValue(assetCategory).subcategories.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-gray-500">
+              将按“{categoryByValue(assetCategory).label}”重点拆解：
+              {categoryByValue(assetCategory).note}
+            </p>
             <select
               value={sourceType}
               onChange={(e) => setSourceType(e.target.value)}

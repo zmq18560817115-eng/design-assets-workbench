@@ -133,6 +133,8 @@ class CaseOut(BaseModel):
     name: str
     content_type: str = ""
     product_category: str = ""
+    asset_category: str = "layout"
+    asset_subcategory: str = ""
     industry: str
     scene: str
     summary: str

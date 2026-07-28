@@ -63,12 +63,16 @@ class PhaseOneFlowTest(unittest.TestCase):
                 "source_type": "company_published",
                 "product_category": "吸奶器",
                 "rights_note": "公司内部使用",
+                "asset_category": "layout",
+                "asset_subcategory": "层级分类对比",
             },
         )
         self.assertEqual(response.status_code, 200, response.text)
         case = response.json()
         self.assertEqual(case["product_category"], "吸奶器")
         self.assertEqual(case["trust_status"], "ai_unverified")
+        self.assertEqual(case["asset_category"], "layout")
+        self.assertEqual(case["asset_subcategory"], "层级分类对比")
         self.assertEqual(case["image"]["source_type"], "company_published")
         self.assertIn("layout", case["analysis"])
         self.assertEqual(case["analysis"]["version"], 1)
@@ -81,9 +85,20 @@ class PhaseOneFlowTest(unittest.TestCase):
                 "source_type": "external_reference",
                 "product_category": "恒温杯",
                 "source_url": "https://example.com/reference",
+                "asset_category": "style",
+                "asset_subcategory": "电商风格",
             },
         )
         self.assertEqual(second_response.status_code, 200, second_response.text)
+
+        layout_library = self.client.get(
+            "/api/cases", params={"asset_category": "layout"}
+        )
+        self.assertEqual(layout_library.status_code, 200)
+        self.assertTrue(layout_library.json())
+        self.assertTrue(
+            all(item["asset_category"] == "layout" for item in layout_library.json())
+        )
 
         text_search = self.client.post(
             "/api/search",

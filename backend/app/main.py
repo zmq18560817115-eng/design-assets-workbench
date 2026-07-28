@@ -68,6 +68,8 @@ async def analyze_image(
     source_url: str = Form(""),
     rights_note: str = Form(""),
     product_category: str = Form(""),
+    asset_category: str = Form("layout"),
+    asset_subcategory: str = Form(""),
     db: Session = Depends(get_db),
 ):
     """上传图片 → 运行 AI Agent 流水线 → 生成并保存案例卡。
@@ -86,7 +88,9 @@ async def analyze_image(
     phash = ""
     try:
         phash = imagehash.dhash(str(dest))
-        dup_id = crud.find_duplicate_case_id(db, phash)
+        dup_id = crud.find_duplicate_case_id(
+            db, phash, asset_category=asset_category
+        )
         if dup_id:
             dest.unlink(missing_ok=True)
             dup = db.query(models.Case).filter(models.Case.id == dup_id).first()
@@ -110,12 +114,17 @@ async def analyze_image(
     db.flush()
 
     try:
-        result = run_pipeline(str(dest))
+        result = run_pipeline(str(dest), asset_category=asset_category)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"分析失败：{exc}") from exc
 
     case = crud.create_case_from_analysis(
-        db, image, result, product_category=product_category
+        db,
+        image,
+        result,
+        product_category=product_category,
+        asset_category=asset_category,
+        asset_subcategory=asset_subcategory,
     )
     return crud.serialize_case(case)
 
@@ -128,6 +137,8 @@ async def analyze_batch(
     source_url: str = Form(""),
     rights_note: str = Form(""),
     product_category: str = Form(""),
+    asset_category: str = Form("layout"),
+    asset_subcategory: str = Form(""),
 ):
     """批量上传：先落盘，起后台任务顺序拆解入库，返回 batch_id 供轮询进度。"""
     items = []
@@ -148,6 +159,8 @@ async def analyze_batch(
                 "source_url": source_url,
                 "rights_note": rights_note,
                 "product_category": product_category,
+                "asset_category": asset_category,
+                "asset_subcategory": asset_subcategory,
             }
         )
     if not items:
@@ -166,9 +179,21 @@ def analyze_batch_status(batch_id: str):
 
 
 @app.get("/api/cases", response_model=list[CaseOut])
-def list_cases(q: str | None = None, tag: str | None = None, db: Session = Depends(get_db)):
+def list_cases(
+    q: str | None = None,
+    tag: str | None = None,
+    asset_category: str | None = None,
+    asset_subcategory: str | None = None,
+    db: Session = Depends(get_db),
+):
     """案例资产库：支持关键词搜索与标签检索。"""
-    cases = crud.search_cases(db, q=q, tag=tag)
+    cases = crud.search_cases(
+        db,
+        q=q,
+        tag=tag,
+        asset_category=asset_category,
+        asset_subcategory=asset_subcategory,
+    )
     return [crud.serialize_case(c) for c in cases]
 
 

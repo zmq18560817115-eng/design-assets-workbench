@@ -26,21 +26,24 @@ def run(
     tone = "warm tones" if features.warm else "cool tones"
 
     zh_parts = [
-        f"{p['zh']}（{basics.industry}）",
-        "、".join(style.style_tags),
-        f"色彩：{'、'.join(features.color_names[:3]) or '中性色'}（{tone}），主色 {color.primary}",
+        f"{p['zh']}的白板版式图（{basics.industry}）",
         f"排版：{layout.layout_type}，{layout.grid_columns}，{layout.alignment}，{layout.margins}",
+        f"信息层级：{' → '.join(layout.hierarchy)}，{layout.modules}，{layout.spacing}",
         f"文字：{typography.title_treatment}，字体{typography.font_tone}",
-        f"光影：{light.type}",
-        f"情绪：{'、'.join(style.mood_keywords)}",
-        p["quality"],
+        f"风格参考：{'、'.join(style.style_tags)}；情绪：{'、'.join(style.mood_keywords)}",
+        f"少量配色注释：{'、'.join(features.color_names[:3]) or '中性色'}，主色 {color.primary}",
+        "白色或浅灰画布，灰阶模块、线框、占位图片框和占位文字，清楚展示网格、页边距、留白与阅读动线",
+        "低保真、可编辑的版式骨架，不生成完整文案、品牌Logo或成品摄影渲染",
     ]
     zh = "，".join(x for x in zh_parts if x)
 
     en = (
-        f"{p['en']}, {basics.industry} industry, {', '.join(style.style_tags)} style, "
-        f"{tone}, primary color {color.primary}, "
-        f"{layout.layout_type} layout, {layout.alignment}, clear typographic hierarchy, "
-        f"{light.type} lighting, {', '.join(style.mood_keywords)} mood, {p['quality']}"
+        f"whiteboard layout wireframe for {p['en']}, {basics.industry} industry, "
+        f"{layout.layout_type} layout, {layout.grid_columns}, {layout.alignment}, "
+        f"clear information hierarchy and reading flow, {layout.margins}, "
+        f"white or light-gray canvas, grayscale modules, image placeholders, text placeholders, "
+        f"grid and spacing annotations, {', '.join(style.style_tags)} style references, "
+        f"minimal accent color {color.primary}, editable low-fidelity composition skeleton, "
+        "no final copy, no brand logo, no polished photography rendering"
     )
     return f"{zh}\n\nEN: {en}"

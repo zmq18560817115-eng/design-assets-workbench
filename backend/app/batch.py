@@ -53,9 +53,18 @@ def _run(batch_id: str, items: list[dict]) -> None:
     # 预载已入库哈希，作为去重基线
     db = SessionLocal()
     try:
-        seen: list[str] = [h for h, _ in crud.load_image_hashes(db)]
+        categories = {it.get("asset_category", "layout") for it in items}
+        seen_by_category: dict[str, list[str]] = {
+            category: [
+                h
+                for h, _ in crud.load_image_hashes(
+                    db, asset_category=category
+                )
+            ]
+            for category in categories
+        }
     except Exception:
-        seen = []
+        seen_by_category = {}
     finally:
         db.close()
     seen_lock = threading.Lock()
@@ -70,6 +79,8 @@ def _run(batch_id: str, items: list[dict]) -> None:
             # 去重：与已入库 + 本批次已见比对
             if phash:
                 with seen_lock:
+                    category = it.get("asset_category", "layout")
+                    seen = seen_by_category.setdefault(category, [])
                     dup = any(imagehash.is_duplicate(phash, h) for h in seen)
                     if not dup:
                         seen.append(phash)
@@ -79,7 +90,9 @@ def _run(batch_id: str, items: list[dict]) -> None:
                         _batches[batch_id]["skipped_files"].append(it["filename"])
                     return
 
-            result = run_pipeline(it["path"])  # 慢操作，并发执行
+            result = run_pipeline(
+                it["path"], asset_category=it.get("asset_category", "layout")
+            )
 
             with _db_write_lock:  # DB 写入串行
                 wdb = SessionLocal()
@@ -102,6 +115,8 @@ def _run(batch_id: str, items: list[dict]) -> None:
                         image,
                         result,
                         product_category=it.get("product_category", ""),
+                        asset_category=it.get("asset_category", "layout"),
+                        asset_subcategory=it.get("asset_subcategory", ""),
                     )
                     cid = case.id
                 finally:

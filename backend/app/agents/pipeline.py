@@ -10,6 +10,7 @@ import mimetypes
 from pathlib import Path
 
 from .. import config, vlm
+from ..asset_categories import category_label, normalize_category
 from ..schemas import AnalysisResult, DeepInsights
 from ..vision_provider import analyze
 from . import (
@@ -26,7 +27,8 @@ def _vlm_enabled() -> bool:
     return config.vlm_enabled()
 
 
-def run_pipeline(image_path: str) -> AnalysisResult:
+def run_pipeline(image_path: str, asset_category: str = "layout") -> AnalysisResult:
+    asset_category = normalize_category(asset_category)
     features = analyze(image_path)
 
     basics = vision_agent.run(features)
@@ -83,7 +85,7 @@ def run_pipeline(image_path: str) -> AnalysisResult:
     # 若配置了真实视觉大模型，用其语义理解增强结果（硬参数仍保留 Pillow 测量值）
     if _vlm_enabled():
         try:
-            result = _augment_with_vlm(image_path, features, result)
+            result = _augment_with_vlm(image_path, features, result, asset_category)
         except Exception:
             # 大模型不可用时静默回退到启发式结果，保证链路不中断
             pass
@@ -91,7 +93,9 @@ def run_pipeline(image_path: str) -> AnalysisResult:
     return result
 
 
-def _augment_with_vlm(image_path, features, result: AnalysisResult) -> AnalysisResult:
+def _augment_with_vlm(
+    image_path, features, result: AnalysisResult, asset_category: str = "layout"
+) -> AnalysisResult:
     """用视觉大模型的语义输出覆盖启发式结果，保留 Pillow 的硬版式/色板参数。"""
     data = Path(image_path).read_bytes()
     mime = mimetypes.guess_type(image_path)[0] or "image/png"
@@ -102,7 +106,7 @@ def _augment_with_vlm(image_path, features, result: AnalysisResult) -> AnalysisR
         "modules": result.layout.modules,
         "margins": result.layout.margins,
     }
-    v = vlm.analyze_image(data, mime, hints)
+    v = vlm.analyze_image(data, mime, hints, asset_category=asset_category)
 
     def pick(key: str, fallback):
         val = v.get(key)
@@ -148,7 +152,10 @@ def _augment_with_vlm(image_path, features, result: AnalysisResult) -> AnalysisR
     r.analyzed_by = config.VISION_MODEL or config.VISION_PROVIDER
 
     # 名称与标签基于（可能被覆盖的）语义重算，保持排版优先
-    r.name = f"{r.layout.layout_type}·{r.basics.industry}·{'/'.join(r.style.style_tags[:1])}案例"
+    r.name = (
+        f"{category_label(asset_category)}·{r.layout.layout_type}·"
+        f"{'/'.join(r.style.style_tags[:1])}案例"
+    )
     r.tags = list(
         dict.fromkeys(
             [r.layout.layout_type, r.layout.alignment, r.typography.text_ratio]

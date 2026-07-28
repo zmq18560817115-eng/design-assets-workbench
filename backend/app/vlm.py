@@ -16,9 +16,11 @@ import re
 import httpx
 
 from . import config
+from .asset_categories import category_focus, category_label, normalize_category
 
 SYSTEM_PROMPT = (
     "你是资深视觉设计分析师，擅长把一张设计图拆解成结构化的设计知识。"
+    "分析时以排版结构为第一优先级、视觉风格为第二优先级，色彩和实拍表现作为辅助维度。"
     "请只输出一个 JSON 对象，不要输出多余文字或 markdown 代码块。"
 )
 
@@ -48,9 +50,19 @@ USER_TEMPLATE = """你是资深视觉设计分析师，请对这张设计图做*
   "critique": ["专业点评，含优点与不足，2~4 条"],
   "improvement": ["具体可操作的提升建议，2~4 条"],
   "summary": "一句话总结",
-  "prompt_zh": "可直接用于 AI 绘图的中文提示词（以版式为主、风格为辅）",
-  "prompt_en": "对应英文提示词"
+  "prompt_zh": "可直接用于 AI 绘图的中文白板版式提示词（以排版结构为主、风格特征为辅）",
+  "prompt_en": "对应的英文白板版式提示词"
 }}
+
+分析优先级：
+1. 排版：网格、模块、页边距、留白、对齐、信息层级、阅读动线、标题与图片占比；
+2. 风格：视觉语言、情绪、品牌调性和可复用的形式特征；
+3. 色彩：主辅色角色、面积比例与对比关系；
+4. 实拍图：仅在原图包含摄影内容时分析主体、构图、景别、光线、场景和材质。
+
+生图提示词必须以“白板版式图/低保真布局白模”为目标：白色或浅灰画布，使用灰阶块、线框、占位图片框和占位文字表现结构，
+清楚标注网格、模块、间距、留白和信息层级；不生成完整成品文案，不生成品牌 Logo，不追求成品摄影渲染。
+风格与色彩只作为少量注释或点缀，用于辅助表达原图气质，核心必须是可复用、可编辑的版式骨架。
 
 重要：prompt_zh/prompt_en 必须与图片的**平台/媒介类型一致**——
 若是 UI 界面就写界面设计提示词、网页就写网页设计、海报就写平面海报、插画就写插画；
@@ -77,17 +89,29 @@ def _extract_json(text: str) -> dict:
     return json.loads(text)
 
 
-def analyze_image(image_bytes: bytes, mime: str, hints: dict) -> dict:
+def analyze_image(
+    image_bytes: bytes,
+    mime: str,
+    hints: dict,
+    asset_category: str = "layout",
+) -> dict:
     """调用视觉大模型，返回语义分析字典。失败会抛异常，由上层决定回退。"""
     b64 = base64.b64encode(image_bytes).decode()
     data_uri = f"data:{mime or 'image/png'};base64,{b64}"
 
+    asset_category = normalize_category(asset_category)
     user_text = USER_TEMPLATE.format(
         palette="、".join(hints.get("palette", [])) or "（未知）",
         tone=hints.get("tone", ""),
         grid_columns=hints.get("grid_columns", ""),
         modules=hints.get("modules", ""),
         margins=hints.get("margins", ""),
+    )
+    user_text += (
+        f"\n\n本素材归入「{category_label(asset_category)}」仓库。"
+        f"{category_focus(asset_category)}"
+        "其余维度仍需返回，但应简洁，并让 summary、critique、improvement、"
+        "reusable_methods 与生图提示词优先服务于本仓库的拆解目标。"
     )
 
     payload = {

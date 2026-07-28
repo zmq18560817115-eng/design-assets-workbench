@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, CaseOut } from "@/lib/api";
 import { CaseCard } from "@/components/ui";
+import { ASSET_CATEGORIES } from "@/lib/categories";
 
-const topics = [
-  { title: "编辑感排版", note: "大留白 · 强标题 · 弱边界", color: "bg-lilac" },
-  { title: "科技与理性", note: "冷色 · 网格 · 玻璃质感", color: "bg-cyan" },
-  { title: "温暖生活方式", note: "自然光 · 柔和色板 · 图片优先", color: "bg-peach" },
-];
+const colors = ["bg-lilac", "bg-cyan", "bg-peach", "bg-[#E9F3E8]"];
+const topics = ASSET_CATEGORIES.map((item, index) => ({
+  ...item,
+  title: item.label,
+  color: colors[index],
+}));
 
 export default function Home() {
   const [cases, setCases] = useState<CaseOut[]>([]);
@@ -60,16 +62,16 @@ export default function Home() {
       <section>
         <div className="mb-6 flex items-end justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Collections</div>
-            <h2 className="mt-2 text-2xl font-semibold">精选视觉专题</h2>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">Categories</div>
+            <h2 className="mt-2 text-2xl font-semibold">视觉拆解类别</h2>
           </div>
           <Link href="/search" className="text-sm text-accent">按条件查找 →</Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {topics.map((topic, index) => (
             <Link
               key={topic.title}
-              href={`/search?q=${encodeURIComponent(topic.title)}`}
+              href={`/cases?asset_category=${topic.value}`}
               className={`${topic.color} min-h-40 rounded-3xl p-6 transition hover:-translate-y-1`}
             >
               <div className="text-xs text-gray-500">0{index + 1}</div>
