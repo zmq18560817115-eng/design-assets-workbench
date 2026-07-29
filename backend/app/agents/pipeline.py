@@ -132,6 +132,18 @@ def _augment_with_vlm(
     r.layout.layout_type = pick("layout_type", r.layout.layout_type)
     r.layout.alignment = pick("alignment", r.layout.alignment)
     r.layout.hierarchy = pick("hierarchy", r.layout.hierarchy)
+    r.layout.canvas_ratio = pick("canvas_ratio", r.layout.canvas_ratio)
+    r.layout.orientation = pick("orientation", r.layout.orientation)
+    r.layout.reading_flow = pick("reading_flow", r.layout.reading_flow)
+    r.layout.focal_region = pick("focal_region", r.layout.focal_region)
+    r.layout.information_density = pick(
+        "information_density", r.layout.information_density
+    )
+    r.layout.text_image_ratio = v.get(
+        "text_image_ratio", r.layout.text_image_ratio
+    )
+    r.layout.blueprint_modules = v.get("blueprint_modules") or []
+    r.layout.layout_summary = pick("layout_summary", r.layout.layout_summary)
     # 文字
     r.typography.title_treatment = pick("title_treatment", r.typography.title_treatment)
     r.typography.font_tone = pick("font_tone", r.typography.font_tone)

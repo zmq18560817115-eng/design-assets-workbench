@@ -112,6 +112,10 @@ export interface LayoutModule extends NormalizedRegion {
   priority: number;
   alignment: string;
   description: string;
+  label: string;
+  importance: number;
+  content_summary: string;
+  confidence: number;
 }
 
 export interface LayoutBlueprintInput {
@@ -127,7 +131,8 @@ export interface LayoutBlueprintInput {
   text_image_ratio: number;
   module_count: number;
   modules_json: LayoutModule[];
-  review_status: "ai_unverified" | "human_edited" | "verified";
+  layout_signature: string;
+  review_status: "ai_generated" | "corrected" | "verified" | "human_edited";
   model_name: string;
   prompt_version: string;
   editor: string;
@@ -186,7 +191,17 @@ export interface BusinessRequirementCreate {
   information_density: "" | "low" | "medium" | "high";
   reference_case_ids: number[];
   created_by: string;
-  status: "draft" | "ready" | "archived";
+  content_purpose: string;
+  required_modules_json: string[];
+  optional_modules_json: string[];
+  forbidden_modules_json: string[];
+  selling_points_json: string[];
+  style_keywords_json: string[];
+  raw_requirement: string;
+  reference_case_ids_json: number[];
+  reference_image_path: string;
+  creator: string;
+  status: "draft" | "confirmed" | "archived" | "ready";
 }
 
 export interface BusinessRequirement extends BusinessRequirementCreate {
@@ -390,6 +405,35 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then((r) => j<BusinessRequirement>(r)),
+  businessRequirements: () =>
+    fetch("/api/business-requirements", { cache: "no-store" }).then((r) =>
+      j<BusinessRequirement[]>(r)
+    ),
+  businessRequirement: (id: number | string) =>
+    fetch(`/api/business-requirements/${id}`, { cache: "no-store" }).then((r) =>
+      j<BusinessRequirement>(r)
+    ),
+  updateBusinessRequirement: (
+    id: number | string,
+    payload: BusinessRequirementCreate
+  ) =>
+    fetch(`/api/business-requirements/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<BusinessRequirement>(r)),
+  confirmBusinessRequirement: (id: number | string) =>
+    fetch(`/api/business-requirements/${id}/confirm`, {
+      method: "POST",
+    }).then((r) => j<BusinessRequirement>(r)),
+  uploadRequirementReference: (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return fetch("/api/business-requirements/reference-image", {
+      method: "POST",
+      body,
+    }).then((r) => j<{ path: string }>(r));
+  },
   matchBusinessRequirement: (requirementId: number) =>
     fetch(`/api/business-requirements/${requirementId}/match`, {
       method: "POST",

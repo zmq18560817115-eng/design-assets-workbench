@@ -1,0 +1,14 @@
+{
+  "layout_cases": [
+    {"name": "竖版单产品海报", "canvas_ratio": "3:4", "modules": ["main_title", "product_image", "selling_point", "cta"]},
+    {"name": "左文右图排版", "canvas_ratio": "16:9", "modules": ["main_title", "body_text", "product_image"]},
+    {"name": "中心产品聚焦排版", "canvas_ratio": "1:1", "modules": ["main_title", "product_image", "footnote"]},
+    {"name": "多卖点卡片排版", "canvas_ratio": "3:4", "modules": ["main_title", "product_image", "feature_list", "selling_point"]},
+    {"name": "参数对比排版", "canvas_ratio": "3:4", "modules": ["main_title", "parameter_table", "product_image", "footnote"]}
+  ],
+  "business_requirements": [
+    {"title": "小红书产品卖点介绍", "channel": "小红书", "content_purpose": "卖点说明"},
+    {"title": "产品参数对比海报", "channel": "产品海报", "content_purpose": "参数对比"},
+    {"title": "新品上新宣传", "channel": "社交媒体", "content_purpose": "上新宣传"}
+  ]
+}

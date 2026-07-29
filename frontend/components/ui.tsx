@@ -9,6 +9,7 @@ export function Nav() {
     { href: "/analyze", label: "上传入库" },
     { href: "/batch", label: "批量导入" },
     { href: "/cases", label: "素材库" },
+    { href: "/requirements", label: "业务需求" },
     { href: "/patterns", label: "排版模式" },
     { href: "/intentions", label: "排版意向" },
   ];

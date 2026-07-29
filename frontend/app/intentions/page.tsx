@@ -29,7 +29,17 @@ const initialForm: BusinessRequirementCreate = {
   information_density: "medium",
   reference_case_ids: [],
   created_by: "",
-  status: "ready",
+  content_purpose: "",
+  required_modules_json: [],
+  optional_modules_json: [],
+  forbidden_modules_json: [],
+  selling_points_json: [],
+  style_keywords_json: [],
+  raw_requirement: "",
+  reference_case_ids_json: [],
+  reference_image_path: "",
+  creator: "",
+  status: "confirmed",
 };
 
 export default function IntentionsPage() {

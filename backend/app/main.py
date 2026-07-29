@@ -34,6 +34,7 @@ from .database import SessionLocal, close_db, get_db, init_db
 from .schemas import (
     AnalysisResult,
     BusinessRequirementCreate,
+    BusinessRequirementUpdate,
     BusinessRequirementMatchOut,
     BusinessRequirementOut,
     CaseOut,
@@ -378,6 +379,122 @@ def verify_layout_blueprint(
     return crud.serialize_layout_blueprint(verified)
 
 
+@app.get(
+    "/api/cases/{case_id}/layout-blueprint",
+    response_model=LayoutBlueprintOut,
+)
+def get_current_case_layout_blueprint(
+    case_id: int,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.Case, case_id):
+        raise HTTPException(status_code=404, detail="案例不存在")
+    blueprint = crud.get_latest_layout_blueprint(db, case_id)
+    if not blueprint:
+        raise HTTPException(status_code=404, detail="排版蓝图不存在")
+    return crud.serialize_layout_blueprint(blueprint)
+
+
+@app.get(
+    "/api/cases/{case_id}/layout-blueprint/versions",
+    response_model=list[LayoutBlueprintOut],
+)
+def get_case_layout_blueprint_versions(
+    case_id: int,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.Case, case_id):
+        raise HTTPException(status_code=404, detail="案例不存在")
+    return [
+        crud.serialize_layout_blueprint(item)
+        for item in crud.list_layout_blueprints(db, case_id)
+    ]
+
+
+@app.patch(
+    "/api/cases/{case_id}/layout-blueprint",
+    response_model=LayoutBlueprintOut,
+)
+def patch_case_layout_blueprint(
+    case_id: int,
+    payload: LayoutBlueprintInput,
+    expected_version: int | None = None,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.Case, case_id):
+        raise HTTPException(status_code=404, detail="案例不存在")
+    current = crud.get_latest_layout_blueprint(db, case_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="排版蓝图不存在")
+    if expected_version is not None and current.version != expected_version:
+        raise HTTPException(
+            status_code=409,
+            detail=f"版本冲突：当前为 v{current.version}，提交基于 v{expected_version}",
+        )
+    corrected = LayoutBlueprintInput.model_validate(
+        {
+            **payload.model_dump(),
+            "review_status": "corrected",
+        }
+    )
+    return crud.serialize_layout_blueprint(
+        crud.create_layout_blueprint(db, case_id, corrected)
+    )
+
+
+@app.post(
+    "/api/cases/{case_id}/layout-blueprint/regenerate",
+    response_model=LayoutBlueprintOut,
+)
+def regenerate_case_layout_blueprint_v2(
+    case_id: int,
+    db: Session = Depends(get_db),
+):
+    case = db.get(models.Case, case_id)
+    if not case or not case.image:
+        raise HTTPException(status_code=404, detail="案例或原始图片不存在")
+    image_path = config.UPLOAD_DIR / Path(case.image.url).name
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="原始图片文件不存在")
+    try:
+        result = run_pipeline(str(image_path), asset_category="layout")
+        payload = crud.build_initial_layout_blueprint(case.image, result)
+        blueprint = crud.create_layout_blueprint(db, case_id, payload)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"AI重新拆解失败：{exc}") from exc
+    return crud.serialize_layout_blueprint(blueprint)
+
+
+@app.post(
+    "/api/cases/{case_id}/layout-blueprint/verify",
+    response_model=LayoutBlueprintOut,
+)
+def verify_case_layout_blueprint_v2(
+    case_id: int,
+    payload: LayoutBlueprintVerifyInput,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.Case, case_id):
+        raise HTTPException(status_code=404, detail="案例不存在")
+    current = crud.get_latest_layout_blueprint(db, case_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="排版蓝图不存在")
+    if payload.version is not None and current.version != payload.version:
+        raise HTTPException(status_code=409, detail="只能确认当前版本，版本已发生变化")
+    if current.review_status == "verified":
+        raise HTTPException(status_code=409, detail="当前版本已经确认")
+    verified_payload = LayoutBlueprintInput.model_validate(
+        {
+            **crud.serialize_layout_blueprint(current),
+            "review_status": "verified",
+            "editor": payload.editor,
+        }
+    )
+    return crud.serialize_layout_blueprint(
+        crud.create_layout_blueprint(db, case_id, verified_payload)
+    )
+
+
 @app.get("/api/layout-patterns", response_model=list[LayoutPatternOut])
 def list_layout_patterns(
     orientation: str = "",
@@ -493,6 +610,19 @@ def list_business_requirements(
     ]
 
 
+@app.post("/api/business-requirements/reference-image")
+async def upload_business_requirement_reference_image(
+    file: UploadFile = File(...),
+):
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(status_code=400, detail="参考文件必须是图片")
+    ext = Path(file.filename or "").suffix or ".png"
+    stored_name = f"requirement-{uuid.uuid4().hex}{ext}"
+    destination = config.UPLOAD_DIR / stored_name
+    destination.write_bytes(await file.read())
+    return {"path": f"/uploads/{stored_name}"}
+
+
 @app.post(
     "/api/business-requirements",
     response_model=BusinessRequirementOut,
@@ -519,6 +649,44 @@ def get_business_requirement(
     requirement = db.get(models.BusinessRequirement, requirement_id)
     if not requirement:
         raise HTTPException(status_code=404, detail="业务需求不存在")
+    return crud.serialize_business_requirement(requirement)
+
+
+@app.patch(
+    "/api/business-requirements/{requirement_id}",
+    response_model=BusinessRequirementOut,
+)
+def patch_business_requirement(
+    requirement_id: int,
+    payload: BusinessRequirementUpdate,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    try:
+        updated = crud.update_business_requirement(db, requirement, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_business_requirement(updated)
+
+
+@app.post(
+    "/api/business-requirements/{requirement_id}/confirm",
+    response_model=BusinessRequirementOut,
+)
+def confirm_business_requirement(
+    requirement_id: int,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    if requirement.status == "archived":
+        raise HTTPException(status_code=409, detail="已归档需求不能确认")
+    requirement.status = "confirmed"
+    db.commit()
+    db.refresh(requirement)
     return crud.serialize_business_requirement(requirement)
 
 

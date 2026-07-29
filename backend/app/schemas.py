@@ -40,6 +40,14 @@ class Layout(BaseModel):
     content_ratio: str = ""          # 内容区占比
     grid_metrics: dict[str, float] = {}  # 原始度量（占比等），供进一步生成使用
     description: str = ""
+    canvas_ratio: str = ""
+    orientation: str = ""
+    reading_flow: str = ""
+    focal_region: dict[str, float] = {}
+    information_density: str = ""
+    text_image_ratio: float | None = None
+    blueprint_modules: list[dict[str, Any]] = []
+    layout_summary: str = ""
 
 
 class Typography(BaseModel):
@@ -184,10 +192,37 @@ class LayoutMargins(BaseModel):
 
 class LayoutModule(NormalizedRegion):
     id: str = Field(min_length=1, max_length=80)
-    type: str = Field(min_length=1, max_length=80)
+    type: Literal[
+        "main_title", "subtitle", "body_text", "product_image", "person_image",
+        "scene_image", "selling_point", "feature_list", "parameter_table",
+        "price", "logo", "cta", "footnote", "decoration", "background", "other",
+    ]
+    label: str = ""
+    importance: int = Field(default=1, ge=1)
+    content_summary: str = ""
+    confidence: float = Field(default=0.5, ge=0, le=1)
+    # Legacy aliases remain in responses so existing clients keep working.
     priority: int = Field(default=1, ge=1)
     alignment: str = ""
     description: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_legacy_fields(cls, value):
+        if not isinstance(value, dict):
+            return value
+        value = dict(value)
+        type_aliases = {
+            "title": "main_title",
+            "supporting_text": "body_text",
+        }
+        value["type"] = type_aliases.get(value.get("type"), value.get("type", "other"))
+        value.setdefault("label", value.get("description", ""))
+        value.setdefault("content_summary", value.get("description", ""))
+        value.setdefault("importance", value.get("priority", 1))
+        value.setdefault("priority", value.get("importance", 1))
+        value.setdefault("description", value.get("content_summary", ""))
+        return value
 
 
 class LayoutBlueprintInput(BaseModel):
@@ -203,26 +238,31 @@ class LayoutBlueprintInput(BaseModel):
     text_image_ratio: float = Field(default=0.5, ge=0, le=1)
     module_count: int | None = Field(default=None, ge=0)
     modules_json: list[LayoutModule] = Field(default_factory=list)
-    review_status: Literal["ai_unverified", "human_edited", "verified"] = (
-        "ai_unverified"
-    )
+    layout_signature: str = ""
+    review_status: Literal[
+        "ai_generated", "corrected", "verified", "ai_unverified", "human_edited"
+    ] = "ai_generated"
     model_name: str = ""
     prompt_version: str = "layout-blueprint-v1"
     editor: str = ""
 
     @model_validator(mode="after")
     def module_count_matches(self):
-        actual = len(self.modules_json)
-        if self.module_count is None:
-            self.module_count = actual
-        elif self.module_count != actual:
-            raise ValueError("module_count must equal len(modules_json)")
-        module_ids = [module.id for module in self.modules_json]
-        if len(module_ids) != len(set(module_ids)):
-            raise ValueError("layout module ids must be unique")
-        if self.review_status == "ai_unverified" and not self.model_name.strip():
+        from .layout_blueprint import (
+            layout_signature,
+            validate_canvas_ratio,
+            validate_modules,
+        )
+        validate_canvas_ratio(self.canvas_ratio)
+        raw_modules = [module.model_dump() for module in self.modules_json]
+        validate_modules(raw_modules, self.module_count)
+        self.module_count = len(raw_modules)
+        self.layout_signature = layout_signature(
+            {**self.model_dump(exclude={"layout_signature"}), "modules_json": raw_modules}
+        )
+        if self.review_status in {"ai_generated", "ai_unverified"} and not self.model_name.strip():
             raise ValueError("AI layout blueprints must record model_name")
-        if self.review_status in {"human_edited", "verified"} and not self.editor.strip():
+        if self.review_status in {"corrected", "human_edited", "verified"} and not self.editor.strip():
             raise ValueError("human reviewed layout blueprints must record editor")
         return self
 
@@ -238,6 +278,7 @@ class LayoutBlueprintOut(LayoutBlueprintInput):
 
 class LayoutBlueprintVerifyInput(BaseModel):
     editor: str = Field(min_length=1, max_length=120)
+    version: int | None = Field(default=None, ge=1)
 
 
 class LayoutPatternCreate(BaseModel):
@@ -295,7 +336,7 @@ class LayoutPatternOut(BaseModel):
 
 class BusinessRequirementCreate(BaseModel):
     title: str = Field(min_length=1, max_length=180)
-    request_text: str = Field(min_length=1)
+    request_text: str = ""
     industry: str = ""
     product_category: str = ""
     channel: str = ""
@@ -306,10 +347,47 @@ class BusinessRequirementCreate(BaseModel):
     target_audience: str = ""
     key_message: str = ""
     mandatory_elements: list[str] = Field(default_factory=list)
+    content_purpose: str = ""
+    required_modules_json: list[str] = Field(default_factory=list)
+    optional_modules_json: list[str] = Field(default_factory=list)
+    forbidden_modules_json: list[str] = Field(default_factory=list)
+    selling_points_json: list[str] = Field(default_factory=list)
+    style_keywords_json: list[str] = Field(default_factory=list)
+    raw_requirement: str = ""
+    reference_case_ids_json: list[int] = Field(default_factory=list)
+    reference_image_path: str = ""
+    creator: str = ""
     information_density: Literal["", "low", "medium", "high"] = ""
     reference_case_ids: list[int] = Field(default_factory=list)
-    created_by: str = Field(min_length=1, max_length=120)
-    status: Literal["draft", "ready", "archived"] = "ready"
+    created_by: str = ""
+    status: Literal["draft", "confirmed", "archived", "ready"] = "draft"
+
+    @model_validator(mode="after")
+    def validate_requirement(self):
+        from .layout_blueprint import validate_canvas_ratio
+        self.title = self.title.strip()
+        if not self.title:
+            raise ValueError("title 不能为空")
+        if self.canvas_ratio:
+            validate_canvas_ratio(self.canvas_ratio)
+        conflict = sorted(
+            set(self.required_modules_json) & set(self.forbidden_modules_json)
+        )
+        if conflict:
+            raise ValueError(f"必需模块与禁止模块冲突: {conflict}")
+        self.reference_case_ids_json = list(
+            dict.fromkeys(self.reference_case_ids_json or self.reference_case_ids)
+        )
+        self.reference_case_ids = list(self.reference_case_ids_json)
+        self.raw_requirement = self.raw_requirement or self.request_text
+        self.request_text = self.request_text or self.raw_requirement
+        self.creator = self.creator or self.created_by
+        self.created_by = self.created_by or self.creator
+        return self
+
+
+class BusinessRequirementUpdate(BusinessRequirementCreate):
+    pass
 
 
 class BusinessRequirementOut(BusinessRequirementCreate):

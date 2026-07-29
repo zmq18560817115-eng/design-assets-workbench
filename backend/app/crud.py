@@ -12,10 +12,12 @@ from sqlalchemy.orm import Session
 
 from . import config, llm, models
 from .vision_provider import analyze_layout_regions
+from .layout_blueprint import validate_modules
 from .schemas import (
     AnalysisResult,
     CaseReviewInput,
     LayoutBlueprintInput,
+    LayoutModule,
     BusinessRequirementCreate,
     LayoutDirectionFeedbackCreate,
     LayoutPatternCreate,
@@ -188,6 +190,7 @@ def _layout_blueprint_model(
         version=version,
         modules_json=json.dumps(modules, ensure_ascii=False),
         margins=json.dumps(margins, ensure_ascii=False),
+        margins_json=json.dumps(margins, ensure_ascii=False),
         focal_region=(
             json.dumps(focal_region, ensure_ascii=False)
             if focal_region is not None
@@ -256,8 +259,27 @@ def build_initial_layout_blueprint(
         )
     except Exception:
         detected_modules = []
+    used_ai_modules = False
+    ai_modules = result.layout.blueprint_modules or []
+    if ai_modules:
+        try:
+            normalized_ai_modules = [
+                LayoutModule.model_validate(item).model_dump()
+                for item in ai_modules
+            ]
+            validate_modules(normalized_ai_modules, len(normalized_ai_modules))
+            ai_modules = normalized_ai_modules
+            used_ai_modules = True
+        except Exception:
+            ai_modules = []
     used_detection = len(detected_modules) >= 2
-    modules = detected_modules if used_detection else template_modules
+    modules = (
+        ai_modules
+        if used_ai_modules
+        else detected_modules
+        if used_detection
+        else template_modules
+    )
     visual = max(
         (
             module
@@ -296,15 +318,13 @@ def build_initial_layout_blueprint(
         else "heuristic"
     )
     model_name = (
-        f"region-detection+{source_label}"
+        source_label
+        if used_ai_modules
+        else f"region-detection-fallback+{source_label}"
         if used_detection
         else f"template-fallback+{source_label}"
     )
-    prompt_version = (
-        "layout-blueprint-region-detection-v2"
-        if used_detection
-        else "layout-blueprint-template-fallback-v2"
-    )
+    prompt_version = "layout-blueprint-v2"
     return LayoutBlueprintInput(
         canvas_ratio=_canvas_ratio(width, height),
         orientation=orientation,
@@ -321,7 +341,7 @@ def build_initial_layout_blueprint(
         information_density=information_density,
         text_image_ratio=text_image_ratio,
         modules_json=modules,
-        review_status="ai_unverified",
+        review_status="ai_generated",
         model_name=model_name,
         prompt_version=prompt_version,
     )
@@ -516,7 +536,23 @@ def create_business_requirement(
 ) -> models.BusinessRequirement:
     values = payload.model_dump()
     mandatory_elements = values.pop("mandatory_elements")
-    reference_case_ids = list(dict.fromkeys(values.pop("reference_case_ids")))
+    list_fields = {
+        key: values.pop(key)
+        for key in (
+            "required_modules_json",
+            "optional_modules_json",
+            "forbidden_modules_json",
+            "selling_points_json",
+            "style_keywords_json",
+        )
+    }
+    reference_case_ids = list(
+        dict.fromkeys(
+            values.pop("reference_case_ids_json")
+            or values.pop("reference_case_ids")
+        )
+    )
+    values.pop("reference_case_ids", None)
     if reference_case_ids:
         existing_case_ids = {
             case_id
@@ -535,6 +571,11 @@ def create_business_requirement(
         **values,
         mandatory_elements=json.dumps(mandatory_elements, ensure_ascii=False),
         reference_case_ids=json.dumps(reference_case_ids, ensure_ascii=False),
+        reference_case_ids_json=json.dumps(reference_case_ids, ensure_ascii=False),
+        **{
+            key: json.dumps(value, ensure_ascii=False)
+            for key, value in list_fields.items()
+        },
     )
     db.add(requirement)
     db.commit()
@@ -557,6 +598,18 @@ def serialize_business_requirement(
         "campaign_stage": requirement.campaign_stage,
         "business_goal": requirement.business_goal,
         "target_audience": requirement.target_audience,
+        "content_purpose": requirement.content_purpose or "",
+        "required_modules_json": _json_list(requirement.required_modules_json),
+        "optional_modules_json": _json_list(requirement.optional_modules_json),
+        "forbidden_modules_json": _json_list(requirement.forbidden_modules_json),
+        "selling_points_json": _json_list(requirement.selling_points_json),
+        "style_keywords_json": _json_list(requirement.style_keywords_json),
+        "raw_requirement": requirement.raw_requirement or requirement.request_text,
+        "reference_case_ids_json": _json_list(
+            requirement.reference_case_ids_json or requirement.reference_case_ids
+        ),
+        "reference_image_path": requirement.reference_image_path or "",
+        "creator": requirement.creator or requirement.created_by,
         "key_message": requirement.key_message,
         "mandatory_elements": _json_list(requirement.mandatory_elements),
         "information_density": requirement.information_density,
@@ -566,6 +619,51 @@ def serialize_business_requirement(
         "created_at": requirement.created_at,
         "updated_at": requirement.updated_at,
     }
+
+
+def update_business_requirement(
+    db: Session,
+    requirement: models.BusinessRequirement,
+    payload: BusinessRequirementCreate,
+) -> models.BusinessRequirement:
+    if requirement.status == "archived":
+        raise ValueError("已归档需求不能修改")
+    values = payload.model_dump()
+    reference_ids = list(
+        dict.fromkeys(
+            values.pop("reference_case_ids_json")
+            or values.pop("reference_case_ids")
+        )
+    )
+    values.pop("reference_case_ids", None)
+    if reference_ids:
+        existing = {
+            row[0]
+            for row in db.query(models.Case.id)
+            .filter(models.Case.id.in_(reference_ids))
+            .all()
+        }
+        missing = [case_id for case_id in reference_ids if case_id not in existing]
+        if missing:
+            raise ValueError(f"参考案例不存在: {missing}")
+    for key in (
+        "required_modules_json",
+        "optional_modules_json",
+        "forbidden_modules_json",
+        "selling_points_json",
+        "style_keywords_json",
+    ):
+        setattr(requirement, key, json.dumps(values.pop(key), ensure_ascii=False))
+    requirement.reference_case_ids = json.dumps(reference_ids, ensure_ascii=False)
+    requirement.reference_case_ids_json = json.dumps(reference_ids, ensure_ascii=False)
+    requirement.mandatory_elements = json.dumps(
+        values.pop("mandatory_elements"), ensure_ascii=False
+    )
+    for key, value in values.items():
+        setattr(requirement, key, value)
+    db.commit()
+    db.refresh(requirement)
+    return requirement
 
 
 def _text_overlap(left: str, right: str) -> float:
@@ -1240,6 +1338,9 @@ def serialize_layout_blueprint(blueprint: models.LayoutBlueprint) -> dict:
         "grid_columns": blueprint.grid_columns,
         "grid_rows": blueprint.grid_rows,
         "margins": json.loads(blueprint.margins or "{}"),
+        "margins_json": json.loads(
+            blueprint.margins_json or blueprint.margins or "{}"
+        ),
         "alignment": blueprint.alignment or "",
         "reading_flow": blueprint.reading_flow or "",
         "focal_region": (
@@ -1251,6 +1352,7 @@ def serialize_layout_blueprint(blueprint: models.LayoutBlueprint) -> dict:
         "text_image_ratio": blueprint.text_image_ratio,
         "module_count": blueprint.module_count,
         "modules_json": json.loads(blueprint.modules_json or "[]"),
+        "layout_signature": blueprint.layout_signature or "",
         "version": blueprint.version,
         "review_status": blueprint.review_status,
         "model_name": blueprint.model_name or "",

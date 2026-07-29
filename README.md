@@ -56,7 +56,96 @@ npm run dev
 
 前端地址：`http://127.0.0.1:3000`
 
-## 业务排版意向系统 V1.0
+## 当前阶段：AI业务排版知识库与意向方向生成系统基础层
+
+本轮只建设两个基础模块，不训练偏好、不生成最终设计图：
+
+```text
+素材上传 → AI图片拆解 → LayoutBlueprint v2 → 人工校正与确认
+         → BusinessRequirement 结构化需求
+```
+
+### 新增数据模型
+
+- `layout_blueprints`：案例的一对多版本化排版蓝图；新增
+  `margins_json`、`layout_signature`，状态使用 `ai_generated`、
+  `corrected`、`verified`。旧状态仍只为历史接口兼容。
+- `business_requirements`：补充内容目的、必需/可选/禁止模块、卖点、
+  风格关键词、原始需求、参考案例、参考图片和创建人，状态为
+  `draft`、`confirmed`、`archived`。
+- 原有 `analysis`、`analysis_versions`、案例与图片数据不删除、不覆盖。
+
+### 本阶段 API
+
+| 方法 | 地址 | 说明 |
+|---|---|---|
+| GET | `/api/cases/{id}/layout-blueprint` | 当前蓝图 |
+| PATCH | `/api/cases/{id}/layout-blueprint` | 校正并新增版本 |
+| POST | `/api/cases/{id}/layout-blueprint/regenerate` | 按需重新调用拆解 |
+| POST | `/api/cases/{id}/layout-blueprint/verify` | 确认当前版本 |
+| GET | `/api/cases/{id}/layout-blueprint/versions` | 历史版本 |
+| GET/POST | `/api/business-requirements` | 需求列表/创建 |
+| GET/PATCH | `/api/business-requirements/{id}` | 需求详情/修改 |
+| POST | `/api/business-requirements/{id}/confirm` | 确认需求 |
+| POST | `/api/business-requirements/reference-image` | 上传需求参考图 |
+
+旧的复数蓝图 API 继续保留，以免破坏已有前端或外部调用。
+
+### 新增页面
+
+- `/requirements`：业务需求列表。
+- `/requirements/new`：创建并保存草稿。
+- `/requirements/{id}`：查看、编辑和确认需求。
+- `/cases/{id}`：原图与低保真蓝图、模块表单、版本、模型与 Prompt 信息。
+
+### 数据库升级
+
+项目继续使用 SQLite。启动后端时会通过 `create_all + ALTER TABLE` 安全增量建表/建列。
+现有数据库升级与签名回填可显式执行：
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe .\scripts\upgrade_foundation_v2.py
+.\.venv\Scripts\python.exe .\scripts\upgrade_foundation_v2.py --execute
+```
+
+第一条仅预览，第二条执行；不会删除数据库，也不会修改旧 Analysis 历史。
+
+### 测试
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m py_compile app\main.py app\models.py app\schemas.py app\crud.py app\layout_blueprint.py
+
+cd ..\frontend
+npm run lint
+npm run build
+```
+
+仓库已提供 `.eslintrc.json`，`npm run lint` 可无人值守执行；
+`npm run build` 会继续执行 TypeScript 与 Next.js 编译检查。
+
+### AI 与 fallback 判断
+
+真实视觉模型使用 `.env` 中的 `VISION_PROVIDER`、`VISION_API_KEY`、
+`VISION_BASE_URL`、`VISION_MODEL`。凭证不可提交。新蓝图的 Prompt 版本为
+`layout-blueprint-v2`。`model_name` 为配置的模型/接入点时代表真实模型语义参与；
+包含 `region-detection-fallback` 或 `template-fallback` 时代表模型不可用、输出非法
+或未提供合法模块后使用本地降级骨架。严格调用模式下非法 JSON 会直接报错。
+
+### 当前明确未实现
+
+- 排版模式自动沉淀
+- 场景化排版检索
+- 三个排版意向方向
+- 方向反馈学习
+- 模型微调
+- 最终设计图生成
+
+仓库中可能保留早期实验性模式/方向兼容代码，但它们不属于本阶段交付，也未在本轮扩展。
+
+## 早期实验记录
 
 系统以现有素材数据和上传能力为基础，提供版本化的标准排版知识层。
 

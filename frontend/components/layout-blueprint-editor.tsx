@@ -10,8 +10,9 @@ import {
 import { LayoutWireframe } from "@/components/layout-wireframe";
 
 const statusLabels = {
-  ai_unverified: "AI 未校正",
-  human_edited: "人工已修改",
+  ai_generated: "AI 已生成",
+  corrected: "人工已校正",
+  human_edited: "人工已校正",
   verified: "人工已确认",
 };
 
@@ -29,6 +30,7 @@ function asInput(item: LayoutBlueprint): LayoutBlueprintInput {
     text_image_ratio: item.text_image_ratio,
     module_count: item.modules_json.length,
     modules_json: item.modules_json.map((module) => ({ ...module })),
+    layout_signature: item.layout_signature,
     review_status: item.review_status,
     model_name: item.model_name,
     prompt_version: item.prompt_version,
@@ -100,6 +102,10 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
         priority: index,
         alignment: draft.alignment || "center",
         description: "新增信息模块",
+        label: "辅助信息",
+        importance: index,
+        content_summary: "",
+        confidence: 1,
       },
     ];
     setDraft({ ...draft, modules_json: modules, module_count: modules.length });
@@ -122,7 +128,7 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
       const created = await api.reviseLayoutBlueprint(selected.id, {
         ...draft,
         module_count: draft.modules_json.length,
-        review_status: "human_edited",
+        review_status: "corrected",
         editor: editor.trim(),
       });
       setVersions((items) => [created, ...items]);

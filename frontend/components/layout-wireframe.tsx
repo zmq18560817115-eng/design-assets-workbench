@@ -3,6 +3,7 @@
 import { LayoutBlueprintInput } from "@/lib/api";
 
 const moduleLabels: Record<string, string> = {
+  main_title: "主标题",
   title: "标题",
   subtitle: "副标题",
   product_image: "主视觉",
@@ -12,6 +13,18 @@ const moduleLabels: Record<string, string> = {
   data: "数据",
   cta: "引导",
   footer: "页脚",
+  body_text: "正文",
+  person_image: "人物图",
+  scene_image: "场景图",
+  selling_point: "卖点",
+  feature_list: "功能列表",
+  parameter_table: "参数表",
+  price: "价格",
+  logo: "标识",
+  footnote: "脚注",
+  decoration: "装饰",
+  background: "背景",
+  other: "其他",
 };
 
 function bounded(value: number) {

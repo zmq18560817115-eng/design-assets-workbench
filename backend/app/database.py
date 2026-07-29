@@ -163,6 +163,7 @@ def _auto_migrate():
             "grid_columns": ("INTEGER", "1"),
             "grid_rows": ("INTEGER", "1"),
             "margins": ("TEXT", "{}"),
+            "margins_json": ("TEXT", "{}"),
             "alignment": ("TEXT", ""),
             "reading_flow": ("TEXT", ""),
             "focal_region": ("TEXT", "{}"),
@@ -170,6 +171,7 @@ def _auto_migrate():
             "text_image_ratio": ("REAL", "0.5"),
             "module_count": ("INTEGER", "0"),
             "modules_json": ("TEXT", "[]"),
+            "layout_signature": ("TEXT", ""),
             "version": ("INTEGER", "1"),
             "review_status": ("TEXT", "ai_unverified"),
             "model_name": ("TEXT", ""),
@@ -192,5 +194,43 @@ def _auto_migrate():
                         text(
                             f"ALTER TABLE layout_blueprints "
                             f"ADD COLUMN {col} DATETIME"
+                        )
+                    )
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "UPDATE layout_blueprints SET review_status='ai_generated' "
+                    "WHERE review_status='ai_unverified'"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE layout_blueprints SET review_status='corrected' "
+                    "WHERE review_status='human_edited'"
+                )
+            )
+    if "business_requirements" in tables:
+        requirement_cols = {
+            c["name"] for c in inspector.get_columns("business_requirements")
+        }
+        requirement_fields = {
+            "content_purpose": ("TEXT", ""),
+            "required_modules_json": ("TEXT", "[]"),
+            "optional_modules_json": ("TEXT", "[]"),
+            "forbidden_modules_json": ("TEXT", "[]"),
+            "selling_points_json": ("TEXT", "[]"),
+            "style_keywords_json": ("TEXT", "[]"),
+            "raw_requirement": ("TEXT", ""),
+            "reference_case_ids_json": ("TEXT", "[]"),
+            "reference_image_path": ("TEXT", ""),
+            "creator": ("TEXT", ""),
+        }
+        for col, (col_type, default) in requirement_fields.items():
+            if col not in requirement_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE business_requirements ADD COLUMN {col} "
+                            f"{col_type} DEFAULT '{default}'"
                         )
                     )

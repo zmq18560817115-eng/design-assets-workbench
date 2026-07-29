@@ -61,6 +61,18 @@ USER_TEMPLATE = """你是资深视觉设计分析师，请对这张设计图做*
   "layout_type": "版式类型，如 中轴型/分栏型/网格型/留白型",
   "alignment": "对齐方式",
   "hierarchy": ["信息层级，从主到次"],
+  "canvas_ratio": "宽:高，例如3:4",
+  "orientation": "portrait|landscape|square",
+  "reading_flow": "阅读动线",
+  "focal_region": {{"x":0.1,"y":0.1,"width":0.8,"height":0.5}},
+  "information_density": "low|medium|high",
+  "text_image_ratio": 0.45,
+  "blueprint_modules": [
+    {{"id":"module-1","type":"main_title","label":"主标题","x":0.08,"y":0.06,
+      "width":0.84,"height":0.12,"importance":1,"alignment":"center",
+      "content_summary":"","confidence":0.88}}
+  ],
+  "layout_summary": "一句话说明版面结构",
   "title_treatment": "标题处理方式",
   "font_tone": "字体调性建议",
   "why_good": ["这张图为什么优秀，2~4 条"],
@@ -82,6 +94,12 @@ USER_TEMPLATE = """你是资深视觉设计分析师，请对这张设计图做*
 2. 风格：视觉语言、情绪、品牌调性和可复用的形式特征；
 3. 色彩：主辅色角色、面积比例与对比关系；
 4. 实拍图：仅在原图包含摄影内容时分析主体、构图、景别、光线、场景和材质。
+
+排版蓝图规则（Prompt版本 layout-blueprint-v2）：
+- 优先识别图片中真实存在的版面结构，不确定时降低 confidence，禁止虚构模块；
+- 模块坐标和尺寸必须为 0～1 归一化数值且不能超出画布；
+- 区分内容模块和 decoration/background，区分 product/person/scene image；
+- blueprint_modules 只能使用约定类型，输出严格 JSON。
 
 生图提示词必须以“白板版式图/低保真布局白模”为目标：白色或浅灰画布，使用灰阶块、线框、占位图片框和占位文字表现结构，
 清楚标注网格、模块、间距、留白和信息层级；不生成完整成品文案，不生成品牌 Logo，不追求成品摄影渲染。
