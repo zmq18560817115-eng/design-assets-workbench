@@ -217,6 +217,10 @@ export const api = {
     fetch("/api/training/overview", { cache: "no-store" }).then((r) =>
       j<TrainingOverview>(r)
     ),
+  trainingReadiness: () =>
+    fetch("/api/training/readiness", { cache: "no-store" }).then((r) =>
+      j<TrainingReadiness[]>(r)
+    ),
   batchReview: (
     caseIds: number[],
     action: "confirm" | "recommend" | "reject",
@@ -407,6 +411,29 @@ export interface TrainingOverview {
   category_coverage: Record<
     string,
     { total: number; trusted: number; recommended: number }
+  >;
+}
+
+export interface TrainingReadiness {
+  business_line: string;
+  stage:
+    | "collect"
+    | "analyze"
+    | "verify"
+    | "curate"
+    | "operate"
+    | "feedback"
+    | "operational";
+  score: number;
+  next_action: string;
+  gates: Record<
+    | "company_assets"
+    | "model_analyzed"
+    | "human_verified"
+    | "company_recommended"
+    | "service_runs"
+    | "adopted_runs",
+    { current: number; target: number; met: boolean }
   >;
 }
 

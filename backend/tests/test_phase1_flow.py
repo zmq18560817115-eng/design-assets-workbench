@@ -203,6 +203,18 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(overview.status_code, 200, overview.text)
         self.assertGreaterEqual(overview.json()["unreviewed_cases"], 1)
         self.assertIn("layout", overview.json()["category_coverage"])
+        readiness = self.client.get("/api/training/readiness")
+        self.assertEqual(readiness.status_code, 200, readiness.text)
+        line_readiness = next(
+            item
+            for item in readiness.json()
+            if item["business_line"] == "母婴"
+        )
+        self.assertEqual(line_readiness["stage"], "collect")
+        self.assertEqual(
+            line_readiness["gates"]["company_assets"]["current"],
+            1,
+        )
 
         batch_review = self.client.post(
             "/api/training/batch-review",

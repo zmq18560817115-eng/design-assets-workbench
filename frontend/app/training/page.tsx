@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, CaseOut, ProjectOut, TrainingOverview } from "@/lib/api";
+import {
+  api,
+  CaseOut,
+  ProjectOut,
+  TrainingOverview,
+  TrainingReadiness,
+} from "@/lib/api";
 
 const categoryLabels: Record<string, string> = {
   layout: "排版",
@@ -18,11 +24,21 @@ const trustLabels: Record<string, string> = {
   rejected: "不采用",
 };
 
+const gateLabels: Record<string, string> = {
+  company_assets: "成品",
+  model_analyzed: "模型",
+  human_verified: "确认",
+  company_recommended: "推荐",
+  service_runs: "生成",
+  adopted_runs: "采用",
+};
+
 export default function TrainingPage() {
   const [projects, setProjects] = useState<ProjectOut[]>([]);
   const [projectId, setProjectId] = useState<number>();
   const [cases, setCases] = useState<CaseOut[]>([]);
   const [overview, setOverview] = useState<TrainingOverview | null>(null);
+  const [readiness, setReadiness] = useState<TrainingReadiness[]>([]);
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
   const [analysisMode, setAnalysisMode] = useState("model");
@@ -36,6 +52,8 @@ export default function TrainingPage() {
 
   const loadOverview = () =>
     api.trainingOverview().then(setOverview).catch(() => setOverview(null));
+  const loadReadiness = () =>
+    api.trainingReadiness().then(setReadiness).catch(() => setReadiness([]));
 
   const loadCases = (
     nextProjectId = projectId,
@@ -60,10 +78,15 @@ export default function TrainingPage() {
   };
 
   useEffect(() => {
-    Promise.all([api.projects(), api.trainingOverview()])
-      .then(([projectList, metrics]) => {
+    Promise.all([
+      api.projects(),
+      api.trainingOverview(),
+      api.trainingReadiness(),
+    ])
+      .then(([projectList, metrics, roadmap]) => {
         setProjects(projectList);
         setOverview(metrics);
+        setReadiness(roadmap);
         const preferred =
           projectList.find(
             (project) =>
@@ -106,7 +129,7 @@ export default function TrainingPage() {
       );
       setMessage(`已处理 ${result.updated_count} 个案例。`);
       setSelected([]);
-      await Promise.all([loadCases(), loadOverview()]);
+      await Promise.all([loadCases(), loadOverview(), loadReadiness()]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "批量处理失败");
     } finally {
@@ -160,6 +183,64 @@ export default function TrainingPage() {
             <div className="mt-2 text-3xl font-semibold">{value}</div>
           </div>
         ))}
+      </section>
+
+      <section className="rounded-3xl border border-line bg-white p-5 md:p-7">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              Training roadmap
+            </div>
+            <h2 className="mt-2 text-xl font-semibold">五大品类训练路线图</h2>
+            <p className="mt-2 text-xs leading-5 text-gray-400">
+              每条业务线依次通过素材、模型、人工、推荐、真实生成和采用反馈六个门槛。
+            </p>
+          </div>
+          <Link href="/concept" className="text-sm text-accent">
+            查看公司画像 →
+          </Link>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {readiness.map((item) => (
+            <div key={item.business_line} className="rounded-2xl border border-line p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="font-semibold">{item.business_line}</div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    下一步：{item.next_action}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-semibold">{item.score}%</div>
+                  <div className="text-[10px] text-gray-400">训练就绪度</div>
+                </div>
+              </div>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-canvas">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${item.score}%` }}
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-6 gap-2">
+                {Object.entries(item.gates).map(([key, gate]) => (
+                  <div
+                    key={key}
+                    className={`rounded-xl px-2 py-2 text-center ${
+                      gate.met
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-canvas text-gray-400"
+                    }`}
+                  >
+                    <div className="text-[10px]">{gateLabels[key] || key}</div>
+                    <div className="mt-1 text-xs font-semibold">
+                      {gate.current}/{gate.target}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-line bg-white p-5 md:p-7">

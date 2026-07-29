@@ -512,6 +512,123 @@ def training_overview(db: Session = Depends(get_db)):
     }
 
 
+@app.get("/api/training/readiness")
+def training_readiness(db: Session = Depends(get_db)):
+    """Return evidence gates and the next concrete action for every business line."""
+    cases = db.query(models.Case).all()
+    runs = db.query(models.ServiceRun).all()
+    lines = sorted(
+        {
+            (case.business_line or "").strip()
+            for case in cases
+            if (case.business_line or "").strip()
+        }
+        | {run.industry.strip() for run in runs if run.industry.strip()}
+    )
+    result = []
+    for line in lines:
+        line_cases = [
+            case
+            for case in cases
+            if (case.business_line or "").strip() == line
+        ]
+        line_runs = [run for run in runs if run.industry.strip() == line]
+        published = sum(
+            1
+            for case in line_cases
+            if case.image and case.image.source_type == "company_published"
+        )
+        model_analyzed = sum(
+            1
+            for case in line_cases
+            if case.analysis
+            and case.analysis.model_name
+            and case.analysis.model_name != "启发式规则"
+        )
+        verified = sum(
+            1
+            for case in line_cases
+            if case.trust_status in {"verified", "company_recommended"}
+        )
+        recommended = sum(
+            1
+            for case in line_cases
+            if case.trust_status == "company_recommended"
+        )
+        adopted_runs = sum(1 for run in line_runs if run.status == "adopted")
+        gates = {
+            "company_assets": {
+                "current": published,
+                "target": 10,
+                "met": published >= 10,
+            },
+            "model_analyzed": {
+                "current": model_analyzed,
+                "target": 3,
+                "met": model_analyzed >= 3,
+            },
+            "human_verified": {
+                "current": verified,
+                "target": 3,
+                "met": verified >= 3,
+            },
+            "company_recommended": {
+                "current": recommended,
+                "target": 1,
+                "met": recommended >= 1,
+            },
+            "service_runs": {
+                "current": len(line_runs),
+                "target": 5,
+                "met": len(line_runs) >= 5,
+            },
+            "adopted_runs": {
+                "current": adopted_runs,
+                "target": 2,
+                "met": adopted_runs >= 2,
+            },
+        }
+        if not gates["company_assets"]["met"]:
+            stage = "collect"
+            next_action = f"再补充 {10 - published} 张代表性公司成品"
+        elif not gates["model_analyzed"]["met"]:
+            stage = "analyze"
+            next_action = f"再完成 {3 - model_analyzed} 张火山模型深度拆解"
+        elif not gates["human_verified"]["met"]:
+            stage = "verify"
+            next_action = f"人工确认 {3 - verified} 张模型样本"
+        elif not gates["company_recommended"]["met"]:
+            stage = "curate"
+            next_action = "从已确认样本中选择 1 张公司推荐"
+        elif not gates["service_runs"]["met"]:
+            stage = "operate"
+            next_action = f"完成 {5 - len(line_runs)} 次真实业务方向生成"
+        elif not gates["adopted_runs"]["met"]:
+            stage = "feedback"
+            next_action = f"补充 {2 - adopted_runs} 次真实采用结果"
+        else:
+            stage = "operational"
+            next_action = "已达到初步可运营标准，继续按月复盘和扩充"
+        score = round(
+            20 * min(published / 10, 1)
+            + 20 * min(model_analyzed / 3, 1)
+            + 25 * min(verified / 3, 1)
+            + 15 * min(recommended / 1, 1)
+            + 10 * min(len(line_runs) / 5, 1)
+            + 10 * min(adopted_runs / 2, 1)
+        )
+        result.append(
+            {
+                "business_line": line,
+                "stage": stage,
+                "score": score,
+                "next_action": next_action,
+                "gates": gates,
+            }
+        )
+    return result
+
+
 @app.patch("/api/cases/{case_id}/project", response_model=CaseOut)
 def assign_case_project(
     case_id: int,
