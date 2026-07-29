@@ -299,6 +299,31 @@ class LayoutDirection(Base):
     )
 
 
+class LayoutDirectionFeedback(Base):
+    """Append-only selection and adjustment outcome for one direction."""
+
+    __tablename__ = "layout_direction_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    direction_id = Column(
+        Integer,
+        ForeignKey("layout_directions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    action = Column(String, nullable=False, index=True)
+    actor = Column(String, nullable=False, index=True)
+    notes = Column(Text, default="")
+    adjusted_modules_json = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
 class Project(Base):
     """A curated business project grouping cases and golden-standard assets."""
 

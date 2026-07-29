@@ -234,6 +234,21 @@ export interface LayoutDirectionSet {
   directions: LayoutDirection[];
 }
 
+export interface LayoutDirectionFeedback {
+  id: number;
+  requirement_id: number;
+  direction_id: number;
+  action:
+    | "selected"
+    | "adjustment_requested"
+    | "adjusted_confirmed"
+    | "rejected";
+  actor: string;
+  notes: string;
+  adjusted_modules_json: LayoutModule[] | null;
+  created_at: string;
+}
+
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`请求失败 ${res.status}`);
   return res.json();
@@ -383,6 +398,20 @@ export const api = {
     fetch(`/api/business-requirements/${requirementId}/directions/generate`, {
       method: "POST",
     }).then((r) => j<LayoutDirectionSet>(r)),
+  addLayoutDirectionFeedback: (
+    directionId: number,
+    payload: {
+      action: LayoutDirectionFeedback["action"];
+      actor: string;
+      notes: string;
+      adjusted_modules_json?: LayoutModule[];
+    }
+  ) =>
+    fetch(`/api/layout-directions/${directionId}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutDirectionFeedback>(r)),
   reviewCase: (id: number | string, review: CaseReviewInput) =>
     fetch(`/api/cases/${id}/review`, {
       method: "PATCH",

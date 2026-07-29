@@ -381,6 +381,37 @@ class LayoutDirectionSetOut(BaseModel):
         return self
 
 
+class LayoutDirectionFeedbackCreate(BaseModel):
+    action: Literal[
+        "selected",
+        "adjustment_requested",
+        "adjusted_confirmed",
+        "rejected",
+    ]
+    actor: str = Field(min_length=1, max_length=120)
+    notes: str = ""
+    adjusted_modules_json: list[LayoutModule] | None = None
+
+    @model_validator(mode="after")
+    def adjusted_snapshot_required(self):
+        if self.action == "adjusted_confirmed" and not self.adjusted_modules_json:
+            raise ValueError(
+                "adjusted_confirmed requires adjusted_modules_json"
+            )
+        if self.adjusted_modules_json:
+            module_ids = [item.id for item in self.adjusted_modules_json]
+            if len(module_ids) != len(set(module_ids)):
+                raise ValueError("adjusted layout module ids must be unique")
+        return self
+
+
+class LayoutDirectionFeedbackOut(LayoutDirectionFeedbackCreate):
+    id: int
+    requirement_id: int
+    direction_id: int
+    created_at: dt.datetime
+
+
 class CaseReviewInput(BaseModel):
     reviewer: str
     trust_status: Literal[

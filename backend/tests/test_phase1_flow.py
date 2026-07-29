@@ -26,7 +26,7 @@ os.environ["LLM_MODEL"] = ""
 from fastapi.testclient import TestClient  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 
-from app import crud  # noqa: E402
+from app import crud, models  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas import LayoutBlueprintInput  # noqa: E402
@@ -298,6 +298,67 @@ class PhaseOneFlowTest(unittest.TestCase):
             self.assertTrue(direction["prompt_version"])
             self.assertEqual(direction["generation_mode"], "heuristic")
             self.assertIn("模型未配置", direction["failure_reason"])
+        first_direction = directions.json()["directions"][0]
+        with SessionLocal() as db:
+            preference_count_before = db.query(models.PreferenceEvent).count()
+        selected_feedback = self.client.post(
+            f"/api/layout-directions/{first_direction['id']}/feedback",
+            json={
+                "action": "selected",
+                "actor": "业务设计师",
+                "notes": "信息层级最符合当前上线节奏",
+            },
+        )
+        self.assertEqual(
+            selected_feedback.status_code,
+            200,
+            selected_feedback.text,
+        )
+        adjustment_feedback = self.client.post(
+            f"/api/layout-directions/{first_direction['id']}/feedback",
+            json={
+                "action": "adjustment_requested",
+                "actor": "业务负责人",
+                "notes": "主视觉再扩大，底部行动引导上移",
+            },
+        )
+        self.assertEqual(adjustment_feedback.status_code, 200)
+        adjusted_modules = first_direction["modules_json"]
+        adjusted_modules[1]["width"] = min(
+            1 - adjusted_modules[1]["x"],
+            adjusted_modules[1]["width"] + 0.02,
+        )
+        confirmed_feedback = self.client.post(
+            f"/api/layout-directions/{first_direction['id']}/feedback",
+            json={
+                "action": "adjusted_confirmed",
+                "actor": "业务负责人",
+                "notes": "调整版确认",
+                "adjusted_modules_json": adjusted_modules,
+            },
+        )
+        self.assertEqual(
+            confirmed_feedback.status_code,
+            200,
+            confirmed_feedback.text,
+        )
+        self.assertEqual(
+            confirmed_feedback.json()["adjusted_modules_json"],
+            adjusted_modules,
+        )
+        feedback_history = self.client.get(
+            f"/api/layout-directions/{first_direction['id']}/feedback"
+        )
+        self.assertEqual(feedback_history.status_code, 200)
+        self.assertEqual(
+            [item["action"] for item in feedback_history.json()],
+            ["selected", "adjustment_requested", "adjusted_confirmed"],
+        )
+        with SessionLocal() as db:
+            self.assertEqual(
+                db.query(models.PreferenceEvent).count(),
+                preference_count_before,
+            )
         regenerated_directions = self.client.post(
             f"/api/business-requirements/{requirement.json()['id']}/directions/generate"
         )

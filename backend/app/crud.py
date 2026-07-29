@@ -16,6 +16,7 @@ from .schemas import (
     CaseReviewInput,
     LayoutBlueprintInput,
     BusinessRequirementCreate,
+    LayoutDirectionFeedbackCreate,
     LayoutPatternCreate,
     LayoutPatternUpdate,
 )
@@ -863,6 +864,59 @@ def generate_layout_directions(
         "directions": [
             serialize_layout_direction(direction) for direction in created
         ],
+    }
+
+
+def create_layout_direction_feedback(
+    db: Session,
+    direction: models.LayoutDirection,
+    payload: LayoutDirectionFeedbackCreate,
+) -> models.LayoutDirectionFeedback:
+    adjusted_modules = (
+        [module.model_dump() for module in payload.adjusted_modules_json]
+        if payload.adjusted_modules_json
+        else None
+    )
+    feedback = models.LayoutDirectionFeedback(
+        requirement_id=direction.requirement_id,
+        direction_id=direction.id,
+        action=payload.action,
+        actor=payload.actor.strip(),
+        notes=payload.notes,
+        adjusted_modules_json=(
+            json.dumps(adjusted_modules, ensure_ascii=False)
+            if adjusted_modules
+            else ""
+        ),
+    )
+    direction.status = {
+        "selected": "selected",
+        "adjustment_requested": "adjustment_requested",
+        "adjusted_confirmed": "adjusted_confirmed",
+        "rejected": "rejected",
+    }[payload.action]
+    db.add(feedback)
+    db.commit()
+    db.refresh(feedback)
+    return feedback
+
+
+def serialize_layout_direction_feedback(
+    feedback: models.LayoutDirectionFeedback,
+) -> dict:
+    return {
+        "id": feedback.id,
+        "requirement_id": feedback.requirement_id,
+        "direction_id": feedback.direction_id,
+        "action": feedback.action,
+        "actor": feedback.actor,
+        "notes": feedback.notes,
+        "adjusted_modules_json": (
+            _json_list(feedback.adjusted_modules_json)
+            if feedback.adjusted_modules_json
+            else None
+        ),
+        "created_at": feedback.created_at,
     }
 
 

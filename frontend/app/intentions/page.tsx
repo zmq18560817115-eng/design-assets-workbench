@@ -6,7 +6,9 @@ import {
   api,
   BusinessRequirementCreate,
   BusinessRequirementMatch,
+  LayoutDirection,
   LayoutDirectionSet,
+  LayoutModule,
 } from "@/lib/api";
 import { LayoutWireframe } from "@/components/layout-wireframe";
 import { Card, Tag } from "@/components/ui";
@@ -36,6 +38,13 @@ export default function IntentionsPage() {
   const [referenceText, setReferenceText] = useState("");
   const [result, setResult] = useState<BusinessRequirementMatch | null>(null);
   const [directions, setDirections] = useState<LayoutDirectionSet | null>(null);
+  const [feedbackActor, setFeedbackActor] = useState("");
+  const [feedbackNotes, setFeedbackNotes] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [editingDirectionId, setEditingDirectionId] = useState<number | null>(null);
+  const [directionDrafts, setDirectionDrafts] = useState<
+    Record<number, LayoutModule[]>
+  >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,11 +83,74 @@ export default function IntentionsPage() {
     setLoading(true);
     setError("");
     try {
-      setDirections(
-        await api.generateLayoutDirections(result.requirement.id)
+      const generated = await api.generateLayoutDirections(
+        result.requirement.id
+      );
+      setDirections(generated);
+      setDirectionDrafts(
+        Object.fromEntries(
+          generated.directions.map((direction) => [
+            direction.id,
+            direction.modules_json.map((module) => ({ ...module })),
+          ])
+        )
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "生成排版方向失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateDirectionModule = (
+    directionId: number,
+    moduleIndex: number,
+    key: "x" | "y" | "width" | "height",
+    value: number
+  ) => {
+    setDirectionDrafts((current) => ({
+      ...current,
+      [directionId]: current[directionId].map((module, index) =>
+        index === moduleIndex ? { ...module, [key]: value } : module
+      ),
+    }));
+  };
+
+  const sendDirectionFeedback = async (
+    direction: LayoutDirection,
+    action:
+      | "selected"
+      | "adjustment_requested"
+      | "adjusted_confirmed"
+      | "rejected"
+  ) => {
+    if (!feedbackActor.trim()) {
+      setError("记录方向结果前，请填写反馈人。");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setFeedbackMessage("");
+    try {
+      await api.addLayoutDirectionFeedback(direction.id, {
+        action,
+        actor: feedbackActor.trim(),
+        notes: feedbackNotes,
+        adjusted_modules_json:
+          action === "adjusted_confirmed"
+            ? directionDrafts[direction.id]
+            : undefined,
+      });
+      const label = {
+        selected: "已选择",
+        adjustment_requested: "已记录调整要求",
+        adjusted_confirmed: "已确认调整结果",
+        rejected: "已淘汰",
+      }[action];
+      setFeedbackMessage(`${direction.name}：${label}`);
+      if (action === "adjusted_confirmed") setEditingDirectionId(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "方向反馈保存失败");
     } finally {
       setLoading(false);
     }
@@ -271,7 +343,15 @@ export default function IntentionsPage() {
                   <Card key={direction.id} className="flex flex-col">
                     <div className="rounded-xl bg-gray-50 p-4">
                       <LayoutWireframe
-                        blueprint={direction}
+                        blueprint={{
+                          ...direction,
+                          modules_json:
+                            directionDrafts[direction.id] ||
+                            direction.modules_json,
+                          module_count:
+                            directionDrafts[direction.id]?.length ||
+                            direction.module_count,
+                        }}
                         className="max-h-[340px] max-w-[300px]"
                       />
                     </div>
@@ -309,8 +389,108 @@ export default function IntentionsPage() {
                         <div>回退说明：{direction.failure_reason}</div>
                       )}
                     </div>
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() =>
+                          sendDirectionFeedback(direction, "selected")
+                        }
+                        disabled={loading}
+                        className="rounded-lg bg-accent px-2 py-2 text-xs text-white disabled:opacity-40"
+                      >
+                        选择
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingDirectionId(direction.id);
+                          sendDirectionFeedback(
+                            direction,
+                            "adjustment_requested"
+                          );
+                        }}
+                        disabled={loading}
+                        className="rounded-lg border border-line px-2 py-2 text-xs disabled:opacity-40"
+                      >
+                        调整
+                      </button>
+                      <button
+                        onClick={() =>
+                          sendDirectionFeedback(direction, "rejected")
+                        }
+                        disabled={loading}
+                        className="rounded-lg border border-line px-2 py-2 text-xs text-gray-500 disabled:opacity-40"
+                      >
+                        淘汰
+                      </button>
+                    </div>
+                    {editingDirectionId === direction.id && (
+                      <div className="mt-3 rounded-xl border border-line bg-canvas p-3">
+                        <div className="text-xs font-medium">调整模块坐标</div>
+                        <div className="mt-2 space-y-2">
+                          {directionDrafts[direction.id]?.map((module, moduleIndex) => (
+                            <div key={module.id}>
+                              <div className="mb-1 text-[10px] text-gray-500">
+                                {module.priority}. {module.description || module.type}
+                              </div>
+                              <div className="grid grid-cols-4 gap-1">
+                                {(["x", "y", "width", "height"] as const).map((key) => (
+                                  <label key={key} className="text-[9px] text-gray-400">
+                                    {key}
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="1"
+                                      step="0.01"
+                                      value={module[key]}
+                                      onChange={(event) =>
+                                        updateDirectionModule(
+                                          direction.id,
+                                          moduleIndex,
+                                          key,
+                                          Number(event.target.value)
+                                        )
+                                      }
+                                      className="mt-0.5 w-full rounded border border-line bg-white px-1 py-1 text-[10px]"
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() =>
+                            sendDirectionFeedback(
+                              direction,
+                              "adjusted_confirmed"
+                            )
+                          }
+                          className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-2 text-xs text-white"
+                        >
+                          确认并保存调整版
+                        </button>
+                      </div>
+                    )}
                   </Card>
                 ))}
+              </div>
+              <div className="mt-5 grid gap-3 rounded-2xl border border-line bg-white p-4 md:grid-cols-2">
+                <input
+                  value={feedbackActor}
+                  onChange={(event) => setFeedbackActor(event.target.value)}
+                  placeholder="反馈人 *"
+                  className="rounded-xl border border-line px-4 py-3 text-sm"
+                />
+                <input
+                  value={feedbackNotes}
+                  onChange={(event) => setFeedbackNotes(event.target.value)}
+                  placeholder="选择或调整原因"
+                  className="rounded-xl border border-line px-4 py-3 text-sm"
+                />
+                {feedbackMessage && (
+                  <p className="text-sm text-emerald-600 md:col-span-2">
+                    {feedbackMessage}
+                  </p>
+                )}
               </div>
             </section>
           )}

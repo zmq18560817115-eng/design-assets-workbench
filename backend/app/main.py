@@ -47,6 +47,8 @@ from .schemas import (
     LayoutPatternUpdate,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
+    LayoutDirectionFeedbackCreate,
+    LayoutDirectionFeedbackOut,
     BatchReviewInput,
     BatchCategorizeInput,
     BatchCategorySuggestionInput,
@@ -571,6 +573,41 @@ def generate_requirement_directions(
         return crud.generate_layout_directions(db, requirement)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/layout-directions/{direction_id}/feedback",
+    response_model=list[LayoutDirectionFeedbackOut],
+)
+def list_layout_direction_feedback(
+    direction_id: int,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.LayoutDirection, direction_id):
+        raise HTTPException(status_code=404, detail="排版方向不存在")
+    return [
+        crud.serialize_layout_direction_feedback(item)
+        for item in db.query(models.LayoutDirectionFeedback)
+        .filter(models.LayoutDirectionFeedback.direction_id == direction_id)
+        .order_by(models.LayoutDirectionFeedback.created_at, models.LayoutDirectionFeedback.id)
+        .all()
+    ]
+
+
+@app.post(
+    "/api/layout-directions/{direction_id}/feedback",
+    response_model=LayoutDirectionFeedbackOut,
+)
+def create_layout_direction_feedback(
+    direction_id: int,
+    payload: LayoutDirectionFeedbackCreate,
+    db: Session = Depends(get_db),
+):
+    direction = db.get(models.LayoutDirection, direction_id)
+    if not direction:
+        raise HTTPException(status_code=404, detail="排版方向不存在")
+    feedback = crud.create_layout_direction_feedback(db, direction, payload)
+    return crud.serialize_layout_direction_feedback(feedback)
 
 
 @app.patch("/api/cases/{case_id}/review", response_model=CaseOut)
