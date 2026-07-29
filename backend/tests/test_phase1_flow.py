@@ -230,6 +230,48 @@ class PhaseOneFlowTest(unittest.TestCase):
             [item["id"] for item in pattern_library.json()],
             [verified_pattern.json()["id"]],
         )
+        requirement = self.client.post(
+            "/api/business-requirements",
+            json={
+                "title": "吸奶器新品小红书种草长图",
+                "request_text": "突出吸力模式、舒适度和便携性，形成清晰的购买理由",
+                "industry": "母婴",
+                "product_category": "吸奶器",
+                "channel": "小红书",
+                "canvas_ratio": "2:3",
+                "orientation": "portrait",
+                "campaign_stage": "新品种草",
+                "business_goal": "建立产品差异认知",
+                "target_audience": "新手妈妈",
+                "key_message": "舒适高效地完成吸奶",
+                "mandatory_elements": ["产品主图", "三项卖点", "行动引导"],
+                "information_density": "medium",
+                "reference_case_ids": [case["id"]],
+                "created_by": "业务设计师",
+                "status": "ready",
+            },
+        )
+        self.assertEqual(requirement.status_code, 200, requirement.text)
+        self.assertEqual(
+            requirement.json()["mandatory_elements"],
+            ["产品主图", "三项卖点", "行动引导"],
+        )
+        matched = self.client.post(
+            f"/api/business-requirements/{requirement.json()['id']}/match"
+        )
+        self.assertEqual(matched.status_code, 200, matched.text)
+        self.assertEqual(
+            matched.json()["pattern_matches"][0]["pattern"]["id"],
+            verified_pattern.json()["id"],
+        )
+        self.assertEqual(
+            matched.json()["case_matches"][0]["case_id"],
+            case["id"],
+        )
+        self.assertIn(
+            "需求指定参考案例",
+            matched.json()["case_matches"][0]["reasons"],
+        )
         generated = self.client.post(
             f"/api/cases/{case['id']}/layout-blueprints/generate"
         )

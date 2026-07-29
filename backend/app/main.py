@@ -33,6 +33,9 @@ from .agents import run_pipeline
 from .database import SessionLocal, close_db, get_db, init_db
 from .schemas import (
     AnalysisResult,
+    BusinessRequirementCreate,
+    BusinessRequirementMatchOut,
+    BusinessRequirementOut,
     CaseOut,
     CaseReviewInput,
     CaseProjectInput,
@@ -464,6 +467,69 @@ def verify_layout_pattern(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return crud.serialize_layout_pattern(verified)
+
+
+@app.get(
+    "/api/business-requirements",
+    response_model=list[BusinessRequirementOut],
+)
+def list_business_requirements(
+    status: str = "",
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.BusinessRequirement)
+    if status:
+        query = query.filter(models.BusinessRequirement.status == status)
+    return [
+        crud.serialize_business_requirement(item)
+        for item in query.order_by(
+            models.BusinessRequirement.updated_at.desc(),
+            models.BusinessRequirement.id.desc(),
+        ).all()
+    ]
+
+
+@app.post(
+    "/api/business-requirements",
+    response_model=BusinessRequirementOut,
+)
+def create_business_requirement(
+    payload: BusinessRequirementCreate,
+    db: Session = Depends(get_db),
+):
+    try:
+        requirement = crud.create_business_requirement(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_business_requirement(requirement)
+
+
+@app.get(
+    "/api/business-requirements/{requirement_id}",
+    response_model=BusinessRequirementOut,
+)
+def get_business_requirement(
+    requirement_id: int,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    return crud.serialize_business_requirement(requirement)
+
+
+@app.post(
+    "/api/business-requirements/{requirement_id}/match",
+    response_model=BusinessRequirementMatchOut,
+)
+def match_business_requirement(
+    requirement_id: int,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    return crud.match_business_requirement(db, requirement)
 
 
 @app.patch("/api/cases/{case_id}/review", response_model=CaseOut)

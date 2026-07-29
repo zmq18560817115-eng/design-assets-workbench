@@ -293,6 +293,51 @@ class LayoutPatternOut(BaseModel):
     updated_at: dt.datetime
 
 
+class BusinessRequirementCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=180)
+    request_text: str = Field(min_length=1)
+    industry: str = ""
+    product_category: str = ""
+    channel: str = ""
+    canvas_ratio: str = ""
+    orientation: Literal["", "portrait", "landscape", "square"] = ""
+    campaign_stage: str = ""
+    business_goal: str = ""
+    target_audience: str = ""
+    key_message: str = ""
+    mandatory_elements: list[str] = Field(default_factory=list)
+    information_density: Literal["", "low", "medium", "high"] = ""
+    reference_case_ids: list[int] = Field(default_factory=list)
+    created_by: str = Field(min_length=1, max_length=120)
+    status: Literal["draft", "ready", "archived"] = "ready"
+
+
+class BusinessRequirementOut(BusinessRequirementCreate):
+    id: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class LayoutPatternMatchOut(BaseModel):
+    pattern: LayoutPatternOut
+    score: float
+    reasons: list[str]
+
+
+class CaseLayoutMatchOut(BaseModel):
+    case_id: int
+    name: str
+    blueprint_id: int
+    score: float
+    reasons: list[str]
+
+
+class BusinessRequirementMatchOut(BaseModel):
+    requirement: BusinessRequirementOut
+    pattern_matches: list[LayoutPatternMatchOut]
+    case_matches: list[CaseLayoutMatchOut]
+
+
 class CaseReviewInput(BaseModel):
     reviewer: str
     trust_status: Literal[

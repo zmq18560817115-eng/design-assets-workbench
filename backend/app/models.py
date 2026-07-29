@@ -225,6 +225,36 @@ class LayoutPattern(Base):
     )
 
 
+class BusinessRequirement(Base):
+    """Structured, persisted real-world brief used for layout retrieval."""
+
+    __tablename__ = "business_requirements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False, index=True)
+    request_text = Column(Text, default="")
+    industry = Column(String, default="", index=True)
+    product_category = Column(String, default="", index=True)
+    channel = Column(String, default="", index=True)
+    canvas_ratio = Column(String, default="", index=True)
+    orientation = Column(String, default="", index=True)
+    campaign_stage = Column(String, default="", index=True)
+    business_goal = Column(Text, default="")
+    target_audience = Column(Text, default="")
+    key_message = Column(Text, default="")
+    mandatory_elements = Column(Text, default="[]")
+    information_density = Column(String, default="", index=True)
+    reference_case_ids = Column(Text, default="[]")
+    created_by = Column(String, default="")
+    status = Column(String, default="draft", index=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=dt.datetime.utcnow,
+        onupdate=dt.datetime.utcnow,
+    )
+
+
 class Project(Base):
     """A curated business project grouping cases and golden-standard assets."""
 

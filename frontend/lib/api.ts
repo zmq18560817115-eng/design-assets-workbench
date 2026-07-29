@@ -170,6 +170,47 @@ export interface LayoutPatternCreate {
   editor: string;
 }
 
+export interface BusinessRequirementCreate {
+  title: string;
+  request_text: string;
+  industry: string;
+  product_category: string;
+  channel: string;
+  canvas_ratio: string;
+  orientation: "" | "portrait" | "landscape" | "square";
+  campaign_stage: string;
+  business_goal: string;
+  target_audience: string;
+  key_message: string;
+  mandatory_elements: string[];
+  information_density: "" | "low" | "medium" | "high";
+  reference_case_ids: number[];
+  created_by: string;
+  status: "draft" | "ready" | "archived";
+}
+
+export interface BusinessRequirement extends BusinessRequirementCreate {
+  id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessRequirementMatch {
+  requirement: BusinessRequirement;
+  pattern_matches: {
+    pattern: LayoutPattern;
+    score: number;
+    reasons: string[];
+  }[];
+  case_matches: {
+    case_id: number;
+    name: string;
+    blueprint_id: number;
+    score: number;
+    reasons: string[];
+  }[];
+}
+
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`请求失败 ${res.status}`);
   return res.json();
@@ -305,6 +346,16 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ editor }),
     }).then((r) => j<LayoutPattern>(r)),
+  createBusinessRequirement: (payload: BusinessRequirementCreate) =>
+    fetch("/api/business-requirements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<BusinessRequirement>(r)),
+  matchBusinessRequirement: (requirementId: number) =>
+    fetch(`/api/business-requirements/${requirementId}/match`, {
+      method: "POST",
+    }).then((r) => j<BusinessRequirementMatch>(r)),
   reviewCase: (id: number | string, review: CaseReviewInput) =>
     fetch(`/api/cases/${id}/review`, {
       method: "PATCH",

@@ -15,6 +15,7 @@ from .schemas import (
     AnalysisResult,
     CaseReviewInput,
     LayoutBlueprintInput,
+    BusinessRequirementCreate,
     LayoutPatternCreate,
     LayoutPatternUpdate,
 )
@@ -353,6 +354,217 @@ def serialize_layout_pattern(pattern: models.LayoutPattern) -> dict:
         "editor": pattern.editor,
         "created_at": pattern.created_at,
         "updated_at": pattern.updated_at,
+    }
+
+
+def create_business_requirement(
+    db: Session,
+    payload: BusinessRequirementCreate,
+) -> models.BusinessRequirement:
+    values = payload.model_dump()
+    mandatory_elements = values.pop("mandatory_elements")
+    reference_case_ids = list(dict.fromkeys(values.pop("reference_case_ids")))
+    if reference_case_ids:
+        existing_case_ids = {
+            case_id
+            for (case_id,) in db.query(models.Case.id)
+            .filter(models.Case.id.in_(reference_case_ids))
+            .all()
+        }
+        missing = [
+            case_id
+            for case_id in reference_case_ids
+            if case_id not in existing_case_ids
+        ]
+        if missing:
+            raise ValueError(f"参考案例不存在: {missing}")
+    requirement = models.BusinessRequirement(
+        **values,
+        mandatory_elements=json.dumps(mandatory_elements, ensure_ascii=False),
+        reference_case_ids=json.dumps(reference_case_ids, ensure_ascii=False),
+    )
+    db.add(requirement)
+    db.commit()
+    db.refresh(requirement)
+    return requirement
+
+
+def serialize_business_requirement(
+    requirement: models.BusinessRequirement,
+) -> dict:
+    return {
+        "id": requirement.id,
+        "title": requirement.title,
+        "request_text": requirement.request_text,
+        "industry": requirement.industry,
+        "product_category": requirement.product_category,
+        "channel": requirement.channel,
+        "canvas_ratio": requirement.canvas_ratio,
+        "orientation": requirement.orientation,
+        "campaign_stage": requirement.campaign_stage,
+        "business_goal": requirement.business_goal,
+        "target_audience": requirement.target_audience,
+        "key_message": requirement.key_message,
+        "mandatory_elements": _json_list(requirement.mandatory_elements),
+        "information_density": requirement.information_density,
+        "reference_case_ids": _json_list(requirement.reference_case_ids),
+        "created_by": requirement.created_by,
+        "status": requirement.status,
+        "created_at": requirement.created_at,
+        "updated_at": requirement.updated_at,
+    }
+
+
+def _text_overlap(left: str, right: str) -> float:
+    tokens_left = set(re.findall(r"[\w\u4e00-\u9fff]{2,}", (left or "").lower()))
+    tokens_right = set(re.findall(r"[\w\u4e00-\u9fff]{2,}", (right or "").lower()))
+    if not tokens_left or not tokens_right:
+        return 0
+    return len(tokens_left & tokens_right) / max(1, len(tokens_left))
+
+
+def match_business_requirement(
+    db: Session,
+    requirement: models.BusinessRequirement,
+    *,
+    pattern_limit: int = 6,
+    case_limit: int = 12,
+) -> dict:
+    """Explainable structured retrieval without company preference weighting."""
+    patterns = (
+        db.query(models.LayoutPattern)
+        .filter(models.LayoutPattern.review_status == "verified")
+        .all()
+    )
+    pattern_matches: list[dict] = []
+    related_case_ids: set[int] = set()
+    requirement_text = " ".join(
+        [
+            requirement.request_text,
+            requirement.business_goal,
+            requirement.key_message,
+            requirement.campaign_stage,
+        ]
+    )
+    for pattern in patterns:
+        score = 20.0
+        reasons = ["人工确认排版模式"]
+        if requirement.orientation and pattern.orientation == requirement.orientation:
+            score += 18
+            reasons.append("画布方向一致")
+        if requirement.canvas_ratio and pattern.canvas_ratio == requirement.canvas_ratio:
+            score += 12
+            reasons.append("画布比例一致")
+        if (
+            requirement.information_density
+            and pattern.information_density == requirement.information_density
+        ):
+            score += 10
+            reasons.append("信息密度一致")
+        tag_checks = [
+            (requirement.industry, _json_list(pattern.industry_tags), "行业"),
+            (requirement.channel, _json_list(pattern.channel_tags), "渠道"),
+            (
+                requirement.campaign_stage,
+                _json_list(pattern.scene_tags),
+                "业务场景",
+            ),
+            (
+                requirement.business_goal,
+                _json_list(pattern.business_goal_tags),
+                "业务目标",
+            ),
+        ]
+        for expected, tags, label in tag_checks:
+            if expected and any(
+                expected in tag or tag in expected for tag in tags if tag
+            ):
+                score += 14
+                reasons.append(f"{label}匹配")
+        overlap = _text_overlap(
+            requirement_text,
+            f"{pattern.description} {pattern.usage_notes}",
+        )
+        if overlap:
+            score += round(overlap * 20, 2)
+            reasons.append("需求语义与适用说明相关")
+        sources = _json_list(pattern.source_case_ids)
+        related_case_ids.update(int(case_id) for case_id in sources)
+        pattern_matches.append(
+            {
+                "pattern": serialize_layout_pattern(pattern),
+                "score": round(score, 2),
+                "reasons": reasons,
+            }
+        )
+    pattern_matches.sort(
+        key=lambda item: (-item["score"], item["pattern"]["id"])
+    )
+    pattern_matches = pattern_matches[:pattern_limit]
+
+    latest_verified: dict[int, models.LayoutBlueprint] = {}
+    for blueprint in (
+        db.query(models.LayoutBlueprint)
+        .filter(models.LayoutBlueprint.review_status == "verified")
+        .order_by(
+            models.LayoutBlueprint.case_id,
+            models.LayoutBlueprint.version.desc(),
+        )
+        .all()
+    ):
+        latest_verified.setdefault(blueprint.case_id, blueprint)
+    cases = (
+        db.query(models.Case)
+        .filter(models.Case.id.in_(list(latest_verified)))
+        .all()
+        if latest_verified
+        else []
+    )
+    case_matches: list[dict] = []
+    reference_case_ids = set(_json_list(requirement.reference_case_ids))
+    for case in cases:
+        blueprint = latest_verified[case.id]
+        score = 10.0
+        reasons = ["案例具有人工确认排版骨架"]
+        if case.id in related_case_ids:
+            score += 20
+            reasons.append("入选排版模式的来源案例")
+        if case.id in reference_case_ids:
+            score += 25
+            reasons.append("需求指定参考案例")
+        for actual, expected, label in [
+            (case.industry, requirement.industry, "行业"),
+            (case.product_category, requirement.product_category, "产品品类"),
+            (case.channel, requirement.channel, "渠道"),
+            (case.campaign_stage, requirement.campaign_stage, "业务场景"),
+        ]:
+            if expected and actual and (expected in actual or actual in expected):
+                score += 12
+                reasons.append(f"{label}匹配")
+        if requirement.orientation and blueprint.orientation == requirement.orientation:
+            score += 12
+            reasons.append("骨架方向一致")
+        overlap = _text_overlap(
+            requirement_text,
+            f"{case.summary} {case.business_goal}",
+        )
+        if overlap:
+            score += round(overlap * 15, 2)
+            reasons.append("案例内容与需求相关")
+        case_matches.append(
+            {
+                "case_id": case.id,
+                "name": case.name,
+                "blueprint_id": blueprint.id,
+                "score": round(score, 2),
+                "reasons": reasons,
+            }
+        )
+    case_matches.sort(key=lambda item: (-item["score"], item["case_id"]))
+    return {
+        "requirement": serialize_business_requirement(requirement),
+        "pattern_matches": pattern_matches,
+        "case_matches": case_matches[:case_limit],
     }
 
 

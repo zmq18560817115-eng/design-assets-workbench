@@ -9,6 +9,7 @@ export function Nav() {
     { href: "/search", label: "找灵感" },
     { href: "/cases", label: "素材库" },
     { href: "/patterns", label: "排版模式" },
+    { href: "/intentions", label: "排版意向" },
     { href: "/analyze", label: "上传入库" },
     { href: "/batch", label: "批量导入" },
     { href: "/training", label: "偏好训练" },
