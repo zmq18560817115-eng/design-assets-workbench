@@ -14,6 +14,7 @@ node_modules/
 next-env.d.ts
 npm-debug.log*
 *.log
+小红书内容图片素材库/
 
 # Env
 .env
