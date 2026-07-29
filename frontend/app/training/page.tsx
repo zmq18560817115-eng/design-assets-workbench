@@ -130,13 +130,15 @@ export default function TrainingPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
         {[
           ["素材总量", overview?.total_cases ?? 0],
           ["待审核", overview?.unreviewed_cases ?? 0],
           ["已确认", overview?.verified_cases ?? 0],
           ["公司推荐", overview?.recommended_cases ?? 0],
           ["偏好事件", overview?.preference_events ?? 0],
+          ["业务产出", overview?.service_runs ?? 0],
+          ["最终采用", overview?.adopted_service_runs ?? 0],
         ].map(([label, value]) => (
           <div key={label} className="rounded-2xl border border-line bg-white p-5">
             <div className="text-xs text-gray-400">{label}</div>

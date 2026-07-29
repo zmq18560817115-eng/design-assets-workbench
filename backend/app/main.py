@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import tempfile
 import uuid
 from pathlib import Path
@@ -27,6 +28,7 @@ from .schemas import (
     ProjectCreate,
     ProjectOut,
     SearchHit,
+    ServiceFeedbackInput,
     VisualDirection,
 )
 
@@ -426,6 +428,11 @@ def training_overview(db: Session = Depends(get_db)):
     )
     reviewed = trusted + trust_rows.get("rejected", 0)
     preference_count = db.query(models.PreferenceEvent).count()
+    service_rows = dict(
+        db.query(models.ServiceRun.status, func.count(models.ServiceRun.id))
+        .group_by(models.ServiceRun.status)
+        .all()
+    )
     target_trusted = 30
     target_recommended = 12
     recommended = trust_rows.get("company_recommended", 0)
@@ -445,6 +452,9 @@ def training_overview(db: Session = Depends(get_db)):
         "recommended_cases": recommended,
         "rejected_cases": trust_rows.get("rejected", 0),
         "preference_events": preference_count,
+        "service_runs": sum(service_rows.values()),
+        "adopted_service_runs": service_rows.get("adopted", 0),
+        "service_outcomes": service_rows,
         "maturity_score": maturity,
         "targets": {
             "trusted_cases": target_trusted,
@@ -799,7 +809,7 @@ async def recommend_direction(
     if company_profile["applied"] and "公司偏好约束" not in prompt:
         directions.insert(0, f"【公司证据】{company_rule}")
         prompt = f"{prompt}；{company_rule}"
-    return VisualDirection(
+    direction = VisualDirection(
         directions=directions,
         recommended_tags=hit_tags,
         reference_case_ids=refs,
@@ -819,3 +829,114 @@ async def recommend_direction(
             if item.case.trust_status in {"verified", "company_recommended"}
         ],
     )
+    service_run = models.ServiceRun(
+        request_text=text,
+        industry=industry,
+        result_payload=direction.model_dump_json(),
+        evidence_case_ids=json.dumps(direction.evidence_case_ids),
+        company_profile_snapshot=json.dumps(company_profile, ensure_ascii=False),
+    )
+    db.add(service_run)
+    db.commit()
+    db.refresh(service_run)
+    return direction.model_copy(update={"run_id": service_run.id})
+
+
+@app.post("/api/service-runs/{run_id}/feedback")
+def service_run_feedback(
+    run_id: int,
+    payload: ServiceFeedbackInput,
+    db: Session = Depends(get_db),
+):
+    """Close the loop from a generated direction back to its evidence cases."""
+    actor = payload.actor.strip()
+    if not actor:
+        raise HTTPException(status_code=400, detail="反馈人不能为空")
+    run = (
+        db.query(models.ServiceRun)
+        .filter(models.ServiceRun.id == run_id)
+        .first()
+    )
+    if not run:
+        raise HTTPException(status_code=404, detail="服务记录不存在")
+    previous_status = run.status
+    if previous_status == payload.outcome:
+        return {
+            "run_id": run.id,
+            "previous_status": previous_status,
+            "status": run.status,
+            "evidence_cases_updated": [],
+        }
+    run.status = payload.outcome
+    run.actor = actor
+    run.feedback = payload.notes.strip()
+    evidence_ids = json.loads(run.evidence_case_ids or "[]")
+    outcome_events = {
+        "adopted": "adopt",
+        "rejected": "reject",
+        "needs_revision": "selected",
+    }
+    event_type = outcome_events[payload.outcome]
+    cases = (
+        db.query(models.Case)
+        .filter(models.Case.id.in_(evidence_ids))
+        .all()
+        if evidence_ids
+        else []
+    )
+    for case in cases:
+        if previous_status in outcome_events:
+            db.add(
+                models.PreferenceEvent(
+                    case_id=case.id,
+                    project_id=case.project_id,
+                    event_type=outcome_events[previous_status],
+                    value=-1,
+                    actor=actor,
+                    context=f"service_run:{run.id}; superseded by:{payload.outcome}",
+                )
+            )
+        db.add(
+            models.PreferenceEvent(
+                case_id=case.id,
+                project_id=case.project_id,
+                event_type=event_type,
+                value=1,
+                actor=actor,
+                context=(
+                    f"service_run:{run.id}; outcome:{payload.outcome}; "
+                    f"{payload.notes.strip()}"
+                ),
+            )
+        )
+    db.commit()
+    return {
+        "run_id": run.id,
+        "previous_status": previous_status,
+        "status": run.status,
+        "evidence_cases_updated": [case.id for case in cases],
+    }
+
+
+@app.get("/api/service-runs")
+def list_service_runs(limit: int = 30, db: Session = Depends(get_db)):
+    runs = (
+        db.query(models.ServiceRun)
+        .order_by(models.ServiceRun.created_at.desc())
+        .limit(max(1, min(limit, 100)))
+        .all()
+    )
+    return [
+        {
+            "id": run.id,
+            "request_text": run.request_text,
+            "industry": run.industry,
+            "status": run.status,
+            "actor": run.actor,
+            "feedback": run.feedback,
+            "evidence_case_ids": json.loads(run.evidence_case_ids or "[]"),
+            "created_at": run.created_at,
+            "updated_at": run.updated_at,
+        }
+        for run in runs
+    ]

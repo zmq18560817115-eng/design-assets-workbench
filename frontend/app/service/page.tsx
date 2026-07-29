@@ -18,6 +18,29 @@ export default function ServicePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [actor, setActor] = useState("");
+  const [feedbackNotes, setFeedbackNotes] = useState("");
+  const [outcome, setOutcome] = useState("");
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
+
+  const sendFeedback = async (
+    next: "adopted" | "rejected" | "needs_revision"
+  ) => {
+    if (!result || !actor.trim()) {
+      setError("记录业务结果前，请填写反馈人。");
+      return;
+    }
+    setFeedbackSaving(true);
+    setError("");
+    try {
+      await api.serviceFeedback(result.run_id, next, actor, feedbackNotes);
+      setOutcome(next);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "结果反馈失败");
+    } finally {
+      setFeedbackSaving(false);
+    }
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -86,6 +109,60 @@ export default function ServicePage() {
 
       {result && (
         <>
+          <section className="rounded-3xl border border-line bg-white p-5 md:p-6">
+            <div className="grid gap-5 lg:grid-cols-[1fr_380px] lg:items-end">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+                  Business outcome · #{result.run_id}
+                </div>
+                <h2 className="mt-2 text-xl font-semibold">这次产出最终是否被业务采用？</h2>
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  这个结果会反哺本次引用的公司证据案例，是系统形成真实业务倾向最重要的数据。
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={actor}
+                    onChange={(event) => setActor(event.target.value)}
+                    placeholder="反馈人 *"
+                    className="rounded-xl border border-line px-3 py-2.5 text-sm outline-none focus:border-accent"
+                  />
+                  <input
+                    value={feedbackNotes}
+                    onChange={(event) => setFeedbackNotes(event.target.value)}
+                    placeholder="采用／放弃原因"
+                    className="rounded-xl border border-line px-3 py-2.5 text-sm outline-none focus:border-accent"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    ["adopted", "已采用"],
+                    ["needs_revision", "需调整"],
+                    ["rejected", "不采用"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      disabled={feedbackSaving}
+                      onClick={() =>
+                        sendFeedback(
+                          value as "adopted" | "rejected" | "needs_revision"
+                        )
+                      }
+                      className={`rounded-xl px-3 py-2.5 text-sm ${
+                        outcome === value
+                          ? "bg-accent text-white"
+                          : "border border-line hover:border-accent"
+                      }`}
+                    >
+                      {outcome === value ? `✓ ${label}` : label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section
             className={`rounded-2xl border p-5 ${
               result.preference_applied

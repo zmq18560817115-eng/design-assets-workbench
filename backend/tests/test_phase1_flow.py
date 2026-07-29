@@ -232,6 +232,26 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(recommendation_data["company_evidence"]["trusted_cases"], 1)
         self.assertIn("公司偏好约束", recommendation_data["prompt"])
         self.assertIn(case["id"], recommendation_data["evidence_case_ids"])
+        self.assertGreater(recommendation_data["run_id"], 0)
+
+        service_feedback = self.client.post(
+            f"/api/service-runs/{recommendation_data['run_id']}/feedback",
+            json={
+                "outcome": "adopted",
+                "actor": "测试业务负责人",
+                "notes": "方向进入正式设计",
+            },
+        )
+        self.assertEqual(service_feedback.status_code, 200, service_feedback.text)
+        self.assertIn(
+            case["id"], service_feedback.json()["evidence_cases_updated"]
+        )
+        service_runs = self.client.get("/api/service-runs")
+        self.assertEqual(service_runs.status_code, 200, service_runs.text)
+        self.assertEqual(service_runs.json()[0]["status"], "adopted")
+        overview_after_service = self.client.get("/api/training/overview").json()
+        self.assertEqual(overview_after_service["service_runs"], 1)
+        self.assertEqual(overview_after_service["adopted_service_runs"], 1)
 
         text_search = self.client.post(
             "/api/search",

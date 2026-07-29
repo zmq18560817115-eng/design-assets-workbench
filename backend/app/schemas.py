@@ -246,6 +246,13 @@ class VisualDirection(BaseModel):
     company_evidence: dict[str, Any] = {}
     company_maturity: str = "insufficient"
     evidence_case_ids: list[int] = []
+    run_id: int = 0
+
+
+class ServiceFeedbackInput(BaseModel):
+    outcome: Literal["adopted", "rejected", "needs_revision"]
+    actor: str
+    notes: str = ""
 
 
 class SearchHit(BaseModel):

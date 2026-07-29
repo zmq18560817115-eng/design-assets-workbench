@@ -189,6 +189,24 @@ class PreferenceEvent(Base):
     project = relationship("Project", back_populates="preference_events")
 
 
+class ServiceRun(Base):
+    """A persisted recommendation output and its eventual business outcome."""
+
+    __tablename__ = "service_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_text = Column(Text, default="")
+    industry = Column(String, default="", index=True)
+    result_payload = Column(Text, default="{}")
+    evidence_case_ids = Column(Text, default="[]")
+    company_profile_snapshot = Column(Text, default="{}")
+    status = Column(String, default="generated", index=True)
+    actor = Column(String, default="")
+    feedback = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+
 class Tag(Base):
     """标签表：支持分类与层级关系。"""
 

@@ -245,6 +245,24 @@ export const api = {
     fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
       j<CaseOut>(r)
     ),
+  serviceFeedback: (
+    runId: number,
+    outcome: "adopted" | "rejected" | "needs_revision",
+    actor: string,
+    notes = ""
+  ) =>
+    fetch(`/api/service-runs/${runId}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ outcome, actor, notes }),
+    }).then((r) =>
+      j<{
+        run_id: number;
+        previous_status: string;
+        status: string;
+        evidence_cases_updated: number[];
+      }>(r)
+    ),
   tags: () =>
     fetch(`/api/tags`, { cache: "no-store" }).then((r) =>
       j<{ id: number; name: string; category: string; count: number }[]>(r)
@@ -340,6 +358,9 @@ export interface TrainingOverview {
   recommended_cases: number;
   rejected_cases: number;
   preference_events: number;
+  service_runs: number;
+  adopted_service_runs: number;
+  service_outcomes: Record<string, number>;
   maturity_score: number;
   targets: {
     trusted_cases: number;
@@ -397,6 +418,7 @@ export interface ConceptData {
 }
 
 export interface RecommendResult {
+  run_id: number;
   directions: string[];
   recommended_tags: string[];
   reference_case_ids: number[];
