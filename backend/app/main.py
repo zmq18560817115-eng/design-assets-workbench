@@ -45,6 +45,8 @@ from .schemas import (
     LayoutPatternCreate,
     LayoutPatternOut,
     LayoutPatternUpdate,
+    LayoutDirectionOut,
+    LayoutDirectionSetOut,
     BatchReviewInput,
     BatchCategorizeInput,
     BatchCategorySuggestionInput,
@@ -530,6 +532,45 @@ def match_business_requirement(
     if not requirement:
         raise HTTPException(status_code=404, detail="业务需求不存在")
     return crud.match_business_requirement(db, requirement)
+
+
+@app.get(
+    "/api/business-requirements/{requirement_id}/directions",
+    response_model=list[LayoutDirectionOut],
+)
+def list_requirement_directions(
+    requirement_id: int,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.BusinessRequirement, requirement_id):
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    return [
+        crud.serialize_layout_direction(item)
+        for item in db.query(models.LayoutDirection)
+        .filter(models.LayoutDirection.requirement_id == requirement_id)
+        .order_by(
+            models.LayoutDirection.generation_version.desc(),
+            models.LayoutDirection.id,
+        )
+        .all()
+    ]
+
+
+@app.post(
+    "/api/business-requirements/{requirement_id}/directions/generate",
+    response_model=LayoutDirectionSetOut,
+)
+def generate_requirement_directions(
+    requirement_id: int,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    try:
+        return crud.generate_layout_directions(db, requirement)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.patch("/api/cases/{case_id}/review", response_model=CaseOut)

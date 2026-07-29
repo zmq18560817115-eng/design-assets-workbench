@@ -20,6 +20,8 @@ _root = Path(_tmp.name)
 os.environ["DATABASE_URL"] = f"sqlite:///{_root / 'test.db'}"
 os.environ["UPLOAD_DIR"] = str(_root / "uploads")
 os.environ["VISION_PROVIDER"] = "mock"
+os.environ["LLM_API_KEY"] = ""
+os.environ["LLM_MODEL"] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
@@ -272,6 +274,43 @@ class PhaseOneFlowTest(unittest.TestCase):
             "需求指定参考案例",
             matched.json()["case_matches"][0]["reasons"],
         )
+        directions = self.client.post(
+            f"/api/business-requirements/{requirement.json()['id']}/directions/generate"
+        )
+        self.assertEqual(directions.status_code, 200, directions.text)
+        self.assertEqual(len(directions.json()["directions"]), 3)
+        self.assertEqual(
+            {
+                item["strategy_level"]
+                for item in directions.json()["directions"]
+            },
+            {"conservative", "balanced", "exploratory"},
+        )
+        for direction in directions.json()["directions"]:
+            self.assertTrue(direction["source_pattern_ids"])
+            self.assertTrue(direction["source_case_ids"])
+            self.assertTrue(direction["modules_json"])
+            self.assertEqual(
+                direction["module_count"],
+                len(direction["modules_json"]),
+            )
+            self.assertTrue(direction["model_name"])
+            self.assertTrue(direction["prompt_version"])
+            self.assertEqual(direction["generation_mode"], "heuristic")
+            self.assertIn("模型未配置", direction["failure_reason"])
+        regenerated_directions = self.client.post(
+            f"/api/business-requirements/{requirement.json()['id']}/directions/generate"
+        )
+        self.assertEqual(regenerated_directions.status_code, 200)
+        self.assertEqual(
+            regenerated_directions.json()["generation_version"],
+            2,
+        )
+        direction_history = self.client.get(
+            f"/api/business-requirements/{requirement.json()['id']}/directions"
+        )
+        self.assertEqual(direction_history.status_code, 200)
+        self.assertEqual(len(direction_history.json()), 6)
         generated = self.client.post(
             f"/api/cases/{case['id']}/layout-blueprints/generate"
         )

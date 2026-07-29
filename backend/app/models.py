@@ -255,6 +255,50 @@ class BusinessRequirement(Base):
     )
 
 
+class LayoutDirection(Base):
+    """One generated low-fidelity direction tied to evidence and a brief."""
+
+    __tablename__ = "layout_directions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    generation_version = Column(Integer, default=1, nullable=False, index=True)
+    strategy_level = Column(String, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    rationale = Column(Text, default="")
+    applicable_reason = Column(Text, default="")
+    canvas_ratio = Column(String, default="1:1")
+    orientation = Column(String, default="square")
+    grid_columns = Column(Integer, default=1)
+    grid_rows = Column(Integer, default=1)
+    margins = Column(Text, default="{}")
+    alignment = Column(String, default="")
+    reading_flow = Column(String, default="")
+    focal_region = Column(Text, default="")
+    information_density = Column(String, default="")
+    text_image_ratio = Column(Float, default=0.5)
+    module_count = Column(Integer, default=0)
+    modules_json = Column(Text, default="[]")
+    source_pattern_ids = Column(Text, default="[]")
+    source_case_ids = Column(Text, default="[]")
+    model_name = Column(String, default="")
+    prompt_version = Column(String, default="layout-direction-v1")
+    generation_mode = Column(String, default="heuristic")
+    failure_reason = Column(Text, default="")
+    status = Column(String, default="generated", index=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=dt.datetime.utcnow,
+        onupdate=dt.datetime.utcnow,
+    )
+
+
 class Project(Base):
     """A curated business project grouping cases and golden-standard assets."""
 

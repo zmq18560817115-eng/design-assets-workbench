@@ -211,6 +211,29 @@ export interface BusinessRequirementMatch {
   }[];
 }
 
+export interface LayoutDirection extends LayoutBlueprintInput {
+  id: number;
+  requirement_id: number;
+  generation_version: number;
+  strategy_level: "conservative" | "balanced" | "exploratory";
+  name: string;
+  rationale: string;
+  applicable_reason: string;
+  source_pattern_ids: number[];
+  source_case_ids: number[];
+  generation_mode: "model" | "heuristic";
+  failure_reason: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LayoutDirectionSet {
+  requirement: BusinessRequirement;
+  generation_version: number;
+  directions: LayoutDirection[];
+}
+
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`请求失败 ${res.status}`);
   return res.json();
@@ -356,6 +379,10 @@ export const api = {
     fetch(`/api/business-requirements/${requirementId}/match`, {
       method: "POST",
     }).then((r) => j<BusinessRequirementMatch>(r)),
+  generateLayoutDirections: (requirementId: number) =>
+    fetch(`/api/business-requirements/${requirementId}/directions/generate`, {
+      method: "POST",
+    }).then((r) => j<LayoutDirectionSet>(r)),
   reviewCase: (id: number | string, review: CaseReviewInput) =>
     fetch(`/api/cases/${id}/review`, {
       method: "PATCH",

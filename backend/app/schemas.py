@@ -338,6 +338,49 @@ class BusinessRequirementMatchOut(BaseModel):
     case_matches: list[CaseLayoutMatchOut]
 
 
+class LayoutDirectionOut(BaseModel):
+    id: int
+    requirement_id: int
+    generation_version: int
+    strategy_level: Literal["conservative", "balanced", "exploratory"]
+    name: str
+    rationale: str
+    applicable_reason: str
+    canvas_ratio: str
+    orientation: Literal["portrait", "landscape", "square"]
+    grid_columns: int
+    grid_rows: int
+    margins: LayoutMargins
+    alignment: str
+    reading_flow: str
+    focal_region: NormalizedRegion | None
+    information_density: str
+    text_image_ratio: float
+    module_count: int
+    modules_json: list[LayoutModule]
+    source_pattern_ids: list[int]
+    source_case_ids: list[int]
+    model_name: str
+    prompt_version: str
+    generation_mode: Literal["model", "heuristic"]
+    failure_reason: str
+    status: str
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class LayoutDirectionSetOut(BaseModel):
+    requirement: BusinessRequirementOut
+    generation_version: int
+    directions: list[LayoutDirectionOut]
+
+    @model_validator(mode="after")
+    def exactly_three_directions(self):
+        if len(self.directions) != 3:
+            raise ValueError("direction set must contain exactly three directions")
+        return self
+
+
 class CaseReviewInput(BaseModel):
     reviewer: str
     trust_status: Literal[

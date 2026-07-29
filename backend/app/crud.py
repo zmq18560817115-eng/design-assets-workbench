@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image as PILImage
 from sqlalchemy.orm import Session
 
-from . import config, models
+from . import config, llm, models
 from .schemas import (
     AnalysisResult,
     CaseReviewInput,
@@ -565,6 +565,304 @@ def match_business_requirement(
         "requirement": serialize_business_requirement(requirement),
         "pattern_matches": pattern_matches,
         "case_matches": case_matches[:case_limit],
+    }
+
+
+def _safe_region(module: dict) -> dict:
+    module["x"] = round(max(0, min(0.98, float(module.get("x", 0)))), 4)
+    module["y"] = round(max(0, min(0.98, float(module.get("y", 0)))), 4)
+    module["width"] = round(
+        max(0.02, min(1 - module["x"], float(module.get("width", 0.1)))),
+        4,
+    )
+    module["height"] = round(
+        max(0.02, min(1 - module["y"], float(module.get("height", 0.1)))),
+        4,
+    )
+    return module
+
+
+def _direction_modules(base_modules: list[dict], strategy: str) -> list[dict]:
+    modules = json.loads(json.dumps(base_modules, ensure_ascii=False))
+    if strategy == "conservative":
+        return modules
+    if strategy == "balanced":
+        for module in modules:
+            if module.get("type") == "product_image":
+                module["x"] = max(0.04, module["x"] - 0.03)
+                module["width"] = min(
+                    0.92,
+                    module["width"] + 0.06,
+                    1 - module["x"],
+                )
+                module["description"] = "强化后的产品主视觉"
+            elif module.get("type") == "supporting_text":
+                module["height"] = min(
+                    module["height"] + 0.04,
+                    1 - module["y"],
+                )
+        return [_safe_region(module) for module in modules]
+
+    supporting_index = next(
+        (
+            index
+            for index, module in enumerate(modules)
+            if module.get("type") == "supporting_text"
+        ),
+        None,
+    )
+    if supporting_index is not None:
+        original = modules[supporting_index]
+        gap = 0.025
+        half = max(0.02, (original["width"] - gap) / 2)
+        left = {
+            **original,
+            "id": f"{original['id']}-a",
+            "width": half,
+            "description": "分区信息 A",
+        }
+        right = {
+            **original,
+            "id": f"{original['id']}-b",
+            "x": original["x"] + half + gap,
+            "width": half,
+            "description": "分区信息 B",
+        }
+        modules[supporting_index : supporting_index + 1] = [left, right]
+    for index, module in enumerate(modules, 1):
+        module["priority"] = index
+    return [_safe_region(module) for module in modules]
+
+
+def serialize_layout_direction(direction: models.LayoutDirection) -> dict:
+    focal_region = None
+    if direction.focal_region:
+        try:
+            focal_region = json.loads(direction.focal_region)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            focal_region = None
+    return {
+        "id": direction.id,
+        "requirement_id": direction.requirement_id,
+        "generation_version": direction.generation_version,
+        "strategy_level": direction.strategy_level,
+        "name": direction.name,
+        "rationale": direction.rationale,
+        "applicable_reason": direction.applicable_reason,
+        "canvas_ratio": direction.canvas_ratio,
+        "orientation": direction.orientation,
+        "grid_columns": direction.grid_columns,
+        "grid_rows": direction.grid_rows,
+        "margins": json.loads(direction.margins or "{}"),
+        "alignment": direction.alignment,
+        "reading_flow": direction.reading_flow,
+        "focal_region": focal_region,
+        "information_density": direction.information_density,
+        "text_image_ratio": direction.text_image_ratio,
+        "module_count": direction.module_count,
+        "modules_json": _json_list(direction.modules_json),
+        "source_pattern_ids": _json_list(direction.source_pattern_ids),
+        "source_case_ids": _json_list(direction.source_case_ids),
+        "model_name": direction.model_name,
+        "prompt_version": direction.prompt_version,
+        "generation_mode": direction.generation_mode,
+        "failure_reason": direction.failure_reason,
+        "status": direction.status,
+        "created_at": direction.created_at,
+        "updated_at": direction.updated_at,
+    }
+
+
+def generate_layout_directions(
+    db: Session,
+    requirement: models.BusinessRequirement,
+) -> dict:
+    """Generate exactly three evidence-backed skeleton directions."""
+    matched = match_business_requirement(db, requirement)
+    pattern_matches = matched["pattern_matches"]
+    if not pattern_matches:
+        raise ValueError("没有可用的人工确认排版模式，请先沉淀并确认模式")
+    case_matches = matched["case_matches"]
+    source_case_ids = [
+        item["case_id"] for item in case_matches[:6]
+    ]
+    base_pattern = pattern_matches[0]["pattern"]
+    generation_version = (
+        db.query(models.LayoutDirection.generation_version)
+        .filter(models.LayoutDirection.requirement_id == requirement.id)
+        .order_by(models.LayoutDirection.generation_version.desc())
+        .limit(1)
+        .scalar()
+        or 0
+    ) + 1
+    strategies = [
+        (
+            "conservative",
+            "方向一｜稳健沿用",
+            "最大程度沿用最高匹配的已确认模式，降低设计沟通和落地风险。",
+            "适合时间紧、信息确定且需要快速形成一致认知的任务。",
+        ),
+        (
+            "balanced",
+            "方向二｜主视觉强化",
+            "保留信息层级，同时扩大产品主视觉并增强关键内容承载空间。",
+            "适合既要清楚讲信息，又要提高第一眼产品识别的任务。",
+        ),
+        (
+            "exploratory",
+            "方向三｜信息分区探索",
+            "将辅助信息拆成可比较的分区模块，形成更明确的浏览节奏。",
+            "适合卖点较多、需要对比或分步骤说明的任务。",
+        ),
+    ]
+    model_name = "heuristic-layout-direction"
+    generation_mode = "heuristic"
+    failure_reason = ""
+    narrative_overrides: dict[str, dict] = {}
+    if config.llm_enabled():
+        try:
+            response = llm.chat_json(
+                [
+                    {
+                        "role": "system",
+                        "content": (
+                            "你是业务排版策略助手。只优化三个低保真排版方向的名称、"
+                            "排版理由和适用原因，不生成完整设计，不改变来源证据。"
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(
+                            {
+                                "requirement": serialize_business_requirement(
+                                    requirement
+                                ),
+                                "matched_patterns": [
+                                    {
+                                        "id": item["pattern"]["id"],
+                                        "name": item["pattern"]["name"],
+                                        "reasons": item["reasons"],
+                                    }
+                                    for item in pattern_matches[:3]
+                                ],
+                                "required_output": {
+                                    "directions": [
+                                        {
+                                            "strategy_level": (
+                                                "conservative|balanced|exploratory"
+                                            ),
+                                            "name": "string",
+                                            "rationale": "string",
+                                            "applicable_reason": "string",
+                                        }
+                                    ]
+                                },
+                            },
+                            ensure_ascii=False,
+                        ),
+                    },
+                ],
+                temperature=0.3,
+                max_tokens=900,
+                timeout=90,
+            )
+            for item in response.get("directions", []):
+                level = item.get("strategy_level")
+                if level in {"conservative", "balanced", "exploratory"}:
+                    narrative_overrides[level] = item
+            model_name = config.LLM_MODEL
+            generation_mode = "model"
+        except Exception as exc:
+            failure_reason = f"{type(exc).__name__}: {str(exc)[:300]}"
+    else:
+        failure_reason = "文本模型未配置，使用可解释启发式方向"
+
+    created: list[models.LayoutDirection] = []
+    for index, (level, name, rationale, applicable_reason) in enumerate(
+        strategies
+    ):
+        selected_pattern = pattern_matches[
+            min(index, len(pattern_matches) - 1)
+        ]["pattern"]
+        override = narrative_overrides.get(level, {})
+        modules = _direction_modules(
+            selected_pattern["modules_json"],
+            level,
+        )
+        source_pattern_ids = list(
+            dict.fromkeys(
+                [
+                    base_pattern["id"],
+                    selected_pattern["id"],
+                ]
+            )
+        )
+        pattern_case_ids = selected_pattern["source_case_ids"]
+        direction_case_ids = list(
+            dict.fromkeys(pattern_case_ids + source_case_ids)
+        )
+        direction = models.LayoutDirection(
+            requirement_id=requirement.id,
+            generation_version=generation_version,
+            strategy_level=level,
+            name=str(override.get("name") or name),
+            rationale=str(override.get("rationale") or rationale),
+            applicable_reason=str(
+                override.get("applicable_reason") or applicable_reason
+            ),
+            canvas_ratio=(
+                requirement.canvas_ratio
+                or selected_pattern["canvas_ratio"]
+            ),
+            orientation=(
+                requirement.orientation
+                or selected_pattern["orientation"]
+            ),
+            grid_columns=selected_pattern["grid_columns"],
+            grid_rows=selected_pattern["grid_rows"],
+            margins=json.dumps(
+                selected_pattern["margins"],
+                ensure_ascii=False,
+            ),
+            alignment=selected_pattern["alignment"],
+            reading_flow=selected_pattern["reading_flow"],
+            focal_region=json.dumps(
+                selected_pattern["focal_region"],
+                ensure_ascii=False,
+            )
+            if selected_pattern["focal_region"]
+            else "",
+            information_density=(
+                requirement.information_density
+                or selected_pattern["information_density"]
+            ),
+            text_image_ratio=selected_pattern["text_image_ratio"],
+            module_count=len(modules),
+            modules_json=json.dumps(modules, ensure_ascii=False),
+            source_pattern_ids=json.dumps(
+                source_pattern_ids,
+                ensure_ascii=False,
+            ),
+            source_case_ids=json.dumps(
+                direction_case_ids,
+                ensure_ascii=False,
+            ),
+            model_name=model_name,
+            prompt_version="layout-direction-evidence-v1",
+            generation_mode=generation_mode,
+            failure_reason=failure_reason,
+        )
+        db.add(direction)
+        created.append(direction)
+    db.commit()
+    for direction in created:
+        db.refresh(direction)
+    return {
+        "requirement": serialize_business_requirement(requirement),
+        "generation_version": generation_version,
+        "directions": [
+            serialize_layout_direction(direction) for direction in created
+        ],
     }
 
 
