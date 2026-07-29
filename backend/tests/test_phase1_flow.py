@@ -178,6 +178,58 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(verified.status_code, 200, verified.text)
         self.assertEqual(verified.json()["version"], 5)
         self.assertEqual(verified.json()["review_status"], "verified")
+        pattern_payload = {
+            "name": "竖版标题主视觉转化模式",
+            "description": "标题、产品主视觉、辅助信息和行动引导自上而下排列",
+            "source_blueprint_ids": [verified.json()["id"]],
+            "industry_tags": ["母婴"],
+            "scene_tags": ["新品种草"],
+            "channel_tags": ["小红书"],
+            "business_goal_tags": ["建立产品差异认知"],
+            "usage_notes": "适合单一产品卖点逐级展开",
+            "editor": "layout-review-lead",
+        }
+        pattern = self.client.post("/api/layout-patterns", json=pattern_payload)
+        self.assertEqual(pattern.status_code, 200, pattern.text)
+        self.assertEqual(pattern.json()["version"], 1)
+        self.assertEqual(pattern.json()["review_status"], "human_edited")
+        self.assertEqual(
+            pattern.json()["source_case_ids"],
+            [case["id"]],
+        )
+        self.assertEqual(
+            pattern.json()["modules_json"],
+            verified.json()["modules_json"],
+        )
+        rejected_pattern = self.client.post(
+            "/api/layout-patterns",
+            json={
+                **pattern_payload,
+                "name": "不应沉淀的未确认模式",
+                "source_blueprint_ids": [auto_blueprint["id"]],
+            },
+        )
+        self.assertEqual(rejected_pattern.status_code, 400)
+        verified_pattern = self.client.post(
+            f"/api/layout-patterns/{pattern.json()['id']}/verify",
+            json={"editor": "layout-library-owner"},
+        )
+        self.assertEqual(verified_pattern.status_code, 200, verified_pattern.text)
+        self.assertEqual(verified_pattern.json()["version"], 2)
+        self.assertEqual(verified_pattern.json()["review_status"], "verified")
+        pattern_library = self.client.get(
+            "/api/layout-patterns",
+            params={
+                "scene": "新品种草",
+                "channel": "小红书",
+                "review_status": "verified",
+            },
+        )
+        self.assertEqual(pattern_library.status_code, 200, pattern_library.text)
+        self.assertEqual(
+            [item["id"] for item in pattern_library.json()],
+            [verified_pattern.json()["id"]],
+        )
         generated = self.client.post(
             f"/api/cases/{case['id']}/layout-blueprints/generate"
         )

@@ -7,11 +7,15 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from app.sampling import color_sample, color_score
-from app.vlm import _model_image_payload
 
 
 class CompanyAssetSamplingTest(unittest.TestCase):
     def test_model_payload_is_bounded_for_large_images(self) -> None:
+        # Import after test discovery has configured the isolated DATABASE_URL.
+        # app.vlm imports application config, so importing it at module collection
+        # time could bind the entire suite to the developer's real database.
+        from app.vlm import _model_image_payload
+
         image = Image.new("RGB", (3200, 2400), "#F23869")
         with tempfile.NamedTemporaryFile(suffix=".png") as handle:
             image.save(handle, format="PNG")

@@ -11,7 +11,13 @@ from PIL import Image as PILImage
 from sqlalchemy.orm import Session
 
 from . import config, models
-from .schemas import AnalysisResult, CaseReviewInput, LayoutBlueprintInput
+from .schemas import (
+    AnalysisResult,
+    CaseReviewInput,
+    LayoutBlueprintInput,
+    LayoutPatternCreate,
+    LayoutPatternUpdate,
+)
 
 
 def get_or_create_tag(db: Session, name: str, category: str = "style") -> models.Tag:
@@ -197,6 +203,157 @@ def build_layout_blueprint_for_case(
         ),
     )
     return build_initial_layout_blueprint(case.image, result)
+
+
+def _json_list(value: str | None) -> list:
+    try:
+        parsed = json.loads(value or "[]")
+        return parsed if isinstance(parsed, list) else []
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+
+
+def create_layout_pattern(
+    db: Session,
+    payload: LayoutPatternCreate | LayoutPatternUpdate,
+) -> models.LayoutPattern:
+    """Distill reusable structure from verified layout blueprint evidence."""
+    blueprints = (
+        db.query(models.LayoutBlueprint)
+        .filter(models.LayoutBlueprint.id.in_(payload.source_blueprint_ids))
+        .order_by(models.LayoutBlueprint.id)
+        .all()
+    )
+    found_ids = {item.id for item in blueprints}
+    missing = [
+        blueprint_id
+        for blueprint_id in payload.source_blueprint_ids
+        if blueprint_id not in found_ids
+    ]
+    if missing:
+        raise ValueError(f"排版骨架不存在: {missing}")
+    unverified = [
+        item.id for item in blueprints if item.review_status != "verified"
+    ]
+    if unverified:
+        raise ValueError(f"只能从已确认排版骨架沉淀模式: {unverified}")
+
+    anchor = blueprints[0]
+    source_case_ids = list(dict.fromkeys(item.case_id for item in blueprints))
+    matching_patterns = (
+        db.query(models.LayoutPattern)
+        .filter(models.LayoutPattern.name == payload.name.strip())
+        .order_by(models.LayoutPattern.version.desc())
+        .all()
+    )
+    version = (matching_patterns[0].version + 1) if matching_patterns else 1
+    review_status = getattr(payload, "review_status", "human_edited")
+    pattern = models.LayoutPattern(
+        name=payload.name.strip(),
+        description=payload.description,
+        canvas_ratio=anchor.canvas_ratio,
+        orientation=anchor.orientation,
+        grid_columns=anchor.grid_columns,
+        grid_rows=anchor.grid_rows,
+        margins=anchor.margins,
+        alignment=anchor.alignment,
+        reading_flow=anchor.reading_flow,
+        focal_region=anchor.focal_region,
+        information_density=anchor.information_density,
+        text_image_ratio=anchor.text_image_ratio,
+        module_count=anchor.module_count,
+        modules_json=anchor.modules_json,
+        source_blueprint_ids=json.dumps(
+            payload.source_blueprint_ids,
+            ensure_ascii=False,
+        ),
+        source_case_ids=json.dumps(source_case_ids, ensure_ascii=False),
+        industry_tags=json.dumps(payload.industry_tags, ensure_ascii=False),
+        scene_tags=json.dumps(payload.scene_tags, ensure_ascii=False),
+        channel_tags=json.dumps(payload.channel_tags, ensure_ascii=False),
+        business_goal_tags=json.dumps(
+            payload.business_goal_tags,
+            ensure_ascii=False,
+        ),
+        usage_notes=payload.usage_notes,
+        version=version,
+        review_status=review_status,
+        model_name="human-distilled-layout-pattern",
+        prompt_version="layout-pattern-distillation-v1",
+        editor=payload.editor.strip(),
+    )
+    db.add(pattern)
+    db.commit()
+    db.refresh(pattern)
+    return pattern
+
+
+def list_layout_patterns(
+    db: Session,
+    *,
+    orientation: str = "",
+    scene: str = "",
+    channel: str = "",
+    review_status: str = "",
+) -> list[models.LayoutPattern]:
+    query = db.query(models.LayoutPattern)
+    if orientation:
+        query = query.filter(models.LayoutPattern.orientation == orientation)
+    if review_status:
+        query = query.filter(models.LayoutPattern.review_status == review_status)
+    items = query.order_by(
+        models.LayoutPattern.updated_at.desc(),
+        models.LayoutPattern.id.desc(),
+    ).all()
+    if scene:
+        items = [
+            item for item in items if scene in _json_list(item.scene_tags)
+        ]
+    if channel:
+        items = [
+            item for item in items if channel in _json_list(item.channel_tags)
+        ]
+    return items
+
+
+def serialize_layout_pattern(pattern: models.LayoutPattern) -> dict:
+    focal_region = None
+    if pattern.focal_region:
+        try:
+            focal_region = json.loads(pattern.focal_region)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            focal_region = None
+    return {
+        "id": pattern.id,
+        "name": pattern.name,
+        "description": pattern.description,
+        "canvas_ratio": pattern.canvas_ratio,
+        "orientation": pattern.orientation,
+        "grid_columns": pattern.grid_columns,
+        "grid_rows": pattern.grid_rows,
+        "margins": json.loads(pattern.margins or "{}"),
+        "alignment": pattern.alignment,
+        "reading_flow": pattern.reading_flow,
+        "focal_region": focal_region,
+        "information_density": pattern.information_density,
+        "text_image_ratio": pattern.text_image_ratio,
+        "module_count": pattern.module_count,
+        "modules_json": _json_list(pattern.modules_json),
+        "source_blueprint_ids": _json_list(pattern.source_blueprint_ids),
+        "source_case_ids": _json_list(pattern.source_case_ids),
+        "industry_tags": _json_list(pattern.industry_tags),
+        "scene_tags": _json_list(pattern.scene_tags),
+        "channel_tags": _json_list(pattern.channel_tags),
+        "business_goal_tags": _json_list(pattern.business_goal_tags),
+        "usage_notes": pattern.usage_notes,
+        "version": pattern.version,
+        "review_status": pattern.review_status,
+        "model_name": pattern.model_name,
+        "prompt_version": pattern.prompt_version,
+        "editor": pattern.editor,
+        "created_at": pattern.created_at,
+        "updated_at": pattern.updated_at,
+    }
 
 
 def create_case_from_analysis(

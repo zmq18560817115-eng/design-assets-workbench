@@ -185,6 +185,46 @@ class LayoutBlueprint(Base):
     case = relationship("Case", back_populates="layout_blueprints")
 
 
+class LayoutPattern(Base):
+    """Reusable layout knowledge distilled from one or more verified blueprints."""
+
+    __tablename__ = "layout_patterns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text, default="")
+    canvas_ratio = Column(String, default="1:1", index=True)
+    orientation = Column(String, default="square", index=True)
+    grid_columns = Column(Integer, default=1)
+    grid_rows = Column(Integer, default=1)
+    margins = Column(Text, default="{}")
+    alignment = Column(String, default="", index=True)
+    reading_flow = Column(String, default="")
+    focal_region = Column(Text, default="")
+    information_density = Column(String, default="", index=True)
+    text_image_ratio = Column(Float, default=0.5)
+    module_count = Column(Integer, default=0)
+    modules_json = Column(Text, default="[]")
+    source_blueprint_ids = Column(Text, default="[]")
+    source_case_ids = Column(Text, default="[]")
+    industry_tags = Column(Text, default="[]")
+    scene_tags = Column(Text, default="[]")
+    channel_tags = Column(Text, default="[]")
+    business_goal_tags = Column(Text, default="[]")
+    usage_notes = Column(Text, default="")
+    version = Column(Integer, default=1, nullable=False)
+    review_status = Column(String, default="human_edited", index=True)
+    model_name = Column(String, default="")
+    prompt_version = Column(String, default="layout-pattern-v1")
+    editor = Column(String, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=dt.datetime.utcnow,
+        onupdate=dt.datetime.utcnow,
+    )
+
+
 class Project(Base):
     """A curated business project grouping cases and golden-standard assets."""
 

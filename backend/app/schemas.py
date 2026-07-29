@@ -240,6 +240,59 @@ class LayoutBlueprintVerifyInput(BaseModel):
     editor: str = Field(min_length=1, max_length=120)
 
 
+class LayoutPatternCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    description: str = ""
+    source_blueprint_ids: list[int] = Field(min_length=1)
+    industry_tags: list[str] = Field(default_factory=list)
+    scene_tags: list[str] = Field(default_factory=list)
+    channel_tags: list[str] = Field(default_factory=list)
+    business_goal_tags: list[str] = Field(default_factory=list)
+    usage_notes: str = ""
+    editor: str = Field(min_length=1, max_length=120)
+
+    @model_validator(mode="after")
+    def unique_sources(self):
+        self.source_blueprint_ids = list(dict.fromkeys(self.source_blueprint_ids))
+        return self
+
+
+class LayoutPatternUpdate(LayoutPatternCreate):
+    review_status: Literal["human_edited", "verified"] = "human_edited"
+
+
+class LayoutPatternOut(BaseModel):
+    id: int
+    name: str
+    description: str
+    canvas_ratio: str
+    orientation: Literal["portrait", "landscape", "square"]
+    grid_columns: int
+    grid_rows: int
+    margins: LayoutMargins
+    alignment: str
+    reading_flow: str
+    focal_region: NormalizedRegion | None
+    information_density: str
+    text_image_ratio: float
+    module_count: int
+    modules_json: list[LayoutModule]
+    source_blueprint_ids: list[int]
+    source_case_ids: list[int]
+    industry_tags: list[str]
+    scene_tags: list[str]
+    channel_tags: list[str]
+    business_goal_tags: list[str]
+    usage_notes: str
+    version: int
+    review_status: Literal["human_edited", "verified"]
+    model_name: str
+    prompt_version: str
+    editor: str
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
 class CaseReviewInput(BaseModel):
     reviewer: str
     trust_status: Literal[

@@ -39,6 +39,9 @@ from .schemas import (
     LayoutBlueprintInput,
     LayoutBlueprintOut,
     LayoutBlueprintVerifyInput,
+    LayoutPatternCreate,
+    LayoutPatternOut,
+    LayoutPatternUpdate,
     BatchReviewInput,
     BatchCategorizeInput,
     BatchCategorySuggestionInput,
@@ -366,6 +369,101 @@ def verify_layout_blueprint(
         verified_payload,
     )
     return crud.serialize_layout_blueprint(verified)
+
+
+@app.get("/api/layout-patterns", response_model=list[LayoutPatternOut])
+def list_layout_patterns(
+    orientation: str = "",
+    scene: str = "",
+    channel: str = "",
+    review_status: str = "",
+    db: Session = Depends(get_db),
+):
+    return [
+        crud.serialize_layout_pattern(item)
+        for item in crud.list_layout_patterns(
+            db,
+            orientation=orientation,
+            scene=scene,
+            channel=channel,
+            review_status=review_status,
+        )
+    ]
+
+
+@app.post("/api/layout-patterns", response_model=LayoutPatternOut)
+def create_layout_pattern(
+    payload: LayoutPatternCreate,
+    db: Session = Depends(get_db),
+):
+    try:
+        pattern = crud.create_layout_pattern(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_layout_pattern(pattern)
+
+
+@app.get("/api/layout-patterns/{pattern_id}", response_model=LayoutPatternOut)
+def get_layout_pattern(
+    pattern_id: int,
+    db: Session = Depends(get_db),
+):
+    pattern = db.get(models.LayoutPattern, pattern_id)
+    if not pattern:
+        raise HTTPException(status_code=404, detail="排版模式不存在")
+    return crud.serialize_layout_pattern(pattern)
+
+
+@app.post(
+    "/api/layout-patterns/{pattern_id}/revise",
+    response_model=LayoutPatternOut,
+)
+def revise_layout_pattern(
+    pattern_id: int,
+    payload: LayoutPatternUpdate,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.LayoutPattern, pattern_id):
+        raise HTTPException(status_code=404, detail="排版模式不存在")
+    try:
+        pattern = crud.create_layout_pattern(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_layout_pattern(pattern)
+
+
+@app.post(
+    "/api/layout-patterns/{pattern_id}/verify",
+    response_model=LayoutPatternOut,
+)
+def verify_layout_pattern(
+    pattern_id: int,
+    payload: LayoutBlueprintVerifyInput,
+    db: Session = Depends(get_db),
+):
+    current = db.get(models.LayoutPattern, pattern_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="排版模式不存在")
+    data = crud.serialize_layout_pattern(current)
+    verified_payload = LayoutPatternUpdate.model_validate(
+        {
+            "name": data["name"],
+            "description": data["description"],
+            "source_blueprint_ids": data["source_blueprint_ids"],
+            "industry_tags": data["industry_tags"],
+            "scene_tags": data["scene_tags"],
+            "channel_tags": data["channel_tags"],
+            "business_goal_tags": data["business_goal_tags"],
+            "usage_notes": data["usage_notes"],
+            "editor": payload.editor,
+            "review_status": "verified",
+        }
+    )
+    try:
+        verified = crud.create_layout_pattern(db, verified_payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_layout_pattern(verified)
 
 
 @app.patch("/api/cases/{case_id}/review", response_model=CaseOut)

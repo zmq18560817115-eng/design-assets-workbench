@@ -141,6 +141,35 @@ export interface LayoutBlueprint extends LayoutBlueprintInput {
   updated_at: string;
 }
 
+export interface LayoutPattern extends LayoutBlueprintInput {
+  id: number;
+  name: string;
+  description: string;
+  source_blueprint_ids: number[];
+  source_case_ids: number[];
+  industry_tags: string[];
+  scene_tags: string[];
+  channel_tags: string[];
+  business_goal_tags: string[];
+  usage_notes: string;
+  version: number;
+  review_status: "human_edited" | "verified";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LayoutPatternCreate {
+  name: string;
+  description?: string;
+  source_blueprint_ids: number[];
+  industry_tags?: string[];
+  scene_tags?: string[];
+  channel_tags?: string[];
+  business_goal_tags?: string[];
+  usage_notes?: string;
+  editor: string;
+}
+
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`请求失败 ${res.status}`);
   return res.json();
@@ -250,6 +279,32 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ editor }),
     }).then((r) => j<LayoutBlueprint>(r)),
+  layoutPatterns: (filters?: {
+    orientation?: string;
+    scene?: string;
+    channel?: string;
+    review_status?: string;
+  }) => {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return fetch(`/api/layout-patterns?${params.toString()}`, {
+      cache: "no-store",
+    }).then((r) => j<LayoutPattern[]>(r));
+  },
+  createLayoutPattern: (payload: LayoutPatternCreate) =>
+    fetch("/api/layout-patterns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutPattern>(r)),
+  verifyLayoutPattern: (patternId: number, editor: string) =>
+    fetch(`/api/layout-patterns/${patternId}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ editor }),
+    }).then((r) => j<LayoutPattern>(r)),
   reviewCase: (id: number | string, review: CaseReviewInput) =>
     fetch(`/api/cases/${id}/review`, {
       method: "PATCH",

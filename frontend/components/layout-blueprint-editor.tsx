@@ -41,6 +41,7 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<LayoutBlueprintInput | null>(null);
   const [editor, setEditor] = useState("");
+  const [patternName, setPatternName] = useState("");
   const [showLabels, setShowLabels] = useState(false);
   const [showFocalRegion, setShowFocalRegion] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -163,6 +164,33 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
       setMessage(`已根据现有拆解生成版本 v${created.version}。`);
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "重新生成失败");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createPattern = async () => {
+    if (!selected || selected.review_status !== "verified") {
+      setMessage("请先人工确认当前骨架，再沉淀为排版模式。");
+      return;
+    }
+    if (!patternName.trim() || !editor.trim()) {
+      setMessage("请填写模式名称和沉淀人。");
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    try {
+      const pattern = await api.createLayoutPattern({
+        name: patternName.trim(),
+        description: "从案例人工确认骨架沉淀的可复用排版模式",
+        source_blueprint_ids: [selected.id],
+        editor: editor.trim(),
+      });
+      setPatternName("");
+      setMessage(`已沉淀为排版模式「${pattern.name}」v${pattern.version}。`);
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "沉淀排版模式失败");
     } finally {
       setSaving(false);
     }
@@ -413,6 +441,28 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
               </button>
             </div>
             {message && <p className="mt-3 text-xs leading-5 text-amber-300">{message}</p>}
+          </div>
+
+          <div className="rounded-xl border border-line p-3">
+            <div className="text-xs font-semibold text-gray-300">沉淀到排版模式库</div>
+            <p className="mt-1 text-[11px] leading-5 text-gray-500">
+              只有人工确认版本可以成为模式证据，来源案例和骨架版本会自动保留。
+            </p>
+            <div className="mt-3 flex gap-2">
+              <input
+                value={patternName}
+                onChange={(event) => setPatternName(event.target.value)}
+                placeholder="例如：竖版标题主视觉转化模式"
+                className="field flex-1"
+              />
+              <button
+                onClick={createPattern}
+                disabled={saving || selected.review_status !== "verified"}
+                className="mt-1 rounded-lg bg-ink px-4 py-2 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                沉淀模式
+              </button>
+            </div>
           </div>
         </div>
       </div>
