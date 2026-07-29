@@ -233,7 +233,9 @@ export const api = {
     action: "confirm" | "recommend" | "reject",
     reviewer: string,
     reviewNotes = "",
-    businessLine = ""
+    businessLine = "",
+    keepReasons: string[] = [],
+    avoidReasons: string[] = []
   ) =>
     fetch("/api/training/batch-review", {
       method: "POST",
@@ -244,6 +246,8 @@ export const api = {
         reviewer,
         review_notes: reviewNotes,
         business_line: businessLine,
+        keep_reasons: keepReasons,
+        avoid_reasons: avoidReasons,
       }),
     }).then((r) =>
       j<{
@@ -353,6 +357,8 @@ export interface CaseReviewInput {
   why_good?: string[];
   reusable_methods?: string[];
   prompt?: string;
+  keep_reasons: string[];
+  avoid_reasons: string[];
 }
 
 export interface CaseVersion {
@@ -496,6 +502,10 @@ export interface ConceptData {
     top_grid: string;
   };
   principles: string[];
+  explicit_guidance: {
+    keep: { text: string; count: number }[];
+    avoid: { text: string; count: number }[];
+  };
   by_industry: {
     industry: string;
     count: number;
@@ -537,6 +547,8 @@ export interface RecommendResult {
     grids: string[];
     fonts: string[];
     color_families: string[];
+    keep_rules: string[];
+    avoid_rules: string[];
     industry_profile?: Record<string, unknown> | null;
   };
   company_maturity: "insufficient" | "growing" | "strong";

@@ -303,6 +303,8 @@ def batch_review_cases(
             trust_status=trust_status,
             review_decision=decision,
             review_notes=payload.review_notes,
+            keep_reasons=payload.keep_reasons,
+            avoid_reasons=payload.avoid_reasons,
             business_line=payload.business_line or case.business_line,
             channel=case.channel,
             campaign_stage=case.campaign_stage,
@@ -1016,6 +1018,10 @@ async def recommend_direction(
             f"优先风格 {'、'.join(company_profile['styles']) or '以已确认案例为准'}；"
             f"常用色彩 {'、'.join(company_profile['color_families']) or '按业务需求'}。"
         )
+        if company_profile.get("keep_rules"):
+            company_rule += "必须延续：" + "、".join(company_profile["keep_rules"]) + "。"
+        if company_profile.get("avoid_rules"):
+            company_rule += "必须避免：" + "、".join(company_profile["avoid_rules"]) + "。"
         directions.insert(0, f"【公司证据】{company_rule}")
         prompt = f"{prompt}；{company_rule}"
 

@@ -29,6 +29,8 @@ export function ReviewPanel({
     trust_status: item.trust_status || "verified",
     review_decision: item.review_decision || "",
     review_notes: item.review_notes || "",
+    keep_reasons: "",
+    avoid_reasons: "",
     business_line: item.business_line || "",
     channel: item.channel || "",
     campaign_stage: item.campaign_stage || "",
@@ -73,6 +75,8 @@ export function ReviewPanel({
         mood_keywords: splitTags(form.mood_keywords),
         why_good: splitLines(form.why_good),
         reusable_methods: splitLines(form.reusable_methods),
+        keep_reasons: splitLines(form.keep_reasons),
+        avoid_reasons: splitLines(form.avoid_reasons),
       };
       const saved = await api.reviewCase(item.id, payload);
       onSaved(saved);
@@ -315,6 +319,20 @@ export function ReviewPanel({
             placeholder="采用/不采用理由，以及需要避免的表达"
             className={`${inputClass} min-h-24`}
           />
+          <div className="grid gap-3 md:grid-cols-2">
+            <textarea
+              value={form.keep_reasons}
+              onChange={(e) => update("keep_reasons", e.target.value)}
+              placeholder="希望延续的方法，每行一项"
+              className={`${inputClass} min-h-28`}
+            />
+            <textarea
+              value={form.avoid_reasons}
+              onChange={(e) => update("avoid_reasons", e.target.value)}
+              placeholder="应避免的问题，每行一项"
+              className={`${inputClass} min-h-28`}
+            />
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={save}

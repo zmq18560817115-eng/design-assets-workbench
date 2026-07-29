@@ -234,6 +234,8 @@ class PhaseOneFlowTest(unittest.TestCase):
                 "reviewer": "测试设计总监",
                 "review_notes": "批量确认进入可信样本",
                 "business_line": "母婴",
+                "keep_reasons": ["keep clear hierarchy"],
+                "avoid_reasons": ["avoid crowded claims"],
             },
         )
         self.assertEqual(batch_review.status_code, 200, batch_review.text)
@@ -241,6 +243,17 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(
             self.client.get(f"/api/cases/{case['id']}").json()["trust_status"],
             "verified",
+        )
+        concept_data = self.client.get(
+            "/api/concept", params={"business_line": "母婴"}
+        ).json()
+        self.assertEqual(
+            concept_data["explicit_guidance"]["keep"][0]["text"],
+            "keep clear hierarchy",
+        )
+        self.assertEqual(
+            concept_data["explicit_guidance"]["avoid"][0]["text"],
+            "avoid crowded claims",
         )
 
         preference_search = self.client.post(
@@ -272,6 +285,8 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(recommendation_data["company_evidence"]["trusted_cases"], 1)
         self.assertIn("公司偏好约束", recommendation_data["prompt"])
         self.assertIn("业务约束", recommendation_data["prompt"])
+        self.assertIn("keep clear hierarchy", recommendation_data["prompt"])
+        self.assertIn("avoid crowded claims", recommendation_data["prompt"])
         self.assertIn(case["id"], recommendation_data["evidence_case_ids"])
         self.assertGreater(recommendation_data["run_id"], 0)
 

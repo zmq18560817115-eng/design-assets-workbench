@@ -141,3 +141,14 @@ def _auto_migrate():
                             f"TEXT DEFAULT '{default}'"
                         )
                     )
+    if "case_reviews" in tables:
+        review_cols = {c["name"] for c in inspector.get_columns("case_reviews")}
+        for col in ("keep_reasons", "avoid_reasons"):
+            if col not in review_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE case_reviews ADD COLUMN {col} "
+                            "TEXT DEFAULT '[]'"
+                        )
+                    )

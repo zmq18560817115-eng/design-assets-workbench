@@ -134,6 +134,29 @@ def build_concept(db: Session, business_line: str = "") -> dict:
             for case in cases
             if (case.business_line or case.industry or "").strip() == scope
         ]
+    case_ids = {case.id for case in cases}
+    keep_counter = Counter()
+    avoid_counter = Counter()
+    if case_ids:
+        reviews = (
+            db.query(models.CaseReview)
+            .filter(models.CaseReview.case_id.in_(case_ids))
+            .all()
+        )
+        for review in reviews:
+            for value, counter in (
+                (review.keep_reasons, keep_counter),
+                (review.avoid_reasons, avoid_counter),
+            ):
+                try:
+                    items = json.loads(value or "[]")
+                except Exception:
+                    items = []
+                counter.update(
+                    item.strip()
+                    for item in items
+                    if isinstance(item, str) and item.strip()
+                )
     preferences = _preference_map(db)
     trust_counts = Counter(case.trust_status or "ai_unverified" for case in cases)
 
@@ -329,6 +352,16 @@ def build_concept(db: Session, business_line: str = "") -> dict:
         },
         "principles": principles,
         "by_industry": by_industry,
+        "explicit_guidance": {
+            "keep": [
+                {"text": text, "count": count}
+                for text, count in keep_counter.most_common(10)
+            ],
+            "avoid": [
+                {"text": text, "count": count}
+                for text, count in avoid_counter.most_common(10)
+            ],
+        },
     }
 
 
@@ -385,6 +418,7 @@ def recommendation_context(data: dict, industry: str = "") -> dict:
         ),
         None,
     )
+    guidance = data.get("explicit_guidance") or {}
     return {
         "scope": data.get("scope") or "company",
         "applied": evidence_count > 0,
@@ -398,6 +432,16 @@ def recommendation_context(data: dict, industry: str = "") -> dict:
         "grids": names("grid"),
         "fonts": names("font"),
         "color_families": names("color_family"),
+        "keep_rules": [
+            item.get("text")
+            for item in (guidance.get("keep") or [])[:5]
+            if item.get("text")
+        ],
+        "avoid_rules": [
+            item.get("text")
+            for item in (guidance.get("avoid") or [])[:5]
+            if item.get("text")
+        ],
         "industry_profile": industry_profile,
     }
 

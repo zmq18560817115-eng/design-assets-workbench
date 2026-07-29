@@ -163,6 +163,8 @@ class CaseReview(Base):
     trust_status = Column(String, default="verified", index=True)
     decision = Column(String, default="")
     notes = Column(Text, default="")
+    keep_reasons = Column(Text, default="[]")
+    avoid_reasons = Column(Text, default="[]")
     corrected_payload = Column(Text, default="{}")
     analysis_version = Column(Integer, default=1)
     created_at = Column(DateTime, default=dt.datetime.utcnow)

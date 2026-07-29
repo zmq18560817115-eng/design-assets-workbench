@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ---------- AI 输出结构 ----------
@@ -180,6 +180,8 @@ class CaseReviewInput(BaseModel):
     why_good: list[str] | None = None
     reusable_methods: list[str] | None = None
     prompt: str | None = None
+    keep_reasons: list[str] = Field(default_factory=list)
+    avoid_reasons: list[str] = Field(default_factory=list)
 
 
 class ProjectCreate(BaseModel):
@@ -219,6 +221,8 @@ class BatchReviewInput(BaseModel):
     reviewer: str
     review_notes: str = ""
     business_line: str = ""
+    keep_reasons: list[str] = Field(default_factory=list)
+    avoid_reasons: list[str] = Field(default_factory=list)
 
 
 class RequirementInput(BaseModel):

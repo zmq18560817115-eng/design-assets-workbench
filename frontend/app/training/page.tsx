@@ -48,6 +48,8 @@ export default function TrainingPage() {
   const [reviewer, setReviewer] = useState("");
   const [businessLine, setBusinessLine] = useState("");
   const [notes, setNotes] = useState("");
+  const [keepReasons, setKeepReasons] = useState("");
+  const [avoidReasons, setAvoidReasons] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -148,7 +150,9 @@ export default function TrainingPage() {
         action,
         reviewer,
         notes,
-        businessLine
+        businessLine,
+        keepReasons.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
+        avoidReasons.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
       );
       setMessage(`已处理 ${result.updated_count} 个案例。`);
       setSelected([]);
@@ -548,6 +552,26 @@ export default function TrainingPage() {
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               placeholder="说明采用或淘汰原因"
+              rows={3}
+              className="mt-1 w-full resize-none rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </label>
+          <label className="mt-3 block text-xs text-gray-500">
+            希望延续的方法
+            <textarea
+              value={keepReasons}
+              onChange={(event) => setKeepReasons(event.target.value)}
+              placeholder="每行一项，例如：保留大标题与产品主体的强对比"
+              rows={3}
+              className="mt-1 w-full resize-none rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </label>
+          <label className="mt-3 block text-xs text-gray-500">
+            应避免的问题
+            <textarea
+              value={avoidReasons}
+              onChange={(event) => setAvoidReasons(event.target.value)}
+              placeholder="每行一项，例如：避免卖点堆叠导致层级不清"
               rows={3}
               className="mt-1 w-full resize-none rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm outline-none focus:border-accent"
             />

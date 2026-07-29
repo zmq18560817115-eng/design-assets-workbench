@@ -148,6 +148,51 @@ export default function ConceptPage() {
             ))}
           </section>
 
+          <section className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6">
+              <h2 className="text-lg font-semibold text-emerald-800">
+                希望延续的方法
+              </h2>
+              {data.explicit_guidance.keep.length ? (
+                <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                  {data.explicit_guidance.keep.map((item) => (
+                    <li key={item.text} className="rounded-xl bg-white p-3">
+                      {item.text}
+                      <span className="ml-2 text-xs text-gray-400">
+                        {item.count} 次确认
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-gray-400">
+                  等待人工审核填写明确的延续规则。
+                </p>
+              )}
+            </div>
+            <div className="rounded-3xl border border-red-200 bg-red-50/50 p-6">
+              <h2 className="text-lg font-semibold text-red-700">
+                应避免的问题
+              </h2>
+              {data.explicit_guidance.avoid.length ? (
+                <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                  {data.explicit_guidance.avoid.map((item) => (
+                    <li key={item.text} className="rounded-xl bg-white p-3">
+                      {item.text}
+                      <span className="ml-2 text-xs text-gray-400">
+                        {item.count} 次确认
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-gray-400">
+                  等待人工审核填写明确的避坑规则。
+                </p>
+              )}
+            </div>
+          </section>
+
           <section className="rounded-3xl border border-line bg-white p-6 md:p-8">
             <div className="grid gap-7 lg:grid-cols-[1fr_320px]">
               <div>
