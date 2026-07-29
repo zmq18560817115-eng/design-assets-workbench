@@ -6,15 +6,11 @@ import { categoryByValue } from "@/lib/categories";
 export function Nav() {
   const items = [
     { href: "/", label: "首页" },
-    { href: "/search", label: "找灵感" },
+    { href: "/analyze", label: "上传入库" },
+    { href: "/batch", label: "批量导入" },
     { href: "/cases", label: "素材库" },
     { href: "/patterns", label: "排版模式" },
     { href: "/intentions", label: "排版意向" },
-    { href: "/analyze", label: "上传入库" },
-    { href: "/batch", label: "批量导入" },
-    { href: "/training", label: "偏好训练" },
-    { href: "/service", label: "业务生成" },
-    { href: "/concept", label: "公司画像" },
   ];
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur-xl">
@@ -64,11 +60,6 @@ export function Card({
 }
 
 export function CaseCard({ c }: { c: CaseOut }) {
-  const trustLabel: Record<string, string> = {
-    ai_unverified: "AI未校验",
-    verified: "已校验",
-    company_recommended: "公司推荐",
-  };
   return (
     <Link href={`/cases/${c.id}`}>
       <div className="group overflow-hidden rounded-2xl border border-line bg-white transition duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-xl">
@@ -78,8 +69,8 @@ export function CaseCard({ c }: { c: CaseOut }) {
         )}
         <div className="p-4">
           <div className="mb-2 flex gap-1.5 text-[10px]">
-            <span className="rounded-full bg-accent/10 px-2 py-1 text-accent">
-              {categoryByValue(c.asset_category).label}仓库
+            <span className="rounded-full border border-line px-2 py-1 text-gray-500">
+              {categoryByValue(c.asset_category).label}素材
             </span>
             {c.asset_subcategory && (
               <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-500">
@@ -89,9 +80,7 @@ export function CaseCard({ c }: { c: CaseOut }) {
           </div>
           <div className="flex items-start justify-between gap-3">
             <div className="font-medium group-hover:text-accent">{c.name}</div>
-            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-[10px] text-gray-500">
-              {trustLabel[c.trust_status] || "AI未校验"}
-            </span>
+            <span className="shrink-0 text-[10px] text-gray-400">#{c.id}</span>
           </div>
           <div className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">{c.summary}</div>
           <div className="mt-3 flex flex-wrap gap-1.5">

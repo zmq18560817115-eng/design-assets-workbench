@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui";
-import { ASSET_CATEGORIES, categoryByValue } from "@/lib/categories";
+import { categoryByValue } from "@/lib/categories";
 
 type Status = {
   total: number;
@@ -24,7 +24,6 @@ export default function BatchPage() {
   const [submitting, setSubmitting] = useState(false);
   const [sourceType, setSourceType] = useState("external_reference");
   const [productCategory, setProductCategory] = useState("");
-  const [assetCategory, setAssetCategory] = useState("layout");
   const [assetSubcategory, setAssetSubcategory] = useState("");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -42,7 +41,7 @@ export default function BatchPage() {
       const r = await api.analyzeBatch(files, {
         source_type: sourceType,
         product_category: productCategory,
-        asset_category: assetCategory,
+        asset_category: "layout",
         asset_subcategory: assetSubcategory,
         rights_note: sourceType === "external_reference" ? "仅限内部设计参考" : "",
       });
@@ -109,26 +108,12 @@ export default function BatchPage() {
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <select
-            value={assetCategory}
-            onChange={(e) => {
-              setAssetCategory(e.target.value);
-              setAssetSubcategory("");
-            }}
-            className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
-          >
-            {ASSET_CATEGORIES.map((item) => (
-              <option key={item.value} value={item.value}>
-                素材仓库：{item.label}
-              </option>
-            ))}
-          </select>
-          <select
             value={assetSubcategory}
             onChange={(e) => setAssetSubcategory(e.target.value)}
             className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
           >
             <option value="">选择二级品类</option>
-            {categoryByValue(assetCategory).subcategories.map((item) => (
+            {categoryByValue("layout").subcategories.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
@@ -218,8 +203,8 @@ export default function BatchPage() {
               <Link href="/cases" className="text-indigo-400 hover:underline">
                 查看案例库 →
               </Link>
-              <Link href="/concept" className="text-indigo-400 hover:underline">
-                查看设计概论 →
+              <Link href="/patterns" className="text-indigo-400 hover:underline">
+                查看排版模式库 →
               </Link>
             </div>
           )}

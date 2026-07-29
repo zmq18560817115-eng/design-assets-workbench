@@ -1,12 +1,14 @@
 "use client";
-import { useState } from "react";
+
 import Link from "next/link";
+import { useState } from "react";
 import { api, CaseOut } from "@/lib/api";
-import { Card, Swatches, Tag } from "@/components/ui";
-import { ASSET_CATEGORIES, categoryByValue } from "@/lib/categories";
+import { Card } from "@/components/ui";
+import { LayoutBlueprintEditor } from "@/components/layout-blueprint-editor";
+import { categoryByValue } from "@/lib/categories";
 
 export default function AnalyzePage() {
-  const [preview, setPreview] = useState<string>("");
+  const [preview, setPreview] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CaseOut | null>(null);
@@ -15,14 +17,13 @@ export default function AnalyzePage() {
   const [sourceUrl, setSourceUrl] = useState("");
   const [productCategory, setProductCategory] = useState("");
   const [rightsNote, setRightsNote] = useState("");
-  const [assetCategory, setAssetCategory] = useState("layout");
   const [assetSubcategory, setAssetSubcategory] = useState("");
 
-  const onPick = (f: File | null) => {
+  const onPick = (nextFile: File | null) => {
     setResult(null);
     setError("");
-    setFile(f);
-    setPreview(f ? URL.createObjectURL(f) : "");
+    setFile(nextFile);
+    setPreview(nextFile ? URL.createObjectURL(nextFile) : "");
   };
 
   const run = async () => {
@@ -36,183 +37,127 @@ export default function AnalyzePage() {
           source_url: sourceUrl,
           product_category: productCategory,
           rights_note: rightsNote,
-          asset_category: assetCategory,
+          asset_category: "layout",
           asset_subcategory: assetSubcategory,
         })
       );
-    } catch (e) {
-      setError("分析失败，请确认后端服务已启动。");
+    } catch {
+      setError("上传或排版拆解失败，请确认后端服务已启动。");
     } finally {
       setLoading(false);
     }
   };
 
-  const a = result?.analysis;
-
   return (
-    <div>
-      <h1 className="mb-2 text-2xl font-bold">上传优秀案例并AI拆解</h1>
-      <p className="mb-6 text-sm text-gray-400">
-        上传后自动完成结构化拆解并进入团队公共素材库，默认标记为“AI未校验”。
-      </p>
+    <div className="space-y-8">
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+          Upload layout asset
+        </div>
+        <h1 className="mt-2 text-3xl font-semibold">上传排版素材</h1>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          保存原始成品图，并根据图片内容区域生成只有外框的低保真排版骨架。
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <Card>
-          <label className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-line hover:border-indigo-500">
+          <label className="flex min-h-[420px] cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-line bg-canvas p-4 hover:border-accent">
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="预览" className="max-h-60 rounded-md" />
+              <img
+                src={preview}
+                alt="待上传素材"
+                className="max-h-[520px] max-w-full rounded-xl border border-line bg-white object-contain"
+              />
             ) : (
-              <span className="text-gray-500">点击选择图片 · PNG / JPG</span>
+              <div className="text-center">
+                <div className="font-medium">选择一张成品图</div>
+                <div className="mt-2 text-sm text-gray-400">PNG / JPG / WEBP</div>
+              </div>
             )}
             <input
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => onPick(e.target.files?.[0] || null)}
+              onChange={(event) => onPick(event.target.files?.[0] || null)}
             />
           </label>
-          <button
-            onClick={run}
-            disabled={!file || loading}
-            className="mt-4 w-full rounded-lg bg-indigo-500 py-2.5 font-medium hover:bg-indigo-400 disabled:opacity-40"
-          >
-            {loading ? "AI 分析中…" : "开始拆解"}
-          </button>
+        </Card>
+
+        <Card className="h-fit">
+          <div className="text-sm font-semibold">素材信息</div>
           <div className="mt-4 grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <select
-                value={assetCategory}
-                onChange={(e) => {
-                  setAssetCategory(e.target.value);
-                  setAssetSubcategory("");
-                }}
-                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
-              >
-                {ASSET_CATEGORIES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    素材仓库：{item.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={assetSubcategory}
-                onChange={(e) => setAssetSubcategory(e.target.value)}
-                className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
-              >
-                <option value="">选择二级品类</option>
-                {categoryByValue(assetCategory).subcategories.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-xs text-gray-500">
-              将按“{categoryByValue(assetCategory).label}”重点拆解：
-              {categoryByValue(assetCategory).note}
-            </p>
             <select
-              value={sourceType}
-              onChange={(e) => setSourceType(e.target.value)}
-              className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
+              value={assetSubcategory}
+              onChange={(event) => setAssetSubcategory(event.target.value)}
+              className="rounded-xl border border-line bg-white px-3 py-3 text-sm"
             >
-              <option value="company_published">公司已发布优秀作品</option>
-              <option value="external_reference">外部优秀案例</option>
-              <option value="unused_internal">未采用参考方案</option>
+              <option value="">选择排版子类</option>
+              {categoryByValue("layout").subcategories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </select>
             <input
               value={productCategory}
-              onChange={(e) => setProductCategory(e.target.value)}
-              placeholder="产品分类，如：吸奶器"
-              className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
+              onChange={(event) => setProductCategory(event.target.value)}
+              placeholder="产品品类，例如：吸奶器"
+              className="rounded-xl border border-line px-3 py-3 text-sm"
             />
+            <select
+              value={sourceType}
+              onChange={(event) => setSourceType(event.target.value)}
+              className="rounded-xl border border-line bg-white px-3 py-3 text-sm"
+            >
+              <option value="company_published">公司已发布成品</option>
+              <option value="external_reference">外部参考素材</option>
+              <option value="unused_internal">内部未采用方案</option>
+            </select>
             <input
               value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="原始来源链接（外部案例建议填写）"
-              className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
+              onChange={(event) => setSourceUrl(event.target.value)}
+              placeholder="原始来源链接（可选）"
+              className="rounded-xl border border-line px-3 py-3 text-sm"
             />
             <input
               value={rightsNote}
-              onChange={(e) => setRightsNote(e.target.value)}
-              placeholder="使用说明，如：仅限内部参考"
-              className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-gray-700"
+              onChange={(event) => setRightsNote(event.target.value)}
+              placeholder="素材使用说明（可选）"
+              className="rounded-xl border border-line px-3 py-3 text-sm"
             />
           </div>
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+          <button
+            onClick={run}
+            disabled={!file || loading}
+            className="mt-4 w-full rounded-xl bg-ink py-3 text-sm font-medium text-white hover:bg-accent disabled:opacity-40"
+          >
+            {loading ? "正在上传并拆解框架…" : "上传并生成排版框架"}
+          </button>
+          {error && <p className="mt-3 text-sm text-rose-500">{error}</p>}
         </Card>
-
-        <div className="space-y-4">
-          {!result && (
-            <Card>
-              <p className="text-sm text-gray-500">
-                分析结果会显示在这里：视觉风格、色彩体系、构图、光影、材质、设计规则与
-                AI 绘图提示词。
-              </p>
-            </Card>
-          )}
-
-          {result && a && (
-            <>
-              <Card>
-                <div className="text-lg font-semibold">{result.name}</div>
-                <p className="mt-1 text-sm text-gray-400">{result.summary}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {result.tags.map((t) => (
-                    <Tag key={t.id}>{t.name}</Tag>
-                  ))}
-                </div>
-                <Link
-                  href={`/cases/${result.id}`}
-                  className="mt-4 inline-block text-sm text-indigo-400 hover:underline"
-                >
-                  查看完整案例卡 →
-                </Link>
-              </Card>
-
-              {/* 拆解重心：排版 + 文字 优先 */}
-              <div className="grid grid-cols-2 gap-4">
-                <Card className="border-indigo-500/40">
-                  <div className="mb-1 flex items-center gap-1.5">
-                    <span className="rounded bg-indigo-500 px-1 py-0.5 text-[9px] font-semibold text-white">
-                      重心
-                    </span>
-                    <span className="text-sm font-semibold text-gray-200">排版</span>
-                  </div>
-                  <div className="text-sm">{a.layout.layout_type}</div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {a.layout.grid_columns} · {a.layout.modules}
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500">{a.layout.margins}</p>
-                </Card>
-                <Card className="border-indigo-500/40">
-                  <div className="text-sm font-semibold text-gray-200">文字 / 字体</div>
-                  <div className="mt-1 text-sm">{a.typography.text_ratio}</div>
-                  <p className="mt-1 text-xs text-gray-500">{a.typography.font_tone}</p>
-                </Card>
-              </div>
-
-              <Card>
-                <div className="mb-2 text-sm font-semibold text-gray-300">色彩体系</div>
-                <Swatches colors={a.color.palette} />
-                <p className="mt-2 text-xs text-gray-500">{a.color.description}</p>
-              </Card>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <div className="text-sm font-semibold text-gray-300">构图</div>
-                  <div className="mt-1 text-sm">{a.composition.type}</div>
-                  <p className="mt-1 text-xs text-gray-500">{a.composition.description}</p>
-                </Card>
-                <Card>
-                  <div className="text-sm font-semibold text-gray-300">光影</div>
-                  <div className="mt-1 text-sm">{a.light.type}</div>
-                  <p className="mt-1 text-xs text-gray-500">{a.light.description}</p>
-                </Card>
-              </div>
-            </>
-          )}
-        </div>
       </div>
+
+      {result && (
+        <>
+          <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <div>
+              <div className="font-medium text-emerald-800">素材已入库</div>
+              <p className="mt-1 text-sm text-emerald-700">
+                {result.name} · 已生成首版低保真排版骨架
+              </p>
+            </div>
+            <Link
+              href={`/cases/${result.id}`}
+              className="rounded-xl bg-white px-4 py-2 text-sm text-emerald-700"
+            >
+              打开素材详情 →
+            </Link>
+          </section>
+          <LayoutBlueprintEditor caseId={result.id} />
+        </>
+      )}
     </div>
   );
 }
