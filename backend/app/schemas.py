@@ -169,6 +169,7 @@ class CaseReviewInput(BaseModel):
     channel: str = ""
     campaign_stage: str = ""
     business_goal: str = ""
+    asset_category: Literal["layout", "style", "color", "photo"] | None = None
     name: str | None = None
     summary: str | None = None
     layout_type: str | None = None
@@ -223,6 +224,12 @@ class BatchReviewInput(BaseModel):
     business_line: str = ""
     keep_reasons: list[str] = Field(default_factory=list)
     avoid_reasons: list[str] = Field(default_factory=list)
+
+
+class BatchCategorizeInput(BaseModel):
+    case_ids: list[int]
+    asset_category: Literal["layout", "style", "color", "photo"]
+    actor: str
 
 
 class RequirementInput(BaseModel):

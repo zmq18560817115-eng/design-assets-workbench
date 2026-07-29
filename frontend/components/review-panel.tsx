@@ -32,6 +32,7 @@ export function ReviewPanel({
     keep_reasons: "",
     avoid_reasons: "",
     business_line: item.business_line || "",
+    asset_category: item.asset_category || "layout",
     channel: item.channel || "",
     campaign_stage: item.campaign_stage || "",
     business_goal: item.business_goal || "",
@@ -70,6 +71,7 @@ export function ReviewPanel({
         ...form,
         trust_status: form.trust_status as CaseReviewInput["trust_status"],
         review_decision: form.review_decision as CaseReviewInput["review_decision"],
+        asset_category: form.asset_category as CaseReviewInput["asset_category"],
         hierarchy: splitLines(form.hierarchy),
         style_tags: splitTags(form.style_tags),
         mood_keywords: splitTags(form.mood_keywords),
@@ -224,6 +226,16 @@ export function ReviewPanel({
               placeholder="业务线 / 产品线"
               className={inputClass}
             />
+            <select
+              value={form.asset_category}
+              onChange={(e) => update("asset_category", e.target.value)}
+              className={inputClass}
+            >
+              <option value="layout">排版素材</option>
+              <option value="style">风格素材</option>
+              <option value="color">色彩素材</option>
+              <option value="photo">实拍图素材</option>
+            </select>
             <input
               value={form.channel}
               onChange={(e) => update("channel", e.target.value)}

@@ -381,6 +381,21 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(duplicate.status_code, 200, duplicate.text)
         self.assertEqual(duplicate.json()["id"], case["id"])
 
+        categorized = self.client.post(
+            "/api/training/batch-categorize",
+            json={
+                "case_ids": [case["id"]],
+                "asset_category": "style",
+                "actor": "测试素材管理员",
+            },
+        )
+        self.assertEqual(categorized.status_code, 200, categorized.text)
+        self.assertEqual(categorized.json()["updated_count"], 1)
+        self.assertEqual(
+            self.client.get(f"/api/cases/{case['id']}").json()["asset_category"],
+            "style",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -306,6 +306,8 @@ def review_case(
     case.channel = review.channel.strip()
     case.campaign_stage = review.campaign_stage.strip()
     case.business_goal = review.business_goal.strip()
+    if review.asset_category is not None:
+        case.asset_category = review.asset_category
     keep_reasons = [item.strip() for item in review.keep_reasons if item.strip()]
     avoid_reasons = [item.strip() for item in review.avoid_reasons if item.strip()]
 
@@ -317,6 +319,7 @@ def review_case(
             "channel": case.channel,
             "campaign_stage": case.campaign_stage,
             "business_goal": case.business_goal,
+            "asset_category": case.asset_category,
             "review_decision": case.review_decision,
             "review_notes": case.review_notes,
             "trust_status": case.trust_status,

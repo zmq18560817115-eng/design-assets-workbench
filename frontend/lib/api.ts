@@ -258,6 +258,26 @@ export const api = {
         failed: { case_id: number; detail: string }[];
       }>(r)
     ),
+  batchCategorize: (
+    caseIds: number[],
+    assetCategory: "layout" | "style" | "color" | "photo",
+    actor: string
+  ) =>
+    fetch("/api/training/batch-categorize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        case_ids: caseIds,
+        asset_category: assetCategory,
+        actor,
+      }),
+    }).then((r) =>
+      j<{
+        asset_category: string;
+        updated: number[];
+        updated_count: number;
+      }>(r)
+    ),
   reanalyzeCase: (id: number | string) =>
     fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
       j<CaseOut>(r)
@@ -346,6 +366,7 @@ export interface CaseReviewInput {
   channel: string;
   campaign_stage: string;
   business_goal: string;
+  asset_category?: "layout" | "style" | "color" | "photo";
   name?: string;
   summary?: string;
   layout_type?: string;
@@ -431,6 +452,7 @@ export interface TrainingReadiness {
   business_line: string;
   stage:
     | "collect"
+    | "organize"
     | "analyze"
     | "verify"
     | "curate"
@@ -444,8 +466,14 @@ export interface TrainingReadiness {
   weekly_actions: string[];
   owner_role: string;
   acceptance_criteria: string[];
+  asset_category_coverage: Record<
+    "layout" | "style" | "color" | "photo",
+    { current: number; target: number; met: boolean }
+  >;
+  coverage_gaps: ("layout" | "style" | "color" | "photo")[];
   gates: Record<
     | "company_assets"
+    | "category_balance"
     | "model_analyzed"
     | "human_verified"
     | "company_recommended"

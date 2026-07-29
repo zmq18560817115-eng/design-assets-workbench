@@ -24,6 +24,7 @@ from .schemas import (
     CaseReviewInput,
     CaseProjectInput,
     BatchReviewInput,
+    BatchCategorizeInput,
     PreferenceEventInput,
     ProjectCreate,
     ProjectOut,
@@ -324,6 +325,56 @@ def batch_review_cases(
     }
 
 
+@app.post("/api/training/batch-categorize")
+def batch_categorize_cases(
+    payload: BatchCategorizeInput,
+    db: Session = Depends(get_db),
+):
+    """Classify selected company assets while preserving an audit entry."""
+    actor = payload.actor.strip()
+    if not actor:
+        raise HTTPException(status_code=400, detail="归类操作人不能为空")
+    case_ids = list(dict.fromkeys(payload.case_ids))
+    if not case_ids or len(case_ids) > 100:
+        raise HTTPException(status_code=400, detail="每次请选择 1～100 个案例")
+    cases = (
+        db.query(models.Case)
+        .filter(models.Case.id.in_(case_ids))
+        .order_by(models.Case.id)
+        .all()
+    )
+    updated = []
+    for case in cases:
+        previous = case.asset_category or "layout"
+        case.asset_category = payload.asset_category
+        db.add(
+            models.CaseReview(
+                case_id=case.id,
+                project_id=case.project_id,
+                reviewer=actor,
+                action="categorize",
+                trust_status=case.trust_status,
+                decision=case.review_decision,
+                notes=f"素材类别：{previous} → {payload.asset_category}",
+                corrected_payload=json.dumps(
+                    {
+                        "asset_category": payload.asset_category,
+                        "previous_asset_category": previous,
+                    },
+                    ensure_ascii=False,
+                ),
+                analysis_version=case.analysis.version if case.analysis else 0,
+            )
+        )
+        updated.append(case.id)
+    db.commit()
+    return {
+        "asset_category": payload.asset_category,
+        "updated": updated,
+        "updated_count": len(updated),
+    }
+
+
 @app.get("/api/cases/{case_id}/versions")
 def case_versions(case_id: int, db: Session = Depends(get_db)):
     exists = db.query(models.Case.id).filter(models.Case.id == case_id).first()
@@ -540,6 +591,28 @@ def training_readiness(db: Session = Depends(get_db)):
             for case in line_cases
             if case.image and case.image.source_type == "company_published"
         )
+        category_counts = {
+            category: sum(
+                1
+                for case in line_cases
+                if case.asset_category == category
+                and case.image
+                and case.image.source_type == "company_published"
+            )
+            for category in ("layout", "style", "color", "photo")
+        }
+        category_coverage = {
+            category: {"current": count, "target": 2, "met": count >= 2}
+            for category, count in category_counts.items()
+        }
+        covered_categories = sum(
+            1 for item in category_coverage.values() if item["met"]
+        )
+        coverage_gaps = [
+            category
+            for category, item in category_coverage.items()
+            if not item["met"]
+        ]
         model_analyzed = sum(
             1
             for case in line_cases
@@ -572,6 +645,11 @@ def training_readiness(db: Session = Depends(get_db)):
                 "target": 10,
                 "met": published >= 10,
             },
+            "category_balance": {
+                "current": covered_categories,
+                "target": 4,
+                "met": covered_categories >= 4,
+            },
             "model_analyzed": {
                 "current": model_analyzed,
                 "target": 3,
@@ -601,6 +679,17 @@ def training_readiness(db: Session = Depends(get_db)):
         if not gates["company_assets"]["met"]:
             stage = "collect"
             next_action = f"再补充 {10 - published} 张代表性公司成品"
+        elif not gates["category_balance"]["met"]:
+            stage = "organize"
+            category_names = {
+                "layout": "排版",
+                "style": "风格",
+                "color": "色彩",
+                "photo": "实拍图",
+            }
+            next_action = "补齐素材类别：" + "、".join(
+                category_names[item] for item in coverage_gaps
+            )
         elif not gates["model_analyzed"]["met"]:
             stage = "analyze"
             next_action = f"再完成 {3 - model_analyzed} 张火山模型深度拆解"
@@ -628,6 +717,7 @@ def training_readiness(db: Session = Depends(get_db)):
         )
         weekly_actions = {
             "collect": ["补齐代表性公司成品", "检查品类和业务线标注"],
+            "organize": ["将素材按排版、风格、色彩、实拍图重新归类", "每类至少保留 2 张代表样本"],
             "analyze": ["选择差异明显的样本", "调用视觉模型完成结构化拆解"],
             "verify": ["设计负责人逐张核对模型结论", "填写希望延续与应避免规则"],
             "curate": ["从已确认样本中选出黄金标准", "标记为公司推荐"],
@@ -637,6 +727,7 @@ def training_readiness(db: Session = Depends(get_db)):
         }[stage]
         owner_role = {
             "collect": "素材管理员",
+            "organize": "素材管理员 / 设计负责人",
             "analyze": "素材管理员 / AI 运营",
             "verify": "设计负责人",
             "curate": "设计总监 / 业务负责人",
@@ -645,9 +736,10 @@ def training_readiness(db: Session = Depends(get_db)):
             "operational": "素材库运营负责人",
         }[stage]
         score = round(
-            20 * min(published / 10, 1)
-            + 20 * min(model_analyzed / 3, 1)
-            + 25 * min(verified / 3, 1)
+            15 * min(published / 10, 1)
+            + 15 * min(covered_categories / 4, 1)
+            + 15 * min(model_analyzed / 3, 1)
+            + 20 * min(verified / 3, 1)
             + 15 * min(recommended / 1, 1)
             + 10 * min(len(line_runs) / 5, 1)
             + 10 * min(adopted_runs / 2, 1)
@@ -661,6 +753,8 @@ def training_readiness(db: Session = Depends(get_db)):
                 "gates": gates,
                 "service_mode": service_mode,
                 "review_candidate_ids": review_candidates,
+                "asset_category_coverage": category_coverage,
+                "coverage_gaps": coverage_gaps,
                 "weekly_actions": weekly_actions,
                 "owner_role": owner_role,
                 "acceptance_criteria": [

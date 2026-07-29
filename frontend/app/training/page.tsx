@@ -27,6 +27,7 @@ const trustLabels: Record<string, string> = {
 
 const gateLabels: Record<string, string> = {
   company_assets: "成品",
+  category_balance: "四类",
   model_analyzed: "模型",
   human_verified: "确认",
   company_recommended: "推荐",
@@ -56,6 +57,9 @@ export default function TrainingPage() {
   const [notes, setNotes] = useState("");
   const [keepReasons, setKeepReasons] = useState("");
   const [avoidReasons, setAvoidReasons] = useState("");
+  const [targetCategory, setTargetCategory] = useState<
+    "layout" | "style" | "color" | "photo"
+  >("layout");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -170,6 +174,33 @@ export default function TrainingPage() {
     }
   };
 
+  const applyCategory = async () => {
+    if (!reviewer.trim()) {
+      setMessage("请先填写归类操作人。");
+      return;
+    }
+    if (selected.length === 0) {
+      setMessage("请至少选择一个案例。");
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    try {
+      const result = await api.batchCategorize(
+        selected,
+        targetCategory,
+        reviewer
+      );
+      setMessage(`已将 ${result.updated_count} 个案例归入${categoryLabels[targetCategory]}。`);
+      setSelected([]);
+      await Promise.all([loadCases(), loadOverview(), loadReadiness()]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "批量归类失败");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-7">
       <section className="rounded-[28px] bg-ink px-6 py-8 text-white md:px-9">
@@ -260,7 +291,7 @@ export default function TrainingPage() {
                   style={{ width: `${item.score}%` }}
                 />
               </div>
-              <div className="mt-4 grid grid-cols-6 gap-2">
+              <div className="mt-4 grid grid-cols-7 gap-2">
                 {Object.entries(item.gates).map(([key, gate]) => (
                   <div
                     key={key}
@@ -276,6 +307,23 @@ export default function TrainingPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {Object.entries(item.asset_category_coverage).map(
+                  ([categoryKey, coverage]) => (
+                    <span
+                      key={categoryKey}
+                      className={`rounded-full px-2 py-1 text-[10px] ${
+                        coverage.met
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-amber-50 text-amber-600"
+                      }`}
+                    >
+                      {categoryLabels[categoryKey] || categoryKey}{" "}
+                      {coverage.current}/{coverage.target}
+                    </span>
+                  )
+                )}
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl bg-canvas p-3">
@@ -624,6 +672,33 @@ export default function TrainingPage() {
           </label>
           <div className="mt-4 rounded-xl bg-canvas p-3 text-xs text-gray-500">
             已选择 {selected.length} 个案例
+          </div>
+          <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+            <select
+              value={targetCategory}
+              onChange={(event) =>
+                setTargetCategory(
+                  event.target.value as
+                    | "layout"
+                    | "style"
+                    | "color"
+                    | "photo"
+                )
+              }
+              className="rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm outline-none focus:border-accent"
+            >
+              <option value="layout">排版素材</option>
+              <option value="style">风格素材</option>
+              <option value="color">色彩素材</option>
+              <option value="photo">实拍图素材</option>
+            </select>
+            <button
+              disabled={saving}
+              onClick={applyCategory}
+              className="rounded-xl border border-line px-3 py-2.5 text-sm disabled:opacity-50"
+            >
+              批量归类
+            </button>
           </div>
           <div className="mt-3 grid gap-2">
             <button
