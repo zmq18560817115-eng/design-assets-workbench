@@ -293,11 +293,21 @@ export const api = {
     fetch(`/api/concept/methodology`, { method: "POST" }).then((r) =>
       j<{ enabled: boolean; methodology: string; model?: string; note?: string }>(r)
     ),
-  recommend: (text: string, industry = "", file?: File | null) => {
+  recommend: (input: {
+    text: string;
+    industry?: string;
+    channel?: string;
+    campaign_stage?: string;
+    business_goal?: string;
+    file?: File | null;
+  }) => {
     const fd = new FormData();
-    fd.append("text", text);
-    fd.append("industry", industry);
-    if (file) fd.append("file", file);
+    fd.append("text", input.text);
+    fd.append("industry", input.industry || "");
+    fd.append("channel", input.channel || "");
+    fd.append("campaign_stage", input.campaign_stage || "");
+    fd.append("business_goal", input.business_goal || "");
+    if (input.file) fd.append("file", input.file);
     return fetch(`/api/recommend`, { method: "POST", body: fd }).then((r) =>
       j<RecommendResult>(r)
     );

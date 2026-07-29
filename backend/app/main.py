@@ -696,6 +696,9 @@ def concept_methodology(db: Session = Depends(get_db)):
 async def recommend_direction(
     text: str = Form(""),
     industry: str = Form(""),
+    channel: str = Form(""),
+    campaign_stage: str = Form(""),
+    business_goal: str = Form(""),
     file: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
@@ -705,6 +708,12 @@ async def recommend_direction(
     上传意向图时，会先对其做视觉拆解，并把风格/色彩/排版融合进推荐。
     """
     low = text.lower()
+    context_parts = [
+        f"渠道：{channel}" if channel else "",
+        f"营销阶段：{campaign_stage}" if campaign_stage else "",
+        f"业务目标：{business_goal}" if business_goal else "",
+    ]
+    business_context = "；".join(part for part in context_parts if part)
     keyword_map = {
         "科技": ["科技感", "冷调", "极简"],
         "高端": ["高级感", "克制", "低饱和"],
@@ -748,7 +757,16 @@ async def recommend_direction(
     ranked_references = multimodal_search.search_cases(
         db,
         query_text=" ".join(
-            item for item in [text, industry, " ".join(hit_tags)] if item
+            item
+            for item in [
+                text,
+                industry,
+                channel,
+                campaign_stage,
+                business_goal,
+                " ".join(hit_tags),
+            ]
+            if item
         ),
         reference=ref,
         limit=4,
@@ -859,6 +877,9 @@ async def recommend_direction(
     if company_profile["applied"] and "公司偏好约束" not in prompt:
         directions.insert(0, f"【公司证据】{company_rule}")
         prompt = f"{prompt}；{company_rule}"
+    if business_context:
+        directions.insert(0, f"【业务约束】{business_context}")
+        prompt = f"{prompt}；业务约束：{business_context}"
     direction = VisualDirection(
         directions=directions,
         recommended_tags=hit_tags,
@@ -886,6 +907,9 @@ async def recommend_direction(
     service_run = models.ServiceRun(
         request_text=text,
         industry=industry,
+        channel=channel,
+        campaign_stage=campaign_stage,
+        business_goal=business_goal,
         result_payload=direction.model_dump_json(),
         evidence_case_ids=json.dumps(direction.evidence_case_ids),
         company_profile_snapshot=json.dumps(company_profile, ensure_ascii=False),
@@ -985,6 +1009,9 @@ def list_service_runs(limit: int = 30, db: Session = Depends(get_db)):
             "id": run.id,
             "request_text": run.request_text,
             "industry": run.industry,
+            "channel": run.channel,
+            "campaign_stage": run.campaign_stage,
+            "business_goal": run.business_goal,
             "status": run.status,
             "actor": run.actor,
             "feedback": run.feedback,

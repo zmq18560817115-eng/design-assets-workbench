@@ -125,3 +125,19 @@ def _auto_migrate():
         if "project_id" not in case_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE cases ADD COLUMN project_id INTEGER"))
+    if "service_runs" in tables:
+        run_cols = {c["name"] for c in inspector.get_columns("service_runs")}
+        run_fields = {
+            "channel": "",
+            "campaign_stage": "",
+            "business_goal": "",
+        }
+        for col, default in run_fields.items():
+            if col not in run_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE service_runs ADD COLUMN {col} "
+                            f"TEXT DEFAULT '{default}'"
+                        )
+                    )

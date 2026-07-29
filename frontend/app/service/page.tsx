@@ -13,6 +13,9 @@ const maturityLabels = {
 export default function ServicePage() {
   const [text, setText] = useState("");
   const [industry, setIndustry] = useState("");
+  const [channel, setChannel] = useState("");
+  const [campaignStage, setCampaignStage] = useState("");
+  const [businessGoal, setBusinessGoal] = useState("");
   const [reference, setReference] = useState<File | null>(null);
   const [result, setResult] = useState<RecommendResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,7 +54,16 @@ export default function ServicePage() {
     setLoading(true);
     setError("");
     try {
-      setResult(await api.recommend(text, industry, reference));
+      setResult(
+        await api.recommend({
+          text,
+          industry,
+          channel,
+          campaign_stage: campaignStage,
+          business_goal: businessGoal,
+          file: reference,
+        })
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "方向生成失败");
     } finally {
@@ -72,12 +84,12 @@ export default function ServicePage() {
           </p>
         </div>
 
-        <form onSubmit={submit} className="mt-7 grid gap-4 lg:grid-cols-[1fr_240px]">
+        <form onSubmit={submit} className="mt-7 grid gap-4 lg:grid-cols-[1fr_320px]">
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="例如：母婴新品首发主视觉，突出专业、安全和温暖，信息层级清楚，后续需要适配小红书与电商详情页。"
-            rows={6}
+            rows={14}
             className="resize-none rounded-2xl border border-line bg-canvas px-5 py-4 text-sm leading-6 outline-none focus:border-accent focus:bg-white"
           />
           <div className="grid gap-3">
@@ -85,6 +97,36 @@ export default function ServicePage() {
               value={industry}
               onChange={(event) => setIndustry(event.target.value)}
               placeholder="业务线／行业"
+              className="rounded-xl border border-line px-4 py-3 text-sm outline-none focus:border-accent"
+            />
+            <select
+              value={channel}
+              onChange={(event) => setChannel(event.target.value)}
+              className="rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-accent"
+            >
+              <option value="">选择渠道</option>
+              <option value="小红书">小红书</option>
+              <option value="电商详情页">电商详情页</option>
+              <option value="电商首图">电商首图</option>
+              <option value="品牌官网">品牌官网</option>
+              <option value="线下物料">线下物料</option>
+            </select>
+            <select
+              value={campaignStage}
+              onChange={(event) => setCampaignStage(event.target.value)}
+              className="rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-accent"
+            >
+              <option value="">选择营销阶段</option>
+              <option value="新品预热">新品预热</option>
+              <option value="新品首发">新品首发</option>
+              <option value="日常种草">日常种草</option>
+              <option value="大促转化">大促转化</option>
+              <option value="口碑沉淀">口碑沉淀</option>
+            </select>
+            <input
+              value={businessGoal}
+              onChange={(event) => setBusinessGoal(event.target.value)}
+              placeholder="业务目标，例如：建立专业信任"
               className="rounded-xl border border-line px-4 py-3 text-sm outline-none focus:border-accent"
             />
             <label className="cursor-pointer rounded-xl border border-dashed border-line px-4 py-3 text-sm text-gray-500 hover:border-accent">
