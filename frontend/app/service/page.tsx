@@ -74,7 +74,8 @@ export default function ServicePage() {
   return (
     <div className="space-y-7">
       <section className="rounded-[30px] border border-line bg-white p-6 shadow-[0_18px_60px_rgba(45,45,80,0.06)] md:p-9">
-        <div className="max-w-3xl">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="max-w-3xl">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
             Company design service
           </div>
@@ -82,6 +83,13 @@ export default function ServicePage() {
           <p className="mt-3 text-sm leading-7 text-gray-500">
             系统会结合业务需求、意向图、已确认案例和真实采用记录生成方向。公司证据不足时会明确提示，不会伪装成成熟规范。
           </p>
+          </div>
+          <Link
+            href="/service/history"
+            className="rounded-xl border border-line px-4 py-2.5 text-sm hover:border-accent"
+          >
+            查看服务记录 →
+          </Link>
         </div>
 
         <form onSubmit={submit} className="mt-7 grid gap-4 lg:grid-cols-[1fr_320px]">

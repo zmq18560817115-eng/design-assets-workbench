@@ -265,6 +265,14 @@ export const api = {
         evidence_cases_updated: number[];
       }>(r)
     ),
+  serviceRuns: (limit = 50) =>
+    fetch(`/api/service-runs?limit=${limit}`, { cache: "no-store" }).then((r) =>
+      j<ServiceRunSummary[]>(r)
+    ),
+  serviceRun: (id: number | string) =>
+    fetch(`/api/service-runs/${id}`, { cache: "no-store" }).then((r) =>
+      j<ServiceRunDetail>(r)
+    ),
   tags: () =>
     fetch(`/api/tags`, { cache: "no-store" }).then((r) =>
       j<{ id: number; name: string; category: string; count: number }[]>(r)
@@ -490,4 +498,24 @@ export interface RecommendResult {
   };
   company_maturity: "insufficient" | "growing" | "strong";
   evidence_case_ids: number[];
+}
+
+export interface ServiceRunSummary {
+  id: number;
+  request_text: string;
+  industry: string;
+  channel: string;
+  campaign_stage: string;
+  business_goal: string;
+  status: "generated" | "adopted" | "rejected" | "needs_revision";
+  actor: string;
+  feedback: string;
+  evidence_case_ids: number[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceRunDetail extends ServiceRunSummary {
+  company_profile_snapshot: RecommendResult["company_evidence"];
+  result: RecommendResult;
 }

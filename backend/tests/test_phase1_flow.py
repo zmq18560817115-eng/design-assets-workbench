@@ -298,6 +298,19 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(stored_run["channel"], "小红书")
         self.assertEqual(stored_run["campaign_stage"], "新品首发")
         self.assertEqual(stored_run["business_goal"], "建立专业信任")
+        run_detail = self.client.get(
+            f"/api/service-runs/{recommendation_data['run_id']}"
+        )
+        self.assertEqual(run_detail.status_code, 200, run_detail.text)
+        self.assertEqual(run_detail.json()["channel"], "小红书")
+        self.assertEqual(
+            run_detail.json()["result"]["prompt"],
+            recommendation_data["prompt"],
+        )
+        self.assertEqual(
+            run_detail.json()["company_profile_snapshot"]["scope"],
+            "母婴",
+        )
         overview_after_service = self.client.get("/api/training/overview").json()
         self.assertEqual(overview_after_service["service_runs"], 2)
         self.assertEqual(overview_after_service["adopted_service_runs"], 1)

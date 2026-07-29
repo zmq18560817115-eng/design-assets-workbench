@@ -996,6 +996,35 @@ def service_run_feedback(
     }
 
 
+@app.get("/api/service-runs/{run_id}")
+def get_service_run(run_id: int, db: Session = Depends(get_db)):
+    run = (
+        db.query(models.ServiceRun)
+        .filter(models.ServiceRun.id == run_id)
+        .first()
+    )
+    if not run:
+        raise HTTPException(status_code=404, detail="服务记录不存在")
+    return {
+        "id": run.id,
+        "request_text": run.request_text,
+        "industry": run.industry,
+        "channel": run.channel,
+        "campaign_stage": run.campaign_stage,
+        "business_goal": run.business_goal,
+        "status": run.status,
+        "actor": run.actor,
+        "feedback": run.feedback,
+        "evidence_case_ids": json.loads(run.evidence_case_ids or "[]"),
+        "company_profile_snapshot": json.loads(
+            run.company_profile_snapshot or "{}"
+        ),
+        "result": json.loads(run.result_payload or "{}"),
+        "created_at": run.created_at,
+        "updated_at": run.updated_at,
+    }
+
+
 @app.get("/api/service-runs")
 def list_service_runs(limit: int = 30, db: Session = Depends(get_db)):
     runs = (
