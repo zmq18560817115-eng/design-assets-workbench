@@ -285,6 +285,10 @@ export const api = {
       cache: "no-store",
     }).then((r) => j<CategorySuggestion[]>(r));
   },
+  categoryDiscovery: () =>
+    fetch("/api/training/category-discovery", {
+      cache: "no-store",
+    }).then((r) => j<CategoryDiscovery[]>(r)),
   suggestCategories: (caseIds: number[]) =>
     fetch("/api/training/batch-suggest-categories", {
       method: "POST",
@@ -307,6 +311,10 @@ export const api = {
     fetch(`/api/training/category-suggestion-jobs/${jobId}`, {
       cache: "no-store",
     }).then((r) => j<CategorySuggestionJob>(r)),
+  latestCategorySuggestionJob: () =>
+    fetch("/api/training/category-suggestion-job-status", {
+      cache: "no-store",
+    }).then((r) => j<CategorySuggestionJob | null>(r)),
   reanalyzeCase: (id: number | string) =>
     fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
       j<CaseOut>(r)
@@ -541,7 +549,8 @@ export interface CategorySuggestionJob {
     | "running"
     | "completed"
     | "completed_with_errors"
-    | "failed";
+    | "failed"
+    | "interrupted";
   total: number;
   completed: number;
   succeeded: number;
@@ -550,6 +559,31 @@ export interface CategorySuggestionJob {
   created_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+}
+
+export interface CategoryDiscovery {
+  business_line: string;
+  coverage: Record<"layout" | "style" | "color" | "photo", number>;
+  gaps: {
+    category: "layout" | "style" | "color" | "photo";
+    label: string;
+    needed: number;
+    candidate_count: number;
+  }[];
+  candidates: Record<
+    "layout" | "style" | "color" | "photo",
+    {
+      case_id: number;
+      current_category: string;
+      suggested_category: "layout" | "style" | "color" | "photo";
+      confidence: number;
+      reason: string;
+      signals: string[];
+      status: string;
+    }[]
+  >;
+  suggested_count: number;
+  total_assets: number;
 }
 
 export interface SearchInput {

@@ -11,6 +11,7 @@ import {
   ReviewQuality,
   CategorySuggestion,
   CategorySuggestionJob,
+  CategoryDiscovery,
 } from "@/lib/api";
 
 const categoryLabels: Record<string, string> = {
@@ -55,6 +56,7 @@ export default function TrainingPage() {
   >({});
   const [categoryJob, setCategoryJob] =
     useState<CategorySuggestionJob | null>(null);
+  const [discovery, setDiscovery] = useState<CategoryDiscovery[]>([]);
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
   const [analysisMode, setAnalysisMode] = useState("model");
@@ -75,6 +77,8 @@ export default function TrainingPage() {
     api.trainingOverview().then(setOverview).catch(() => setOverview(null));
   const loadReadiness = () =>
     api.trainingReadiness().then(setReadiness).catch(() => setReadiness([]));
+  const loadDiscovery = () =>
+    api.categoryDiscovery().then(setDiscovery).catch(() => setDiscovery([]));
 
   const loadCases = (
     nextProjectId = projectId,
@@ -118,11 +122,16 @@ export default function TrainingPage() {
       api.projects(),
       api.trainingOverview(),
       api.trainingReadiness(),
+      api.categoryDiscovery(),
+      api.latestCategorySuggestionJob(),
     ])
-      .then(([projectList, metrics, roadmap]) => {
+      .then(
+        ([projectList, metrics, roadmap, discoveryItems, latestCategoryJob]) => {
         setProjects(projectList);
         setOverview(metrics);
         setReadiness(roadmap);
+        setDiscovery(discoveryItems);
+        setCategoryJob(latestCategoryJob);
         const preferred =
           projectList.find(
             (project) =>
@@ -137,7 +146,8 @@ export default function TrainingPage() {
           api.trainingReviewQuality(nextId),
           api.categorySuggestions(nextId),
         ]);
-      })
+        }
+      )
       .then(([caseItems, qualityItems, suggestionItems]) => {
         setCases(caseItems);
         setQuality(
@@ -154,6 +164,40 @@ export default function TrainingPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (
+      !categoryJob ||
+      (categoryJob.status !== "queued" && categoryJob.status !== "running")
+    ) {
+      return;
+    }
+    const timer = window.setInterval(async () => {
+      try {
+        const next = await api.categorySuggestionJob(categoryJob.id);
+        setCategoryJob(next);
+        if (next.status !== "queued" && next.status !== "running") {
+          const [suggestionItems, discoveryItems] = await Promise.all([
+            api.categorySuggestions(projectId),
+            api.categoryDiscovery(),
+          ]);
+          setSuggestions(
+            Object.fromEntries(
+              suggestionItems.map((item) => [item.case_id, item])
+            )
+          );
+          setDiscovery(discoveryItems);
+          setSaving(false);
+          setMessage(
+            `分类任务完成：成功 ${next.succeeded} 条，失败 ${next.failed} 条。请人工确认后再归类。`
+          );
+        }
+      } catch {
+        // Keep the last visible progress and try again on the next interval.
+      }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [categoryJob?.id, categoryJob?.status, projectId]);
 
   const allSelected =
     cases.length > 0 && cases.every((item) => selected.includes(item.id));
@@ -183,7 +227,12 @@ export default function TrainingPage() {
       );
       setMessage(`已处理 ${result.updated_count} 个案例。`);
       setSelected([]);
-      await Promise.all([loadCases(), loadOverview(), loadReadiness()]);
+      await Promise.all([
+        loadCases(),
+        loadOverview(),
+        loadReadiness(),
+        loadDiscovery(),
+      ]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "批量处理失败");
     } finally {
@@ -210,7 +259,12 @@ export default function TrainingPage() {
       );
       setMessage(`已将 ${result.updated_count} 个案例归入${categoryLabels[targetCategory]}。`);
       setSelected([]);
-      await Promise.all([loadCases(), loadOverview(), loadReadiness()]);
+      await Promise.all([
+        loadCases(),
+        loadOverview(),
+        loadReadiness(),
+        loadDiscovery(),
+      ]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "批量归类失败");
     } finally {
@@ -230,28 +284,11 @@ export default function TrainingPage() {
     setSaving(true);
     setMessage("分类任务已提交，模型将在后台处理…");
     try {
-      let job = await api.startCategorySuggestionJob(selected);
+      const job = await api.startCategorySuggestionJob(selected);
       setCategoryJob(job);
-      while (job.status === "queued" || job.status === "running") {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        job = await api.categorySuggestionJob(job.id);
-        setCategoryJob(job);
-      }
-      const suggestionItems = await api.categorySuggestions(projectId);
-      setSuggestions((current) => ({
-        ...current,
-        ...Object.fromEntries(
-          suggestionItems.map((item) => [item.case_id, item])
-        ),
-      }));
-      setMessage(
-        `已生成 ${job.succeeded} 条建议${
-          job.failed ? `，${job.failed} 条失败` : ""
-        }。请人工确认后再归类。`
-      );
+      setMessage(`后台分类任务 #${job.id} 已启动，可以继续浏览页面。`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "分类建议生成失败");
-    } finally {
       setSaving(false);
     }
   };
@@ -416,6 +453,79 @@ export default function TrainingPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-line bg-white p-5 md:p-7">
+        <div className="mb-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+            Category discovery
+          </div>
+          <h2 className="mt-2 text-xl font-semibold">类别补齐候选</h2>
+          <p className="mt-2 text-xs leading-5 text-gray-400">
+            模型只负责发现可能适合补齐缺口的素材；点击案例查看原图，最终仍由人工确认归类。
+          </p>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {discovery.map((line) => {
+            const gapCandidates = line.gaps.flatMap((gap) =>
+              line.candidates[gap.category]
+                .slice(0, gap.needed || 2)
+                .map((candidate) => ({ ...candidate, label: gap.label }))
+            );
+            return (
+              <div
+                key={line.business_line}
+                className="rounded-2xl border border-line p-5"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-semibold">{line.business_line}</div>
+                    <div className="mt-1 text-xs text-gray-400">
+                      已获得模型建议 {line.suggested_count}/{line.total_assets}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {line.gaps.map((gap) => (
+                      <span
+                        key={gap.category}
+                        className="rounded-full bg-amber-50 px-2 py-1 text-[10px] text-amber-600"
+                      >
+                        {gap.label}缺 {gap.needed}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {gapCandidates.length ? (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {gapCandidates.map((candidate) => (
+                      <Link
+                        key={`${candidate.case_id}-${candidate.suggested_category}`}
+                        href={`/cases/${candidate.case_id}`}
+                        className="rounded-xl bg-canvas p-3 text-xs hover:ring-1 hover:ring-accent"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">
+                            #{candidate.case_id} · {candidate.label}
+                          </span>
+                          <span className="text-accent">
+                            {candidate.confidence}%
+                          </span>
+                        </div>
+                        <div className="mt-1 line-clamp-2 leading-5 text-gray-500">
+                          {candidate.reason}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl bg-canvas p-3 text-xs text-gray-400">
+                    后台分类仍在处理，或暂未发现可补齐当前缺口的候选。
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

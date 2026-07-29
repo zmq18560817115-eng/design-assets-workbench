@@ -431,6 +431,22 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(job.status_code, 200, job.text)
         self.assertEqual(job.json()["status"], "completed")
         self.assertEqual(job.json()["succeeded"], 1)
+        latest_job = self.client.get(
+            "/api/training/category-suggestion-job-status"
+        )
+        self.assertEqual(latest_job.status_code, 200, latest_job.text)
+        self.assertEqual(latest_job.json()["id"], job.json()["id"])
+        discovery = self.client.get("/api/training/category-discovery")
+        self.assertEqual(discovery.status_code, 200, discovery.text)
+        line_discovery = next(
+            item
+            for item in discovery.json()
+            if item["business_line"] == "母婴"
+        )
+        self.assertEqual(
+            line_discovery["candidates"]["style"][0]["case_id"],
+            case["id"],
+        )
 
         categorized = self.client.post(
             "/api/training/batch-categorize",

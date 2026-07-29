@@ -67,6 +67,28 @@ app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploa
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    db = SessionLocal()
+    try:
+        stale_jobs = (
+            db.query(models.CategorySuggestionJob)
+            .filter(models.CategorySuggestionJob.status.in_(["queued", "running"]))
+            .all()
+        )
+        for job in stale_jobs:
+            job.status = "interrupted"
+            job.finished_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+            job.errors = json.dumps(
+                [
+                    {
+                        "case_id": None,
+                        "detail": "服务重启导致任务中断，请重新提交未完成素材",
+                    }
+                ],
+                ensure_ascii=False,
+            )
+        db.commit()
+    finally:
+        db.close()
 
 
 @app.on_event("shutdown")
@@ -443,6 +465,93 @@ def list_category_suggestions(
     return [_serialize_category_suggestion(row) for row in latest.values()]
 
 
+@app.get("/api/training/category-discovery")
+def category_discovery(db: Session = Depends(get_db)):
+    """Group latest model suggestions into human-reviewable coverage candidates."""
+    cases = (
+        db.query(models.Case)
+        .join(models.Image, models.Case.image_id == models.Image.id)
+        .filter(models.Image.source_type == "company_published")
+        .all()
+    )
+    case_map = {case.id: case for case in cases}
+    rows = (
+        db.query(models.AssetCategorySuggestion)
+        .filter(models.AssetCategorySuggestion.case_id.in_(case_map))
+        .order_by(models.AssetCategorySuggestion.id.desc())
+        .all()
+        if case_map
+        else []
+    )
+    latest = {}
+    for row in rows:
+        latest.setdefault(row.case_id, row)
+
+    category_names = {
+        "layout": "排版",
+        "style": "风格",
+        "color": "色彩",
+        "photo": "实拍图",
+    }
+    lines = sorted(
+        {
+            (case.business_line or "").strip()
+            for case in cases
+            if (case.business_line or "").strip()
+        }
+    )
+    result = []
+    for line in lines:
+        line_cases = [
+            case for case in cases if (case.business_line or "").strip() == line
+        ]
+        coverage = {
+            category: sum(
+                1 for case in line_cases if case.asset_category == category
+            )
+            for category in category_names
+        }
+        candidates = {category: [] for category in category_names}
+        for case in line_cases:
+            suggestion = latest.get(case.id)
+            if not suggestion:
+                continue
+            candidates[suggestion.suggested_category].append(
+                {
+                    "case_id": case.id,
+                    "current_category": case.asset_category,
+                    "suggested_category": suggestion.suggested_category,
+                    "confidence": suggestion.confidence,
+                    "reason": suggestion.reason,
+                    "signals": json.loads(suggestion.signals or "[]"),
+                    "status": suggestion.status,
+                }
+            )
+        for items in candidates.values():
+            items.sort(key=lambda item: (-item["confidence"], item["case_id"]))
+        gaps = [
+            {
+                "category": category,
+                "label": category_names[category],
+                "needed": max(0, 2 - coverage[category]),
+                "candidate_count": len(candidates[category]),
+            }
+            for category in category_names
+            if coverage[category] < 2
+        ]
+        result.append(
+            {
+                "business_line": line,
+                "coverage": coverage,
+                "gaps": gaps,
+                "candidates": candidates,
+                "suggested_count": sum(len(items) for items in candidates.values()),
+                "total_assets": len(line_cases),
+            }
+        )
+    return result
+
+
 @app.post("/api/training/batch-suggest-categories")
 def batch_suggest_categories(
     payload: BatchCategorySuggestionInput,
@@ -666,6 +775,16 @@ def create_category_suggestion_job(
     db.refresh(job)
     background_tasks.add_task(_run_category_suggestion_job, job.id, case_ids)
     return _serialize_category_job(job)
+
+
+@app.get("/api/training/category-suggestion-job-status")
+def latest_category_suggestion_job(db: Session = Depends(get_db)):
+    job = (
+        db.query(models.CategorySuggestionJob)
+        .order_by(models.CategorySuggestionJob.id.desc())
+        .first()
+    )
+    return _serialize_category_job(job) if job else None
 
 
 @app.get("/api/training/category-suggestion-jobs/{job_id}")
