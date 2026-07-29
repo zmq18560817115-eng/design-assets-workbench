@@ -198,6 +198,16 @@ class PhaseOneFlowTest(unittest.TestCase):
         )
         self.assertEqual(local_only.status_code, 200, local_only.text)
         self.assertEqual([item["id"] for item in local_only.json()], [case["id"]])
+        quality = self.client.get(
+            "/api/training/review-quality",
+            params={"project_id": project_id},
+        )
+        self.assertEqual(quality.status_code, 200, quality.text)
+        case_quality = next(
+            item for item in quality.json() if item["case_id"] == case["id"]
+        )
+        self.assertFalse(case_quality["ready"])
+        self.assertIn("尚未完成真实视觉模型拆解", case_quality["warnings"])
 
         overview = self.client.get("/api/training/overview")
         self.assertEqual(overview.status_code, 200, overview.text)

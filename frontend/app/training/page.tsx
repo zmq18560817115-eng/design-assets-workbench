@@ -8,6 +8,7 @@ import {
   ProjectOut,
   TrainingOverview,
   TrainingReadiness,
+  ReviewQuality,
 } from "@/lib/api";
 
 const categoryLabels: Record<string, string> = {
@@ -39,6 +40,7 @@ export default function TrainingPage() {
   const [cases, setCases] = useState<CaseOut[]>([]);
   const [overview, setOverview] = useState<TrainingOverview | null>(null);
   const [readiness, setReadiness] = useState<TrainingReadiness[]>([]);
+  const [quality, setQuality] = useState<Record<number, ReviewQuality>>({});
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
   const [analysisMode, setAnalysisMode] = useState("model");
@@ -62,8 +64,8 @@ export default function TrainingPage() {
     nextAnalysisMode = analysisMode
   ) => {
     setLoading(true);
-    return api
-      .cases(
+    return Promise.all([
+      api.cases(
         "",
         "",
         nextCategory,
@@ -71,9 +73,19 @@ export default function TrainingPage() {
         nextProjectId,
         nextTrust,
         nextAnalysisMode
-      )
-      .then(setCases)
-      .catch(() => setCases([]))
+      ),
+      api.trainingReviewQuality(nextProjectId),
+    ])
+      .then(([caseItems, qualityItems]) => {
+        setCases(caseItems);
+        setQuality(
+          Object.fromEntries(qualityItems.map((item) => [item.case_id, item]))
+        );
+      })
+      .catch(() => {
+        setCases([]);
+        setQuality({});
+      })
       .finally(() => setLoading(false));
   };
 
@@ -96,10 +108,21 @@ export default function TrainingPage() {
           projectList[0];
         const nextId = preferred?.id;
         setProjectId(nextId);
-        return api.cases("", "", "", "", nextId, "ai_unverified", "model");
+        return Promise.all([
+          api.cases("", "", "", "", nextId, "ai_unverified", "model"),
+          api.trainingReviewQuality(nextId),
+        ]);
       })
-      .then(setCases)
-      .catch(() => setCases([]))
+      .then(([caseItems, qualityItems]) => {
+        setCases(caseItems);
+        setQuality(
+          Object.fromEntries(qualityItems.map((item) => [item.case_id, item]))
+        );
+      })
+      .catch(() => {
+        setCases([]);
+        setQuality({});
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -409,6 +432,7 @@ export default function TrainingPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {cases.map((item) => {
                 const active = selected.includes(item.id);
+                const check = quality[item.id];
                 return (
                   <div
                     key={item.id}
@@ -443,6 +467,17 @@ export default function TrainingPage() {
                       >
                         ✓
                       </span>
+                      {check && (
+                        <span
+                          className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-medium ${
+                            check.ready
+                              ? "bg-emerald-500 text-white"
+                              : "bg-amber-400 text-white"
+                          }`}
+                        >
+                          拆解质量 {check.score}
+                        </span>
+                      )}
                     </button>
                     <div className="p-3">
                       <div className="flex items-center justify-between gap-2 text-[11px] text-gray-400">
@@ -455,6 +490,17 @@ export default function TrainingPage() {
                       >
                         {item.name}
                       </Link>
+                      {check && (
+                        <div
+                          className={`mt-2 text-[10px] leading-4 ${
+                            check.ready ? "text-emerald-600" : "text-amber-600"
+                          }`}
+                        >
+                          {check.ready
+                            ? "技术检查通过，可进行业务判断"
+                            : check.warnings.slice(0, 2).join("；")}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

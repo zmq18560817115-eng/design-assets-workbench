@@ -221,6 +221,13 @@ export const api = {
     fetch("/api/training/readiness", { cache: "no-store" }).then((r) =>
       j<TrainingReadiness[]>(r)
     ),
+  trainingReviewQuality: (projectId?: number) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", String(projectId));
+    return fetch(`/api/training/review-quality?${params.toString()}`, {
+      cache: "no-store",
+    }).then((r) => j<ReviewQuality[]>(r));
+  },
   batchReview: (
     caseIds: number[],
     action: "confirm" | "recommend" | "reject",
@@ -435,6 +442,15 @@ export interface TrainingReadiness {
     | "adopted_runs",
     { current: number; target: number; met: boolean }
   >;
+}
+
+export interface ReviewQuality {
+  case_id: number;
+  score: number;
+  ready: boolean;
+  warnings: string[];
+  model_name: string;
+  analysis_version: number;
 }
 
 export interface SearchInput {

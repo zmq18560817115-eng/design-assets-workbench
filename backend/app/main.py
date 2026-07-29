@@ -629,6 +629,72 @@ def training_readiness(db: Session = Depends(get_db)):
     return result
 
 
+@app.get("/api/training/review-quality")
+def training_review_quality(
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """Check technical completeness before a human makes a business decision."""
+    query = db.query(models.Case)
+    if project_id is not None:
+        query = query.filter(models.Case.project_id == project_id)
+    cases = query.order_by(models.Case.id).all()
+    result = []
+    for case in cases:
+        analysis = crud.analysis_to_dict(case.analysis) or {}
+        layout = analysis.get("layout") or {}
+        style = analysis.get("style") or {}
+        color = analysis.get("color") or {}
+        rules = analysis.get("design_rules") or {}
+        score = 0
+        warnings = []
+        model_name = analysis.get("model_name") or analysis.get("analyzed_by") or ""
+        if model_name and model_name != "启发式规则":
+            score += 25
+        else:
+            warnings.append("尚未完成真实视觉模型拆解")
+        if layout.get("layout_type"):
+            score += 15
+        else:
+            warnings.append("缺少版式类型")
+        if layout.get("hierarchy"):
+            score += 10
+        else:
+            warnings.append("缺少信息层级")
+        if style.get("style_tags"):
+            score += 10
+        else:
+            warnings.append("缺少风格标签")
+        if color.get("primary") and color.get("palette"):
+            score += 10
+        else:
+            warnings.append("缺少主色或色板")
+        if rules.get("why_good"):
+            score += 10
+        else:
+            warnings.append("缺少优秀原因")
+        if rules.get("reusable_methods"):
+            score += 10
+        else:
+            warnings.append("缺少可复用方法")
+        prompt = analysis.get("prompt") or ""
+        if prompt:
+            score += 10
+        else:
+            warnings.append("缺少白板生图提示词")
+        result.append(
+            {
+                "case_id": case.id,
+                "score": score,
+                "ready": score >= 85,
+                "warnings": warnings,
+                "model_name": model_name,
+                "analysis_version": analysis.get("version") or 0,
+            }
+        )
+    return result
+
+
 @app.patch("/api/cases/{case_id}/project", response_model=CaseOut)
 def assign_case_project(
     case_id: int,
