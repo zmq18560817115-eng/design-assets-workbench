@@ -519,6 +519,8 @@ def category_discovery(db: Session = Depends(get_db)):
             candidates[suggestion.suggested_category].append(
                 {
                     "case_id": case.id,
+                    "case_name": case.name,
+                    "image_url": case.image.url if case.image else "",
                     "current_category": case.asset_category,
                     "suggested_category": suggestion.suggested_category,
                     "confidence": suggestion.confidence,

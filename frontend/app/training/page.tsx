@@ -465,6 +465,12 @@ export default function TrainingPage() {
           <p className="mt-2 text-xs leading-5 text-gray-400">
             模型只负责发现可能适合补齐缺口的素材；点击案例查看原图，最终仍由人工确认归类。
           </p>
+          <Link
+            href="/training/categories"
+            className="mt-3 inline-flex rounded-xl bg-ink px-4 py-2 text-sm text-white"
+          >
+            进入连续分类审核台
+          </Link>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {discovery.map((line) => {

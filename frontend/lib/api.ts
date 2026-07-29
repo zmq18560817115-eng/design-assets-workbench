@@ -574,6 +574,8 @@ export interface CategoryDiscovery {
     "layout" | "style" | "color" | "photo",
     {
       case_id: number;
+      case_name: string;
+      image_url: string;
       current_category: string;
       suggested_category: "layout" | "style" | "color" | "photo";
       confidence: number;
