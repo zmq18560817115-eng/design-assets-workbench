@@ -10,13 +10,36 @@ OpenAI 兼容视觉服务（vLLM / LMDeploy / Ollama 兼容层等）。
 from __future__ import annotations
 
 import base64
+import io
 import json
 import re
 
 import httpx
+from PIL import Image
 
 from . import config
 from .asset_categories import category_focus, category_label, normalize_category
+
+
+def _model_image_payload(
+    image_bytes: bytes,
+    mime: str,
+    *,
+    max_edge: int = 1600,
+) -> tuple[bytes, str]:
+    """Bound model payload size while retaining classification detail."""
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as source:
+            image = source.convert("RGB")
+            image.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
+            output = io.BytesIO()
+            image.save(output, format="JPEG", quality=84, optimize=True)
+            prepared = output.getvalue()
+        if prepared and len(prepared) < len(image_bytes):
+            return prepared, "image/jpeg"
+    except Exception:
+        pass
+    return image_bytes, mime or "image/png"
 
 SYSTEM_PROMPT = (
     "你是资深视觉设计分析师，擅长把一张设计图拆解成结构化的设计知识。"
@@ -142,8 +165,13 @@ def analyze_image(
     return _extract_json(content)
 
 
-def suggest_asset_category(image_bytes: bytes, mime: str = "image/png") -> dict:
+def suggest_asset_category(
+    image_bytes: bytes,
+    mime: str = "image/png",
+    timeout_seconds: float = 300,
+) -> dict:
     """Suggest one primary repository category without changing stored metadata."""
+    image_bytes, mime = _model_image_payload(image_bytes, mime)
     b64 = base64.b64encode(image_bytes).decode()
     data_uri = f"data:{mime or 'image/png'};base64,{b64}"
     prompt = """
@@ -180,7 +208,10 @@ def suggest_asset_category(image_bytes: bytes, mime: str = "image/png") -> dict:
         "Content-Type": "application/json",
     }
     base = (config.VISION_BASE_URL or "https://api.openai.com/v1").rstrip("/")
-    with httpx.Client(trust_env=config.VISION_TRUST_ENV, timeout=300) as client:
+    with httpx.Client(
+        trust_env=config.VISION_TRUST_ENV,
+        timeout=timeout_seconds,
+    ) as client:
         resp = client.post(
             f"{base}/chat/completions",
             json=payload,

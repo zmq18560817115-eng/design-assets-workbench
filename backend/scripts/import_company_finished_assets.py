@@ -7,6 +7,7 @@ perceptual-hash diversity so near-identical exports do not dominate the profile.
 from __future__ import annotations
 
 import argparse
+import mimetypes
 import shutil
 import sys
 import uuid
@@ -17,7 +18,7 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app import config, crud, imagehash, models  # noqa: E402
+from app import config, crud, imagehash, models, vlm  # noqa: E402
 from app.agents import run_pipeline  # noqa: E402
 from app.database import SessionLocal, close_db, init_db  # noqa: E402
 from app.sampling import color_sample  # noqa: E402
@@ -92,6 +93,48 @@ def discover(
                 }
             )
     return items
+
+
+def confirm_categories(
+    items: list[dict],
+    *,
+    expected_category: str,
+    minimum_confidence: int,
+    timeout_seconds: float,
+) -> list[dict]:
+    """Use the configured vision model as a safety gate before category import."""
+    confirmed: list[dict] = []
+    for index, item in enumerate(items, 1):
+        path: Path = item["path"]
+        mime = mimetypes.guess_type(path.name)[0] or "image/png"
+        try:
+            suggestion = vlm.suggest_asset_category(
+                path.read_bytes(),
+                mime,
+                timeout_seconds=timeout_seconds,
+            )
+            item["model_suggestion"] = suggestion
+            accepted = (
+                suggestion["category"] == expected_category
+                and suggestion["confidence"] >= minimum_confidence
+            )
+            state = "accepted" if accepted else "rejected"
+            print(
+                f"[model {index}/{len(items)}] {state}: "
+                f"{item['business_line']}/{path.name} -> "
+                f"{suggestion['category']} {suggestion['confidence']}%",
+                flush=True,
+            )
+            if accepted:
+                confirmed.append(item)
+        except Exception as exc:  # noqa: BLE001
+            item["model_error"] = str(exc)
+            print(
+                f"[model {index}/{len(items)}] failed: "
+                f"{item['business_line']}/{path.name}: {exc}",
+                flush=True,
+            )
+    return confirmed
 
 
 def ensure_project(business_line: str) -> int:
@@ -240,6 +283,26 @@ def main() -> int:
         default="diverse",
         help="Use color to rank palette-learning candidates; preview before import.",
     )
+    parser.add_argument(
+        "--confirm-with-model",
+        action="store_true",
+        help=(
+            "Ask the configured vision model to confirm the primary learning "
+            "category before preview or import."
+        ),
+    )
+    parser.add_argument(
+        "--minimum-confidence",
+        type=int,
+        default=80,
+        help="Minimum model confidence required by --confirm-with-model.",
+    )
+    parser.add_argument(
+        "--model-timeout",
+        type=float,
+        default=60,
+        help="Per-image model confirmation timeout in seconds.",
+    )
     args = parser.parse_args()
 
     if not args.root.exists():
@@ -256,6 +319,15 @@ def main() -> int:
             for item in items
             if item["business_line"] == args.business_line
         ]
+    if args.confirm_with_model:
+        before = len(items)
+        items = confirm_categories(
+            items,
+            expected_category=args.category,
+            minimum_confidence=max(0, min(args.minimum_confidence, 100)),
+            timeout_seconds=max(5, args.model_timeout),
+        )
+        print(f"模型确认通过：{len(items)}/{before}")
     counts = Counter(item["business_line"] for item in items)
     print(f"代表样本：{len(items)}")
     if args.sampling == "color":

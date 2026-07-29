@@ -7,9 +7,22 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from app.sampling import color_sample, color_score
+from app.vlm import _model_image_payload
 
 
 class CompanyAssetSamplingTest(unittest.TestCase):
+    def test_model_payload_is_bounded_for_large_images(self) -> None:
+        image = Image.new("RGB", (3200, 2400), "#F23869")
+        with tempfile.NamedTemporaryFile(suffix=".png") as handle:
+            image.save(handle, format="PNG")
+            handle.seek(0)
+            original = handle.read()
+        prepared, mime = _model_image_payload(original, "image/png")
+        self.assertEqual(mime, "image/jpeg")
+        self.assertLess(len(prepared), len(original))
+        with Image.open(__import__("io").BytesIO(prepared)) as result:
+            self.assertLessEqual(max(result.size), 1600)
+
     def test_color_sampling_prefers_color_rich_diverse_assets(self) -> None:
         with tempfile.TemporaryDirectory(prefix="color-sampling-") as tmp:
             root = Path(tmp)
