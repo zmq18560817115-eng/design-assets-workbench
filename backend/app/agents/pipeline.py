@@ -31,6 +31,7 @@ def run_pipeline(
     image_path: str,
     asset_category: str = "layout",
     enable_vlm: bool = True,
+    strict_vlm: bool = False,
 ) -> AnalysisResult:
     asset_category = normalize_category(asset_category)
     features = analyze(image_path)
@@ -91,6 +92,8 @@ def run_pipeline(
         try:
             result = _augment_with_vlm(image_path, features, result, asset_category)
         except Exception:
+            if strict_vlm:
+                raise
             # 大模型不可用时静默回退到启发式结果，保证链路不中断
             pass
 

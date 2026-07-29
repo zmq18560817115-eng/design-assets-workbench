@@ -234,6 +234,22 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertIn(case["id"], recommendation_data["evidence_case_ids"])
         self.assertGreater(recommendation_data["run_id"], 0)
 
+        isolated_recommendation = self.client.post(
+            "/api/recommend",
+            data={"text": "new launch", "industry": "other-line"},
+        )
+        self.assertEqual(
+            isolated_recommendation.status_code,
+            200,
+            isolated_recommendation.text,
+        )
+        self.assertFalse(isolated_recommendation.json()["preference_applied"])
+        scoped_concept = self.client.get(
+            "/api/concept", params={"business_line": "other-line"}
+        )
+        self.assertEqual(scoped_concept.status_code, 200, scoped_concept.text)
+        self.assertEqual(scoped_concept.json()["evidence_count"], 0)
+
         service_feedback = self.client.post(
             f"/api/service-runs/{recommendation_data['run_id']}/feedback",
             json={
@@ -248,9 +264,15 @@ class PhaseOneFlowTest(unittest.TestCase):
         )
         service_runs = self.client.get("/api/service-runs")
         self.assertEqual(service_runs.status_code, 200, service_runs.text)
-        self.assertEqual(service_runs.json()[0]["status"], "adopted")
+        self.assertTrue(
+            any(
+                item["id"] == recommendation_data["run_id"]
+                and item["status"] == "adopted"
+                for item in service_runs.json()
+            )
+        )
         overview_after_service = self.client.get("/api/training/overview").json()
-        self.assertEqual(overview_after_service["service_runs"], 1)
+        self.assertEqual(overview_after_service["service_runs"], 2)
         self.assertEqual(overview_after_service["adopted_service_runs"], 1)
 
         text_search = self.client.post(

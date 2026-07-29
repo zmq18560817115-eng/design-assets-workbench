@@ -111,6 +111,12 @@ def _preference_map(db: Session) -> dict[int, dict[str, int]]:
 
 def _case_weight(case: models.Case, preferences: dict[str, int]) -> float:
     weight = TRUST_WEIGHTS.get(case.trust_status or "ai_unverified", 0.25)
+    if (
+        case.trust_status == "ai_unverified"
+        and case.image
+        and case.image.source_type == "company_published"
+    ):
+        weight = 1.0
     if case.project and case.project.is_gold:
         weight *= 1.5
     for event_type, count in preferences.items():
@@ -118,9 +124,16 @@ def _case_weight(case: models.Case, preferences: dict[str, int]) -> float:
     return max(0.0, weight)
 
 
-def build_concept(db: Session) -> dict:
+def build_concept(db: Session, business_line: str = "") -> dict:
     """Aggregate a company profile, prioritizing trusted business evidence."""
     cases = db.query(models.Case).all()
+    scope = business_line.strip()
+    if scope:
+        cases = [
+            case
+            for case in cases
+            if (case.business_line or case.industry or "").strip() == scope
+        ]
     preferences = _preference_map(db)
     trust_counts = Counter(case.trust_status or "ai_unverified" for case in cases)
 
@@ -253,13 +266,35 @@ def build_concept(db: Session) -> dict:
         trust_counts.get("verified", 0)
         + trust_counts.get("company_recommended", 0)
     )
+    company_published_count = sum(
+        1
+        for case in cases
+        if case.image and case.image.source_type == "company_published"
+    )
+    model_analyzed_count = sum(
+        1
+        for case in cases
+        if case.analysis
+        and case.analysis.model_name
+        and case.analysis.model_name != "启发式规则"
+    )
+    evidence_count = sum(
+        1
+        for case in cases
+        if case.trust_status in {"verified", "company_recommended"}
+        or (case.image and case.image.source_type == "company_published")
+    )
     return {
+        "scope": scope or "company",
         "total": len(cases),
         "contributing_cases": contributing_cases,
         "weighted_total": round(weighted_total, 2),
         "enough": trusted_count >= ENOUGH_THRESHOLD,
         "threshold": ENOUGH_THRESHOLD,
         "trusted_count": trusted_count,
+        "company_published_count": company_published_count,
+        "model_analyzed_count": model_analyzed_count,
+        "evidence_count": evidence_count,
         "trust_counts": dict(trust_counts),
         "category_weights": {
             key: round(value, 2) for key, value in category_weights.items()
@@ -334,8 +369,13 @@ def recommendation_context(data: dict, industry: str = "") -> dict:
         ]
 
     trusted = int(data.get("trusted_count") or 0)
+    evidence_count = int(data.get("evidence_count") or trusted)
     evidence_level = (
-        "strong" if trusted >= 30 else "growing" if trusted >= 10 else "insufficient"
+        "strong"
+        if evidence_count >= 30
+        else "growing"
+        if evidence_count >= 10
+        else "insufficient"
     )
     industry_profile = next(
         (
@@ -346,9 +386,13 @@ def recommendation_context(data: dict, industry: str = "") -> dict:
         None,
     )
     return {
-        "applied": trusted > 0,
+        "scope": data.get("scope") or "company",
+        "applied": evidence_count > 0,
         "evidence_level": evidence_level,
         "trusted_cases": trusted,
+        "company_published_cases": int(data.get("company_published_count") or 0),
+        "model_analyzed_cases": int(data.get("model_analyzed_count") or 0),
+        "evidence_cases": evidence_count,
         "layouts": names("layout"),
         "styles": names("style"),
         "grids": names("grid"),

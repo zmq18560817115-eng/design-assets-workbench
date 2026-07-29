@@ -433,6 +433,32 @@ def training_overview(db: Session = Depends(get_db)):
         .group_by(models.ServiceRun.status)
         .all()
     )
+    business_line_coverage: dict[str, dict[str, int]] = {}
+    for case in db.query(models.Case).all():
+        line = (case.business_line or case.industry or "未分类").strip() or "未分类"
+        item = business_line_coverage.setdefault(
+            line,
+            {
+                "total": 0,
+                "model_analyzed": 0,
+                "company_published": 0,
+                "trusted": 0,
+                "recommended": 0,
+            },
+        )
+        item["total"] += 1
+        if (
+            case.analysis
+            and case.analysis.model_name
+            and case.analysis.model_name != "启发式规则"
+        ):
+            item["model_analyzed"] += 1
+        if case.image and case.image.source_type == "company_published":
+            item["company_published"] += 1
+        if case.trust_status in {"verified", "company_recommended"}:
+            item["trusted"] += 1
+        if case.trust_status == "company_recommended":
+            item["recommended"] += 1
     target_trusted = 30
     target_recommended = 12
     recommended = trust_rows.get("company_recommended", 0)
@@ -455,6 +481,7 @@ def training_overview(db: Session = Depends(get_db)):
         "service_runs": sum(service_rows.values()),
         "adopted_service_runs": service_rows.get("adopted", 0),
         "service_outcomes": service_rows,
+        "business_line_coverage": business_line_coverage,
         "maturity_score": maturity,
         "targets": {
             "trusted_cases": target_trusted,
@@ -627,9 +654,12 @@ async def search_assets(
 
 
 @app.get("/api/concept")
-def get_concept(db: Session = Depends(get_db)):
+def get_concept(
+    business_line: str = "",
+    db: Session = Depends(get_db),
+):
     """设计视觉概论：跨案例聚合出的分布画像、视觉 DNA 与提炼的设计原则。"""
-    return concept.build_concept(db)
+    return concept.build_concept(db, business_line=business_line)
 
 
 @app.post("/api/concept/methodology")
@@ -693,7 +723,7 @@ async def recommend_direction(
 
     # 从案例库中检索匹配标签的参考案例
     company_profile = concept.recommendation_context(
-        concept.build_concept(db), industry=industry
+        concept.build_concept(db, business_line=industry), industry=industry
     )
     ranked_references = multimodal_search.search_cases(
         db,
@@ -827,6 +857,10 @@ async def recommend_direction(
             item.case.id
             for item in ranked_references
             if item.case.trust_status in {"verified", "company_recommended"}
+            or (
+                item.case.image
+                and item.case.image.source_type == "company_published"
+            )
         ],
     )
     service_run = models.ServiceRun(

@@ -361,6 +361,16 @@ export interface TrainingOverview {
   service_runs: number;
   adopted_service_runs: number;
   service_outcomes: Record<string, number>;
+  business_line_coverage: Record<
+    string,
+    {
+      total: number;
+      model_analyzed: number;
+      company_published: number;
+      trusted: number;
+      recommended: number;
+    }
+  >;
   maturity_score: number;
   targets: {
     trusted_cases: number;
@@ -431,9 +441,13 @@ export interface RecommendResult {
   reference_summary: string;
   preference_applied: boolean;
   company_evidence: {
+    scope: string;
     applied: boolean;
     evidence_level: "insufficient" | "growing" | "strong";
     trusted_cases: number;
+    company_published_cases: number;
+    model_analyzed_cases: number;
+    evidence_cases: number;
     layouts: string[];
     styles: string[];
     grids: string[];

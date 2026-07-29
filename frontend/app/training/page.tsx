@@ -148,6 +148,43 @@ export default function TrainingPage() {
       </section>
 
       <section className="rounded-3xl border border-line bg-white p-5 md:p-7">
+        <div className="mb-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+            Business lines
+          </div>
+          <h2 className="mt-2 text-xl font-semibold">业务线画像覆盖</h2>
+          <p className="mt-2 text-xs leading-5 text-gray-400">
+            只有填写了业务线并经过人工确认的案例，才会影响该业务线的生成服务。
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-4">
+          {Object.entries(overview?.business_line_coverage || {}).map(
+            ([line, item]) => (
+              <div key={line} className="rounded-2xl border border-line p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{line}</span>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] ${
+                      item.trusted >= 10
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-amber-50 text-amber-600"
+                    }`}
+                  >
+                    {item.trusted >= 10 ? "形成中" : "证据不足"}
+                  </span>
+                </div>
+                <div className="mt-3 text-xs text-gray-500">
+                  成品 {item.company_published} · 模型拆解{" "}
+                  {item.model_analyzed} · 人工确认 {item.trusted} · 推荐{" "}
+                  {item.recommended}
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-line bg-white p-5 md:p-7">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">

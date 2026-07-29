@@ -178,8 +178,12 @@ export default function ServicePage() {
                     : "当前仅提供通用方向"}
                 </div>
                 <div className="mt-1 text-xs text-gray-500">
-                  {maturityLabels[result.company_maturity]} · 可信案例{" "}
-                  {result.company_evidence.trusted_cases} 条
+                  画像范围：{result.company_evidence.scope} ·{" "}
+                  {maturityLabels[result.company_maturity]} · 公司证据{" "}
+                  {result.company_evidence.evidence_cases} 条（成品{" "}
+                  {result.company_evidence.company_published_cases}／人工确认{" "}
+                  {result.company_evidence.trusted_cases}／模型拆解{" "}
+                  {result.company_evidence.model_analyzed_cases}）
                 </div>
               </div>
               <Link href="/training" className="text-sm text-accent">

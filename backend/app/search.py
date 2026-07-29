@@ -228,6 +228,9 @@ def search_cases(
                 if case.trust_status == "company_recommended"
                 else "人工确认样本"
             )
+        elif case.image and case.image.source_type == "company_published":
+            score += 5.0
+            reasons.insert(0, "公司已发布成品")
         if case.project and case.project.is_gold and trust_bonus:
             score += 4.0
             reasons.insert(1, "黄金项目证据")
