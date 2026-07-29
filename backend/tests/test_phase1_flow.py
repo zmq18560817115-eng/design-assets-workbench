@@ -287,6 +287,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(recommendation.status_code, 200, recommendation.text)
         recommendation_data = recommendation.json()
         self.assertTrue(recommendation_data["preference_applied"])
+        self.assertEqual(recommendation_data["focus_category"], "layout")
         self.assertEqual(recommendation_data["company_usage_mode"], "reference_only")
         self.assertEqual(recommendation_data["company_evidence"]["trusted_cases"], 1)
         self.assertIn("公司偏好约束", recommendation_data["prompt"])
@@ -338,6 +339,7 @@ class PhaseOneFlowTest(unittest.TestCase):
             for item in service_runs.json()
             if item["id"] == recommendation_data["run_id"]
         )
+        self.assertEqual(stored_run["focus_category"], "layout")
         self.assertEqual(stored_run["channel"], "小红书")
         self.assertEqual(stored_run["campaign_stage"], "新品首发")
         self.assertEqual(stored_run["business_goal"], "建立专业信任")
@@ -345,6 +347,7 @@ class PhaseOneFlowTest(unittest.TestCase):
             f"/api/service-runs/{recommendation_data['run_id']}"
         )
         self.assertEqual(run_detail.status_code, 200, run_detail.text)
+        self.assertEqual(run_detail.json()["focus_category"], "layout")
         self.assertEqual(run_detail.json()["channel"], "小红书")
         self.assertEqual(
             run_detail.json()["result"]["prompt"],
@@ -352,7 +355,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         )
         self.assertEqual(
             run_detail.json()["company_profile_snapshot"]["scope"],
-            "母婴",
+            "母婴 / layout",
         )
         overview_after_service = self.client.get("/api/training/overview").json()
         self.assertEqual(overview_after_service["service_runs"], 2)

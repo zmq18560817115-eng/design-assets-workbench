@@ -124,7 +124,11 @@ def _case_weight(case: models.Case, preferences: dict[str, int]) -> float:
     return max(0.0, weight)
 
 
-def build_concept(db: Session, business_line: str = "") -> dict:
+def build_concept(
+    db: Session,
+    business_line: str = "",
+    asset_category: str = "",
+) -> dict:
     """Aggregate a company profile, prioritizing trusted business evidence."""
     cases = db.query(models.Case).all()
     scope = business_line.strip()
@@ -134,9 +138,16 @@ def build_concept(db: Session, business_line: str = "") -> dict:
             for case in cases
             if (case.business_line or case.industry or "").strip() == scope
         ]
+    category_scope = asset_category.strip()
+    if category_scope:
+        cases = [
+            case for case in cases if (case.asset_category or "layout") == category_scope
+        ]
     run_query = db.query(models.ServiceRun)
     if scope:
         run_query = run_query.filter(models.ServiceRun.industry == scope)
+    if category_scope:
+        run_query = run_query.filter(models.ServiceRun.focus_category == category_scope)
     service_runs = run_query.all()
     adopted_runs = sum(1 for run in service_runs if run.status == "adopted")
     case_ids = {case.id for case in cases}
@@ -313,7 +324,11 @@ def build_concept(db: Session, business_line: str = "") -> dict:
         or (case.image and case.image.source_type == "company_published")
     )
     return {
-        "scope": scope or "company",
+        "scope": " / ".join(
+            part for part in [scope or "company", category_scope] if part
+        ),
+        "business_line": scope,
+        "asset_category": category_scope,
         "total": len(cases),
         "contributing_cases": contributing_cases,
         "weighted_total": round(weighted_total, 2),

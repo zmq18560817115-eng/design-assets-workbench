@@ -130,6 +130,7 @@ def _auto_migrate():
         run_fields = {
             "channel": "",
             "campaign_stage": "",
+            "focus_category": "layout",
             "business_goal": "",
         }
         for col, default in run_fields.items():

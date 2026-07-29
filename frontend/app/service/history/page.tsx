@@ -22,6 +22,13 @@ const statusStyles: Record<string, string> = {
   needs_revision: "bg-amber-50 text-amber-600",
 };
 
+const categoryLabels = {
+  layout: "排版",
+  style: "风格",
+  color: "色彩",
+  photo: "实拍图",
+};
+
 export default function ServiceHistoryPage() {
   const [runs, setRuns] = useState<ServiceRunSummary[]>([]);
   const [selected, setSelected] = useState<ServiceRunDetail | null>(null);
@@ -116,6 +123,7 @@ export default function ServiceHistoryPage() {
                   {run.request_text || "仅使用意向图生成"}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] text-gray-400">
+                  <span>{categoryLabels[run.focus_category] || "排版"}</span>
                   {run.industry && <span>{run.industry}</span>}
                   {run.channel && <span>· {run.channel}</span>}
                   {run.campaign_stage && <span>· {run.campaign_stage}</span>}

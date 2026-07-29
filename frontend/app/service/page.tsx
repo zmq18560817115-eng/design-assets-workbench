@@ -21,6 +21,9 @@ export default function ServicePage() {
   const [industry, setIndustry] = useState("");
   const [channel, setChannel] = useState("");
   const [campaignStage, setCampaignStage] = useState("");
+  const [focusCategory, setFocusCategory] = useState<
+    "layout" | "style" | "color" | "photo"
+  >("layout");
   const [businessGoal, setBusinessGoal] = useState("");
   const [reference, setReference] = useState<File | null>(null);
   const [result, setResult] = useState<RecommendResult | null>(null);
@@ -66,6 +69,7 @@ export default function ServicePage() {
           industry,
           channel,
           campaign_stage: campaignStage,
+          focus_category: focusCategory,
           business_goal: businessGoal,
           file: reference,
         })
@@ -107,6 +111,36 @@ export default function ServicePage() {
             className="resize-none rounded-2xl border border-line bg-canvas px-5 py-4 text-sm leading-6 outline-none focus:border-accent focus:bg-white"
           />
           <div className="grid gap-3">
+            <div>
+              <div className="mb-2 text-xs font-medium text-gray-500">
+                选择本次主要拆解与参考仓库
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  ["layout", "排版"],
+                  ["style", "风格"],
+                  ["color", "色彩"],
+                  ["photo", "实拍图"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() =>
+                      setFocusCategory(
+                        value as "layout" | "style" | "color" | "photo"
+                      )
+                    }
+                    className={`rounded-lg px-2 py-2 text-xs ${
+                      focusCategory === value
+                        ? "bg-accent text-white"
+                        : "border border-line bg-white text-gray-600"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <input
               value={industry}
               onChange={(event) => setIndustry(event.target.value)}

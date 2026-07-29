@@ -378,6 +378,7 @@ export const api = {
     industry?: string;
     channel?: string;
     campaign_stage?: string;
+    focus_category?: "layout" | "style" | "color" | "photo";
     business_goal?: string;
     file?: File | null;
   }) => {
@@ -386,6 +387,7 @@ export const api = {
     fd.append("industry", input.industry || "");
     fd.append("channel", input.channel || "");
     fd.append("campaign_stage", input.campaign_stage || "");
+    fd.append("focus_category", input.focus_category || "layout");
     fd.append("business_goal", input.business_goal || "");
     if (input.file) fd.append("file", input.file);
     return fetch(`/api/recommend`, { method: "POST", body: fd }).then((r) =>
@@ -687,6 +689,7 @@ export interface RecommendResult {
   };
   company_maturity: "insufficient" | "growing" | "strong";
   company_usage_mode: "reference_only" | "pilot" | "operational";
+  focus_category: "layout" | "style" | "color" | "photo";
   evidence_case_ids: number[];
 }
 
@@ -696,6 +699,7 @@ export interface ServiceRunSummary {
   industry: string;
   channel: string;
   campaign_stage: string;
+  focus_category: "layout" | "style" | "color" | "photo";
   business_goal: string;
   status: "generated" | "adopted" | "rejected" | "needs_revision";
   actor: string;

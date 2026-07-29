@@ -239,6 +239,7 @@ class ServiceRun(Base):
     industry = Column(String, default="", index=True)
     channel = Column(String, default="", index=True)
     campaign_stage = Column(String, default="", index=True)
+    focus_category = Column(String, default="layout", index=True)
     business_goal = Column(Text, default="")
     result_payload = Column(Text, default="{}")
     evidence_case_ids = Column(Text, default="[]")

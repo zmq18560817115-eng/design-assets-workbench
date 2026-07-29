@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import batch, concept, config, crud, imagehash, llm, models, overlay, vlm
+from .asset_categories import category_focus, category_label, normalize_category
 from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
@@ -1423,10 +1424,15 @@ async def search_assets(
 @app.get("/api/concept")
 def get_concept(
     business_line: str = "",
+    asset_category: str = "",
     db: Session = Depends(get_db),
 ):
     """设计视觉概论：跨案例聚合出的分布画像、视觉 DNA 与提炼的设计原则。"""
-    return concept.build_concept(db, business_line=business_line)
+    return concept.build_concept(
+        db,
+        business_line=business_line,
+        asset_category=normalize_category(asset_category) if asset_category else "",
+    )
 
 
 @app.post("/api/concept/methodology")
@@ -1445,6 +1451,7 @@ async def recommend_direction(
     industry: str = Form(""),
     channel: str = Form(""),
     campaign_stage: str = Form(""),
+    focus_category: str = Form("layout"),
     business_goal: str = Form(""),
     file: UploadFile | None = File(None),
     db: Session = Depends(get_db),
@@ -1455,6 +1462,8 @@ async def recommend_direction(
     上传意向图时，会先对其做视觉拆解，并把风格/色彩/排版融合进推荐。
     """
     low = text.lower()
+    focus_category = normalize_category(focus_category)
+    focus_instruction = category_focus(focus_category)
     context_parts = [
         f"渠道：{channel}" if channel else "",
         f"营销阶段：{campaign_stage}" if campaign_stage else "",
@@ -1499,7 +1508,12 @@ async def recommend_direction(
 
     # 从案例库中检索匹配标签的参考案例
     company_profile = concept.recommendation_context(
-        concept.build_concept(db, business_line=industry), industry=industry
+        concept.build_concept(
+            db,
+            business_line=industry,
+            asset_category=focus_category,
+        ),
+        industry=industry,
     )
     ranked_references = multimodal_search.search_cases(
         db,
@@ -1516,6 +1530,7 @@ async def recommend_direction(
             if item
         ),
         reference=ref,
+        asset_category=focus_category,
         limit=4,
     )
     refs = [item.case.id for item in ranked_references]
@@ -1587,6 +1602,12 @@ async def recommend_direction(
         directions.insert(0, f"【公司证据】{company_rule}")
         prompt = f"{prompt}；{company_rule}"
 
+    focus_rule = (
+        f"本次服务聚焦{category_label(focus_category)}素材仓库：{focus_instruction}"
+    )
+    directions.insert(0, f"【品类聚焦】{focus_rule}")
+    prompt = f"{prompt}；{focus_rule}"
+
     if config.llm_enabled() and (text.strip() or ref is not None):
         try:
             ref_ctx = ""
@@ -1631,6 +1652,10 @@ async def recommend_direction(
     if business_context:
         directions.insert(0, f"【业务约束】{business_context}")
         prompt = f"{prompt}；业务约束：{business_context}"
+    if not any("品类聚焦" in item for item in directions):
+        directions.insert(0, f"【品类聚焦】{focus_rule}")
+    if focus_rule not in prompt:
+        prompt = f"{prompt}；{focus_rule}"
     direction = VisualDirection(
         directions=directions,
         recommended_tags=hit_tags,
@@ -1646,6 +1671,7 @@ async def recommend_direction(
         company_evidence=company_profile,
         company_maturity=company_profile["evidence_level"],
         company_usage_mode=company_profile["usage_mode"],
+        focus_category=focus_category,
         evidence_case_ids=[
             item.case.id
             for item in ranked_references
@@ -1661,6 +1687,7 @@ async def recommend_direction(
         industry=industry,
         channel=channel,
         campaign_stage=campaign_stage,
+        focus_category=focus_category,
         business_goal=business_goal,
         result_payload=direction.model_dump_json(),
         evidence_case_ids=json.dumps(direction.evidence_case_ids),
@@ -1763,6 +1790,7 @@ def get_service_run(run_id: int, db: Session = Depends(get_db)):
         "industry": run.industry,
         "channel": run.channel,
         "campaign_stage": run.campaign_stage,
+        "focus_category": run.focus_category,
         "business_goal": run.business_goal,
         "status": run.status,
         "actor": run.actor,
@@ -1792,6 +1820,7 @@ def list_service_runs(limit: int = 30, db: Session = Depends(get_db)):
             "industry": run.industry,
             "channel": run.channel,
             "campaign_stage": run.campaign_stage,
+            "focus_category": run.focus_category,
             "business_goal": run.business_goal,
             "status": run.status,
             "actor": run.actor,

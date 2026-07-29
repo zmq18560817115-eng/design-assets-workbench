@@ -118,6 +118,7 @@ def search_cases(
     scene: str = "",
     content_type: str = "",
     source_type: str = "",
+    asset_category: str = "",
     tags: list[str] | None = None,
     reference: AnalysisResult | None = None,
     limit: int = 60,
@@ -132,6 +133,8 @@ def search_cases(
         query = query.filter(models.Case.content_type == content_type)
     if source_type:
         query = query.filter(models.Image.source_type == source_type)
+    if asset_category:
+        query = query.filter(models.Case.asset_category == asset_category)
 
     cases = query.order_by(models.Case.created_at.desc()).all()
     preference_rows = (

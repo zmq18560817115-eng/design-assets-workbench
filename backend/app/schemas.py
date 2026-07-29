@@ -263,6 +263,7 @@ class VisualDirection(BaseModel):
     company_evidence: dict[str, Any] = {}
     company_maturity: str = "insufficient"
     company_usage_mode: str = "reference_only"
+    focus_category: Literal["layout", "style", "color", "photo"] = "layout"
     evidence_case_ids: list[int] = []
     run_id: int = 0
 
