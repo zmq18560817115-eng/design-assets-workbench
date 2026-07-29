@@ -236,6 +236,10 @@ class LayoutBlueprintOut(LayoutBlueprintInput):
     updated_at: dt.datetime
 
 
+class LayoutBlueprintVerifyInput(BaseModel):
+    editor: str = Field(min_length=1, max_length=120)
+
+
 class CaseReviewInput(BaseModel):
     reviewer: str
     trust_status: Literal[

@@ -3,10 +3,14 @@ from __future__ import annotations
 
 import json
 import datetime as dt
+import math
+import re
+from pathlib import Path
 
+from PIL import Image as PILImage
 from sqlalchemy.orm import Session
 
-from . import models
+from . import config, models
 from .schemas import AnalysisResult, CaseReviewInput, LayoutBlueprintInput
 
 
@@ -18,6 +22,181 @@ def get_or_create_tag(db: Session, name: str, category: str = "style") -> models
         db.add(tag)
         db.flush()
     return tag
+
+
+def _image_canvas(image: models.Image | None) -> tuple[int, int]:
+    if image is None:
+        return (1, 1)
+    path = config.UPLOAD_DIR / Path(image.url or "").name
+    try:
+        with PILImage.open(path) as source:
+            return source.size
+    except Exception:
+        return (1, 1)
+
+
+def _canvas_ratio(width: int, height: int) -> str:
+    divisor = math.gcd(max(1, width), max(1, height))
+    return f"{max(1, width) // divisor}:{max(1, height) // divisor}"
+
+
+def _layout_blueprint_model(
+    case_id: int,
+    payload: LayoutBlueprintInput,
+    version: int,
+) -> models.LayoutBlueprint:
+    values = payload.model_dump()
+    modules = values.pop("modules_json")
+    margins = values.pop("margins")
+    focal_region = values.pop("focal_region")
+    return models.LayoutBlueprint(
+        case_id=case_id,
+        version=version,
+        modules_json=json.dumps(modules, ensure_ascii=False),
+        margins=json.dumps(margins, ensure_ascii=False),
+        focal_region=(
+            json.dumps(focal_region, ensure_ascii=False)
+            if focal_region is not None
+            else ""
+        ),
+        **values,
+    )
+
+
+def build_initial_layout_blueprint(
+    image: models.Image,
+    result: AnalysisResult,
+) -> LayoutBlueprintInput:
+    """Create a deterministic normalized skeleton from existing analysis."""
+    width, height = _image_canvas(image)
+    ratio = width / max(1, height)
+    orientation = (
+        "landscape" if ratio > 1.1 else "portrait" if ratio < 0.9 else "square"
+    )
+    templates = {
+        "portrait": [
+            ("title", 0.08, 0.05, 0.84, 0.12, "主标题区域"),
+            ("product_image", 0.12, 0.22, 0.76, 0.44, "产品或内容主视觉"),
+            ("supporting_text", 0.10, 0.70, 0.80, 0.12, "辅助信息区域"),
+            ("cta", 0.30, 0.87, 0.40, 0.07, "行动引导区域"),
+        ],
+        "landscape": [
+            ("title", 0.06, 0.08, 0.40, 0.16, "主标题区域"),
+            ("supporting_text", 0.06, 0.34, 0.40, 0.24, "辅助信息区域"),
+            ("product_image", 0.52, 0.12, 0.42, 0.62, "产品或内容主视觉"),
+            ("cta", 0.06, 0.72, 0.28, 0.12, "行动引导区域"),
+        ],
+        "square": [
+            ("title", 0.08, 0.06, 0.84, 0.14, "主标题区域"),
+            ("product_image", 0.15, 0.24, 0.70, 0.46, "产品或内容主视觉"),
+            ("supporting_text", 0.10, 0.74, 0.80, 0.10, "辅助信息区域"),
+            ("cta", 0.32, 0.88, 0.36, 0.06, "行动引导区域"),
+        ],
+    }
+    modules = [
+        {
+            "id": f"module-{index}",
+            "type": module_type,
+            "x": x,
+            "y": y,
+            "width": module_width,
+            "height": module_height,
+            "priority": index,
+            "alignment": result.layout.alignment or "center",
+            "description": description,
+        }
+        for index, (
+            module_type,
+            x,
+            y,
+            module_width,
+            module_height,
+            description,
+        ) in enumerate(templates[orientation], 1)
+    ]
+    visual = next(module for module in modules if module["type"] == "product_image")
+    raw_grid = result.layout.grid_columns or ""
+    grid_match = re.search(r"\d+", raw_grid)
+    grid_columns = max(1, min(24, int(grid_match.group()))) if grid_match else 6
+    text_hint = (result.typography.text_ratio or "").lower()
+    text_image_ratio = (
+        0.65
+        if "重文字" in text_hint or "text-heavy" in text_hint
+        else 0.25
+        if "以图为主" in text_hint or "image-led" in text_hint
+        else 0.5
+    )
+    information_density = (
+        "high"
+        if text_image_ratio >= 0.6
+        else "low"
+        if text_image_ratio <= 0.3
+        else "medium"
+    )
+    source_model = (result.analyzed_by or "").strip()
+    heuristic_sources = {"", "启发式规则", "heuristic"}
+    model_name = (
+        source_model
+        if source_model not in heuristic_sources
+        else "heuristic-layout-blueprint"
+    )
+    prompt_version = (
+        "layout-blueprint-from-analysis-v1"
+        if source_model not in heuristic_sources
+        else "layout-blueprint-heuristic-v1"
+    )
+    return LayoutBlueprintInput(
+        canvas_ratio=_canvas_ratio(width, height),
+        orientation=orientation,
+        grid_columns=grid_columns,
+        grid_rows=12,
+        margins={"top": 0.05, "right": 0.06, "bottom": 0.05, "left": 0.06},
+        alignment=result.layout.alignment or "center",
+        reading_flow=(
+            "left-to-right" if orientation == "landscape" else "top-to-bottom"
+        ),
+        focal_region={
+            key: visual[key] for key in ("x", "y", "width", "height")
+        },
+        information_density=information_density,
+        text_image_ratio=text_image_ratio,
+        modules_json=modules,
+        review_status="ai_unverified",
+        model_name=model_name,
+        prompt_version=prompt_version,
+    )
+
+
+def build_layout_blueprint_for_case(
+    case: models.Case,
+) -> LayoutBlueprintInput:
+    analysis = analysis_to_dict(case.analysis) or {}
+    result = AnalysisResult(
+        basics={
+            "image_type": case.content_type or "",
+            "industry": case.industry or "",
+            "scene": case.scene or "",
+        },
+        style=analysis.get("style") or {},
+        color=analysis.get("color") or {},
+        composition=analysis.get("composition") or {},
+        light=analysis.get("light") or {},
+        material=analysis.get("material") or "",
+        layout=analysis.get("layout") or {},
+        typography=analysis.get("typography") or {},
+        design_rules=analysis.get("design_rules") or {},
+        insights=analysis.get("insights"),
+        prompt=analysis.get("prompt") or "",
+        summary=case.summary or "",
+        name=case.name or "",
+        tags=[tag.name for tag in case.tags],
+        analyzed_by=(
+            analysis.get("model_name")
+            or analysis.get("analyzed_by")
+            or "heuristic"
+        ),
+    )
+    return build_initial_layout_blueprint(case.image, result)
 
 
 def create_case_from_analysis(
@@ -111,6 +290,13 @@ def create_case_from_analysis(
             source="ai",
             model_name=result.analyzed_by,
             prompt_version="visual-analysis-v1",
+        )
+    )
+    db.add(
+        _layout_blueprint_model(
+            case.id,
+            build_initial_layout_blueprint(image, result),
+            version=1,
         )
     )
 
@@ -244,22 +430,7 @@ def create_layout_blueprint(
     if version is None:
         latest = get_latest_layout_blueprint(db, case_id)
         version = (latest.version + 1) if latest else 1
-    values = payload.model_dump()
-    modules = values.pop("modules_json")
-    margins = values.pop("margins")
-    focal_region = values.pop("focal_region")
-    blueprint = models.LayoutBlueprint(
-        case_id=case_id,
-        version=version,
-        modules_json=json.dumps(modules, ensure_ascii=False),
-        margins=json.dumps(margins, ensure_ascii=False),
-        focal_region=(
-            json.dumps(focal_region, ensure_ascii=False)
-            if focal_region is not None
-            else ""
-        ),
-        **values,
-    )
+    blueprint = _layout_blueprint_model(case_id, payload, version)
     db.add(blueprint)
     db.commit()
     db.refresh(blueprint)

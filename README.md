@@ -69,6 +69,9 @@ npm run dev
 - AI 结果保存 `model_name` 和 `prompt_version`。
 - 审核状态仅允许 `ai_unverified`、`human_edited`、`verified`。
 - 新表由 `Base.metadata.create_all()` 创建，旧数据库不需要删除或重新初始化。
+- 新上传案例会自动生成首版低保真排版骨架。
+- 旧案例可通过幂等回填脚本补齐，已存在骨架的案例不会重复创建。
+- 提供骨架读取、重新生成、人工修订与确认 API。
 
 详细数据契约见 [排版意向系统接口与数据规范](docs/排版意向系统接口与数据规范.md)。
 

@@ -81,6 +81,18 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(case["image"]["source_type"], "company_published")
         self.assertIn("layout", case["analysis"])
         self.assertEqual(case["analysis"]["version"], 1)
+        auto_blueprints = self.client.get(
+            f"/api/cases/{case['id']}/layout-blueprints"
+        )
+        self.assertEqual(auto_blueprints.status_code, 200, auto_blueprints.text)
+        self.assertEqual(len(auto_blueprints.json()), 1)
+        auto_blueprint = auto_blueprints.json()[0]
+        self.assertEqual(auto_blueprint["version"], 1)
+        self.assertEqual(auto_blueprint["canvas_ratio"], "2:3")
+        self.assertEqual(auto_blueprint["orientation"], "portrait")
+        self.assertEqual(auto_blueprint["module_count"], 4)
+        self.assertTrue(auto_blueprint["model_name"])
+        self.assertTrue(auto_blueprint["prompt_version"])
 
         blueprint_payload = LayoutBlueprintInput(
             canvas_ratio="2:3",
@@ -127,7 +139,7 @@ class PhaseOneFlowTest(unittest.TestCase):
                 blueprint_payload,
             )
             serialized = crud.serialize_layout_blueprint(blueprint)
-            self.assertEqual(serialized["version"], 1)
+            self.assertEqual(serialized["version"], 2)
             self.assertEqual(serialized["module_count"], 2)
             self.assertEqual(serialized["modules_json"][1]["x"], 0.18)
             revised_payload = blueprint_payload.model_copy(
@@ -141,16 +153,44 @@ class PhaseOneFlowTest(unittest.TestCase):
                 blueprint.id,
                 revised_payload,
             )
-            self.assertEqual(revised.version, 2)
+            self.assertEqual(revised.version, 3)
             self.assertEqual(revised.review_status, "human_edited")
-            self.assertEqual(len(crud.list_layout_blueprints(db, case["id"])), 2)
+            self.assertEqual(len(crud.list_layout_blueprints(db, case["id"])), 3)
             revised_again = crud.revise_layout_blueprint(
                 db,
                 blueprint.id,
                 revised_payload,
             )
-            self.assertEqual(revised_again.version, 3)
-            self.assertEqual(len(crud.list_layout_blueprints(db, case["id"])), 3)
+            self.assertEqual(revised_again.version, 4)
+            self.assertEqual(len(crud.list_layout_blueprints(db, case["id"])), 4)
+        latest_versions = self.client.get(
+            f"/api/cases/{case['id']}/layout-blueprints"
+        )
+        self.assertEqual(latest_versions.status_code, 200, latest_versions.text)
+        self.assertEqual(
+            [item["version"] for item in latest_versions.json()],
+            [4, 3, 2, 1],
+        )
+        verified = self.client.post(
+            f"/api/layout-blueprints/{latest_versions.json()[0]['id']}/verify",
+            json={"editor": "layout-review-lead"},
+        )
+        self.assertEqual(verified.status_code, 200, verified.text)
+        self.assertEqual(verified.json()["version"], 5)
+        self.assertEqual(verified.json()["review_status"], "verified")
+        generated = self.client.post(
+            f"/api/cases/{case['id']}/layout-blueprints/generate"
+        )
+        self.assertEqual(generated.status_code, 200, generated.text)
+        self.assertEqual(generated.json()["version"], 6)
+        self.assertEqual(generated.json()["orientation"], "portrait")
+        api_revised = self.client.post(
+            f"/api/layout-blueprints/{generated.json()['id']}/revise",
+            json=revised_payload.model_dump(mode="json"),
+        )
+        self.assertEqual(api_revised.status_code, 200, api_revised.text)
+        self.assertEqual(api_revised.json()["version"], 7)
+        self.assertEqual(api_revised.json()["review_status"], "human_edited")
         with self.assertRaises(ValidationError):
             LayoutBlueprintInput(
                 orientation="portrait",

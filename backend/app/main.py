@@ -36,6 +36,9 @@ from .schemas import (
     CaseOut,
     CaseReviewInput,
     CaseProjectInput,
+    LayoutBlueprintInput,
+    LayoutBlueprintOut,
+    LayoutBlueprintVerifyInput,
     BatchReviewInput,
     BatchCategorizeInput,
     BatchCategorySuggestionInput,
@@ -260,6 +263,109 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     return crud.serialize_case(case)
+
+
+@app.get(
+    "/api/cases/{case_id}/layout-blueprints",
+    response_model=list[LayoutBlueprintOut],
+)
+def list_case_layout_blueprints(
+    case_id: int,
+    db: Session = Depends(get_db),
+):
+    if not db.get(models.Case, case_id):
+        raise HTTPException(status_code=404, detail="案例不存在")
+    return [
+        crud.serialize_layout_blueprint(item)
+        for item in crud.list_layout_blueprints(db, case_id)
+    ]
+
+
+@app.post(
+    "/api/cases/{case_id}/layout-blueprints/generate",
+    response_model=LayoutBlueprintOut,
+)
+def generate_case_layout_blueprint(
+    case_id: int,
+    db: Session = Depends(get_db),
+):
+    case = db.get(models.Case, case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    try:
+        payload = crud.build_layout_blueprint_for_case(case)
+        blueprint = crud.create_layout_blueprint(db, case.id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_layout_blueprint(blueprint)
+
+
+@app.get(
+    "/api/layout-blueprints/{blueprint_id}",
+    response_model=LayoutBlueprintOut,
+)
+def get_layout_blueprint(
+    blueprint_id: int,
+    db: Session = Depends(get_db),
+):
+    blueprint = crud.get_layout_blueprint(db, blueprint_id)
+    if not blueprint:
+        raise HTTPException(status_code=404, detail="排版骨架不存在")
+    return crud.serialize_layout_blueprint(blueprint)
+
+
+@app.post(
+    "/api/layout-blueprints/{blueprint_id}/revise",
+    response_model=LayoutBlueprintOut,
+)
+def revise_layout_blueprint(
+    blueprint_id: int,
+    payload: LayoutBlueprintInput,
+    db: Session = Depends(get_db),
+):
+    try:
+        human_payload = LayoutBlueprintInput.model_validate(
+            {
+                **payload.model_dump(),
+                "review_status": "human_edited",
+            }
+        )
+        blueprint = crud.revise_layout_blueprint(
+            db,
+            blueprint_id,
+            human_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_layout_blueprint(blueprint)
+
+
+@app.post(
+    "/api/layout-blueprints/{blueprint_id}/verify",
+    response_model=LayoutBlueprintOut,
+)
+def verify_layout_blueprint(
+    blueprint_id: int,
+    payload: LayoutBlueprintVerifyInput,
+    db: Session = Depends(get_db),
+):
+    current = crud.get_layout_blueprint(db, blueprint_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="排版骨架不存在")
+    current_data = crud.serialize_layout_blueprint(current)
+    verified_payload = LayoutBlueprintInput.model_validate(
+        {
+            **current_data,
+            "review_status": "verified",
+            "editor": payload.editor,
+        }
+    )
+    verified = crud.revise_layout_blueprint(
+        db,
+        current.id,
+        verified_payload,
+    )
+    return crud.serialize_layout_blueprint(verified)
 
 
 @app.patch("/api/cases/{case_id}/review", response_model=CaseOut)
