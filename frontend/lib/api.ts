@@ -217,6 +217,10 @@ export const api = {
     fetch("/api/training/overview", { cache: "no-store" }).then((r) =>
       j<TrainingOverview>(r)
     ),
+  trainingTaskPack: () =>
+    fetch("/api/training/task-pack", { cache: "no-store" }).then((r) =>
+      j<TrainingTaskPack>(r)
+    ),
   trainingReadiness: () =>
     fetch("/api/training/readiness", { cache: "no-store" }).then((r) =>
       j<TrainingReadiness[]>(r)
@@ -537,6 +541,31 @@ export interface TrainingReadiness {
     | "adopted_runs",
     { current: number; target: number; met: boolean }
   >;
+}
+
+export interface TrainingTaskPack {
+  generated_at: string;
+  total_tasks: number;
+  ready_cells: number;
+  total_cells: number;
+  tasks: {
+    task_id: string;
+    business_line: string;
+    project_id: number | null;
+    asset_category: "layout" | "style" | "color" | "photo";
+    category_label: string;
+    priority: "urgent" | "high" | "normal";
+    owner_role: string;
+    next_action: string;
+    candidate_case_ids: number[];
+    current: {
+      company_published: number;
+      model_analyzed: number;
+      trusted: number;
+      recommended: number;
+    };
+    acceptance_criteria: string[];
+  }[];
 }
 
 export interface ReviewQuality {

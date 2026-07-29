@@ -1061,6 +1061,116 @@ def training_overview(db: Session = Depends(get_db)):
     }
 
 
+@app.get("/api/training/task-pack")
+def training_task_pack(db: Session = Depends(get_db)):
+    """Turn training gaps into an assignable weekly execution list."""
+    overview = training_overview(db)
+    category_names = {
+        "layout": "排版",
+        "style": "风格",
+        "color": "色彩",
+        "photo": "实拍图",
+    }
+    latest_suggestions: dict[int, models.AssetCategorySuggestion] = {}
+    for suggestion in (
+        db.query(models.AssetCategorySuggestion)
+        .order_by(models.AssetCategorySuggestion.id.desc())
+        .all()
+    ):
+        latest_suggestions.setdefault(suggestion.case_id, suggestion)
+
+    tasks = []
+    for row in overview["training_matrix"]:
+        project_id = row["project_id"]
+        project_cases = (
+            db.query(models.Case)
+            .filter(models.Case.project_id == project_id)
+            .order_by(models.Case.id)
+            .all()
+            if project_id
+            else []
+        )
+        for category, cell in row["cells"].items():
+            if cell["ready"]:
+                continue
+            current_candidates = [
+                case.id
+                for case in project_cases
+                if (case.asset_category or "layout") == category
+                and case.trust_status != "rejected"
+            ]
+            suggestion_candidates = [
+                case.id
+                for case in project_cases
+                if (
+                    suggestion := latest_suggestions.get(case.id)
+                )
+                and suggestion.status == "pending"
+                and suggestion.suggested_category == category
+            ]
+            candidate_ids = list(
+                dict.fromkeys(suggestion_candidates + current_candidates)
+            )[:5]
+            if cell["company_published"] < 2:
+                owner_role = "素材管理员"
+                next_action = (
+                    f"补充并归类 {2 - cell['company_published']} 张"
+                    f"{category_names[category]}公司成品"
+                )
+                priority = "urgent" if cell["company_published"] == 0 else "high"
+            elif cell["model_analyzed"] < 1:
+                owner_role = "AI运营"
+                next_action = "选择1张代表样本完成火山模型深度拆解"
+                priority = "high"
+            else:
+                owner_role = "设计负责人"
+                next_action = "审核1张模型拆解并填写保留与规避规则"
+                priority = "high"
+            tasks.append(
+                {
+                    "task_id": f"{project_id or 0}-{category}",
+                    "business_line": row["business_line"],
+                    "project_id": project_id,
+                    "asset_category": category,
+                    "category_label": category_names[category],
+                    "priority": priority,
+                    "owner_role": owner_role,
+                    "next_action": next_action,
+                    "candidate_case_ids": candidate_ids,
+                    "current": {
+                        "company_published": cell["company_published"],
+                        "model_analyzed": cell["model_analyzed"],
+                        "trusted": cell["trusted"],
+                        "recommended": cell["recommended"],
+                    },
+                    "acceptance_criteria": [
+                        "公司成品不少于2张",
+                        "至少1张完成真实视觉模型拆解",
+                        "至少1张由设计负责人确认",
+                        "确认时填写必须保留与必须规避规则",
+                    ],
+                }
+            )
+    priority_order = {"urgent": 0, "high": 1, "normal": 2}
+    tasks.sort(
+        key=lambda item: (
+            priority_order.get(item["priority"], 9),
+            0 if item["candidate_case_ids"] else 1,
+            item["business_line"],
+            item["asset_category"],
+        )
+    )
+    return {
+        "generated_at": dt.datetime.now(dt.UTC).replace(tzinfo=None),
+        "total_tasks": len(tasks),
+        "ready_cells": sum(
+            row["ready_categories"] for row in overview["training_matrix"]
+        ),
+        "total_cells": len(overview["training_matrix"]) * 4,
+        "tasks": tasks,
+    }
+
+
 @app.get("/api/training/readiness")
 def training_readiness(db: Session = Depends(get_db)):
     """Return evidence gates and the next concrete action for every business line."""

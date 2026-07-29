@@ -12,6 +12,7 @@ import {
   CategorySuggestion,
   CategorySuggestionJob,
   CategoryDiscovery,
+  TrainingTaskPack,
 } from "@/lib/api";
 
 const categoryLabels: Record<string, string> = {
@@ -57,6 +58,7 @@ export default function TrainingPage() {
   const [categoryJob, setCategoryJob] =
     useState<CategorySuggestionJob | null>(null);
   const [discovery, setDiscovery] = useState<CategoryDiscovery[]>([]);
+  const [taskPack, setTaskPack] = useState<TrainingTaskPack | null>(null);
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
   const [analysisMode, setAnalysisMode] = useState("model");
@@ -124,14 +126,23 @@ export default function TrainingPage() {
       api.trainingReadiness(),
       api.categoryDiscovery(),
       api.latestCategorySuggestionJob(),
+      api.trainingTaskPack(),
     ])
       .then(
-        ([projectList, metrics, roadmap, discoveryItems, latestCategoryJob]) => {
+        ([
+          projectList,
+          metrics,
+          roadmap,
+          discoveryItems,
+          latestCategoryJob,
+          weeklyTaskPack,
+        ]) => {
         setProjects(projectList);
         setOverview(metrics);
         setReadiness(roadmap);
         setDiscovery(discoveryItems);
         setCategoryJob(latestCategoryJob);
+        setTaskPack(weeklyTaskPack);
         const preferred =
           projectList.find(
             (project) =>
@@ -293,6 +304,52 @@ export default function TrainingPage() {
     }
   };
 
+  const downloadTaskPack = () => {
+    if (!taskPack) return;
+    const quote = (value: string | number) =>
+      `"${String(value).replaceAll('"', '""')}"`;
+    const rows = [
+      [
+        "优先级",
+        "业务线",
+        "素材类别",
+        "负责人角色",
+        "下一步动作",
+        "候选案例ID",
+        "公司成品",
+        "模型拆解",
+        "人工确认",
+        "公司推荐",
+        "验收标准",
+      ],
+      ...taskPack.tasks.map((task) => [
+        task.priority,
+        task.business_line,
+        task.category_label,
+        task.owner_role,
+        task.next_action,
+        task.candidate_case_ids.join("、"),
+        task.current.company_published,
+        task.current.model_analyzed,
+        task.current.trusted,
+        task.current.recommended,
+        task.acceptance_criteria.join("；"),
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(quote).join(",")).join("\r\n");
+    const blob = new Blob([`\uFEFF${csv}`], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `公司素材训练任务-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-7">
       <section className="rounded-[28px] bg-ink px-6 py-8 text-white md:px-9">
@@ -339,6 +396,86 @@ export default function TrainingPage() {
             <div className="mt-2 text-3xl font-semibold">{value}</div>
           </div>
         ))}
+      </section>
+
+      <section className="rounded-3xl border border-line bg-white p-5 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              Weekly execution pack
+            </div>
+            <h2 className="mt-2 text-xl font-semibold">本周素材训练任务包</h2>
+            <p className="mt-2 text-xs leading-5 text-gray-400">
+              自动把未达标格子转换为可分配任务，完成后重新打开页面即可生成下一轮任务。
+            </p>
+          </div>
+          <button
+            onClick={downloadTaskPack}
+            disabled={!taskPack}
+            className="rounded-xl bg-ink px-4 py-2.5 text-sm text-white disabled:opacity-40"
+          >
+            下载 CSV 任务清单
+          </button>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl bg-canvas p-4">
+            <div className="text-xs text-gray-400">待执行任务</div>
+            <div className="mt-2 text-2xl font-semibold">
+              {taskPack?.total_tasks ?? 0}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-canvas p-4">
+            <div className="text-xs text-gray-400">已达标单元</div>
+            <div className="mt-2 text-2xl font-semibold">
+              {taskPack?.ready_cells ?? 0}/{taskPack?.total_cells ?? 20}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-canvas p-4">
+            <div className="text-xs text-gray-400">本周先处理</div>
+            <div className="mt-2 text-sm font-semibold">
+              {taskPack?.tasks[0]?.business_line || "暂无"} ·{" "}
+              {taskPack?.tasks[0]?.category_label || "全部达标"}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 lg:grid-cols-2">
+          {(taskPack?.tasks || []).slice(0, 6).map((task) => (
+            <button
+              key={task.task_id}
+              onClick={() => {
+                const nextProjectId = task.project_id || undefined;
+                setProjectId(nextProjectId);
+                setCategory(task.asset_category);
+                setBusinessLine(task.business_line);
+                setSelected([]);
+                loadCases(
+                  nextProjectId,
+                  task.asset_category,
+                  trustStatus,
+                  analysisMode
+                );
+              }}
+              className="rounded-xl border border-line p-3 text-left hover:border-accent"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">
+                  {task.business_line} · {task.category_label}
+                </span>
+                <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] text-amber-700">
+                  {task.owner_role}
+                </span>
+              </div>
+              <div className="mt-2 text-xs leading-5 text-gray-500">
+                {task.next_action}
+              </div>
+              {task.candidate_case_ids.length > 0 && (
+                <div className="mt-1 text-[10px] text-gray-400">
+                  候选案例：{task.candidate_case_ids.join("、")}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-line bg-white p-5 md:p-7">

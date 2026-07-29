@@ -219,6 +219,13 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(matrix_row["project_id"], project_id)
         self.assertIn("layout", matrix_row["cells"])
         self.assertFalse(matrix_row["cells"]["layout"]["ready"])
+        task_pack = self.client.get("/api/training/task-pack")
+        self.assertEqual(task_pack.status_code, 200, task_pack.text)
+        self.assertGreater(task_pack.json()["total_tasks"], 0)
+        first_task = task_pack.json()["tasks"][0]
+        self.assertEqual(first_task["project_id"], project_id)
+        self.assertIn(first_task["priority"], {"urgent", "high"})
+        self.assertTrue(first_task["acceptance_criteria"])
         readiness = self.client.get("/api/training/readiness")
         self.assertEqual(readiness.status_code, 200, readiness.text)
         line_readiness = next(
