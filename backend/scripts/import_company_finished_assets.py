@@ -20,6 +20,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 from app import config, crud, imagehash, models  # noqa: E402
 from app.agents import run_pipeline  # noqa: E402
 from app.database import SessionLocal, close_db, init_db  # noqa: E402
+from app.sampling import color_sample  # noqa: E402
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
@@ -61,7 +62,12 @@ def diverse_sample(paths: list[Path], limit: int) -> list[Path]:
     return [path for path, _ in chosen]
 
 
-def discover(root: Path, sample_per_line: int) -> list[dict]:
+def discover(
+    root: Path,
+    sample_per_line: int,
+    category: str = "layout",
+    sampling: str = "diverse",
+) -> list[dict]:
     items: list[dict] = []
     for folder in sorted(path for path in root.iterdir() if path.is_dir()):
         paths = sorted(
@@ -69,14 +75,20 @@ def discover(root: Path, sample_per_line: int) -> list[dict]:
             for path in folder.rglob("*")
             if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
         )
-        for path in diverse_sample(paths, sample_per_line):
+        selected = (
+            color_sample(paths, sample_per_line)
+            if sampling == "color"
+            else [(path, None) for path in diverse_sample(paths, sample_per_line)]
+        )
+        for path, score in selected:
             items.append(
                 {
                     "path": path,
                     "business_line": folder.name,
-                    "category": "layout",
-                    "subcategory": "公司成品视觉",
+                    "category": category,
+                    "subcategory": f"公司成品·{category}",
                     "folder_total": len(paths),
+                    "sampling_score": score,
                 }
             )
     return items
@@ -217,11 +229,27 @@ def main() -> int:
     )
     parser.add_argument("--business-line", default="")
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument(
+        "--category",
+        choices=("layout", "style", "color", "photo"),
+        default="layout",
+    )
+    parser.add_argument(
+        "--sampling",
+        choices=("diverse", "color"),
+        default="diverse",
+        help="Use color to rank palette-learning candidates; preview before import.",
+    )
     args = parser.parse_args()
 
     if not args.root.exists():
         raise SystemExit(f"素材目录不存在：{args.root}")
-    items = discover(args.root, args.sample_per_line)
+    items = discover(
+        args.root,
+        args.sample_per_line,
+        category=args.category,
+        sampling=args.sampling,
+    )
     if args.business_line:
         items = [
             item
@@ -230,6 +258,11 @@ def main() -> int:
         ]
     counts = Counter(item["business_line"] for item in items)
     print(f"代表样本：{len(items)}")
+    if args.sampling == "color":
+        print(
+            "注意：色彩评分只负责缩小候选范围，可能包含实拍图；"
+            "必须看原图或通过视觉模型确认后再执行入库。"
+        )
     for line, count in sorted(counts.items()):
         total = next(
             item["folder_total"]
@@ -237,6 +270,13 @@ def main() -> int:
             if item["business_line"] == line
         )
         print(f"- {line}: {count}/{total}")
+        if args.sampling == "color":
+            for item in items:
+                if item["business_line"] == line:
+                    print(
+                        f"  {item['sampling_score']:>5.1f}  "
+                        f"{item['path'].name}"
+                    )
     if not args.execute:
         print("当前为预览模式；添加 --execute 后才会复制、分析并入库。")
         return 0
