@@ -17,6 +17,12 @@ body {
   @apply bg-accent text-white;
 }
 
+@layer components {
+  .field {
+    @apply mt-1 w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm text-white;
+  }
+}
+
 /* 兼容旧拆解详情页的深色文字类，逐页重构期间保持浅色主题可读。 */
 .bg-white .text-gray-200,
 .bg-white .text-gray-300 {

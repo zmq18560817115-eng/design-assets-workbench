@@ -92,6 +92,55 @@ export interface CaseOut {
   analysis: AnalysisData | null;
 }
 
+export interface NormalizedRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface LayoutMargins {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export interface LayoutModule extends NormalizedRegion {
+  id: string;
+  type: string;
+  priority: number;
+  alignment: string;
+  description: string;
+}
+
+export interface LayoutBlueprintInput {
+  canvas_ratio: string;
+  orientation: "portrait" | "landscape" | "square";
+  grid_columns: number;
+  grid_rows: number;
+  margins: LayoutMargins;
+  alignment: string;
+  reading_flow: string;
+  focal_region: NormalizedRegion | null;
+  information_density: string;
+  text_image_ratio: number;
+  module_count: number;
+  modules_json: LayoutModule[];
+  review_status: "ai_unverified" | "human_edited" | "verified";
+  model_name: string;
+  prompt_version: string;
+  editor: string;
+}
+
+export interface LayoutBlueprint extends LayoutBlueprintInput {
+  id: number;
+  case_id: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
 async function j<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`请求失败 ${res.status}`);
   return res.json();
@@ -178,6 +227,29 @@ export const api = {
   },
   case: (id: number | string) =>
     fetch(`/api/cases/${id}`, { cache: "no-store" }).then((r) => j<CaseOut>(r)),
+  layoutBlueprints: (caseId: number | string) =>
+    fetch(`/api/cases/${caseId}/layout-blueprints`, {
+      cache: "no-store",
+    }).then((r) => j<LayoutBlueprint[]>(r)),
+  generateLayoutBlueprint: (caseId: number | string) =>
+    fetch(`/api/cases/${caseId}/layout-blueprints/generate`, {
+      method: "POST",
+    }).then((r) => j<LayoutBlueprint>(r)),
+  reviseLayoutBlueprint: (
+    blueprintId: number,
+    payload: LayoutBlueprintInput
+  ) =>
+    fetch(`/api/layout-blueprints/${blueprintId}/revise`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutBlueprint>(r)),
+  verifyLayoutBlueprint: (blueprintId: number, editor: string) =>
+    fetch(`/api/layout-blueprints/${blueprintId}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ editor }),
+    }).then((r) => j<LayoutBlueprint>(r)),
   reviewCase: (id: number | string, review: CaseReviewInput) =>
     fetch(`/api/cases/${id}/review`, {
       method: "PATCH",

@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { api, CaseOut } from "@/lib/api";
 import { Card, Swatches, Tag } from "@/components/ui";
 import { ReviewPanel } from "@/components/review-panel";
+import { LayoutBlueprintEditor } from "@/components/layout-blueprint-editor";
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +25,8 @@ export default function CaseDetail() {
   const a = c.analysis;
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_1fr]">
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_1fr]">
       <div>
         {c.image && (
           <div className="relative">
@@ -299,6 +301,8 @@ export default function CaseDetail() {
           </>
         )}
       </div>
+      </div>
+      <LayoutBlueprintEditor caseId={c.id} />
     </div>
   );
 }
