@@ -211,6 +211,14 @@ class PreferenceEventInput(BaseModel):
     context: str = ""
 
 
+class BatchReviewInput(BaseModel):
+    case_ids: list[int]
+    action: Literal["confirm", "recommend", "reject"]
+    reviewer: str
+    review_notes: str = ""
+    business_line: str = ""
+
+
 class RequirementInput(BaseModel):
     """需求生成页入参。"""
 

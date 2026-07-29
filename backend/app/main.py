@@ -22,6 +22,7 @@ from .schemas import (
     CaseOut,
     CaseReviewInput,
     CaseProjectInput,
+    BatchReviewInput,
     PreferenceEventInput,
     ProjectCreate,
     ProjectOut,
@@ -195,6 +196,8 @@ def list_cases(
     tag: str | None = None,
     asset_category: str | None = None,
     asset_subcategory: str | None = None,
+    project_id: int | None = None,
+    trust_status: str | None = None,
     db: Session = Depends(get_db),
 ):
     """案例资产库：支持关键词搜索与标签检索。"""
@@ -204,6 +207,8 @@ def list_cases(
         tag=tag,
         asset_category=asset_category,
         asset_subcategory=asset_subcategory,
+        project_id=project_id,
+        trust_status=trust_status,
     )
     return [crud.serialize_case(c) for c in cases]
 
@@ -258,6 +263,59 @@ def recommend_case(
         raise HTTPException(status_code=404, detail="案例不存在")
     recommended = review.model_copy(update={"trust_status": "company_recommended"})
     return crud.serialize_case(crud.review_case(db, case, recommended))
+
+
+@app.post("/api/training/batch-review")
+def batch_review_cases(
+    payload: BatchReviewInput,
+    db: Session = Depends(get_db),
+):
+    """Review a curated queue in one operation while preserving one audit record per case."""
+    reviewer = payload.reviewer.strip()
+    if not reviewer:
+        raise HTTPException(status_code=400, detail="审核人不能为空")
+    case_ids = list(dict.fromkeys(payload.case_ids))
+    if not case_ids or len(case_ids) > 100:
+        raise HTTPException(status_code=400, detail="每次请选择 1～100 个案例")
+    cases = (
+        db.query(models.Case)
+        .filter(models.Case.id.in_(case_ids))
+        .order_by(models.Case.id)
+        .all()
+    )
+    found = {case.id for case in cases}
+    missing = [case_id for case_id in case_ids if case_id not in found]
+    trust_status = {
+        "confirm": "verified",
+        "recommend": "company_recommended",
+        "reject": "rejected",
+    }[payload.action]
+    decision = "reject" if payload.action == "reject" else "adopt"
+    updated: list[int] = []
+    failed: list[dict] = []
+    for case in cases:
+        review = CaseReviewInput(
+            reviewer=reviewer,
+            trust_status=trust_status,
+            review_decision=decision,
+            review_notes=payload.review_notes,
+            business_line=payload.business_line or case.business_line,
+            channel=case.channel,
+            campaign_stage=case.campaign_stage,
+            business_goal=case.business_goal,
+        )
+        try:
+            crud.review_case(db, case, review)
+            updated.append(case.id)
+        except ValueError as exc:
+            failed.append({"case_id": case.id, "detail": str(exc)})
+    return {
+        "action": payload.action,
+        "updated": updated,
+        "updated_count": len(updated),
+        "missing": missing,
+        "failed": failed,
+    }
 
 
 @app.get("/api/cases/{case_id}/versions")
@@ -328,6 +386,73 @@ def list_projects(db: Session = Depends(get_db)):
             }
         )
     return result
+
+
+@app.get("/api/training/overview")
+def training_overview(db: Session = Depends(get_db)):
+    """Operational readiness metrics for the company-preference training loop."""
+    trust_rows = dict(
+        db.query(models.Case.trust_status, func.count(models.Case.id))
+        .group_by(models.Case.trust_status)
+        .all()
+    )
+    category_rows = (
+        db.query(
+            models.Case.asset_category,
+            models.Case.trust_status,
+            func.count(models.Case.id),
+        )
+        .group_by(models.Case.asset_category, models.Case.trust_status)
+        .all()
+    )
+    category_coverage: dict[str, dict[str, int]] = {
+        key: {"total": 0, "trusted": 0, "recommended": 0}
+        for key in ("layout", "style", "color", "photo")
+    }
+    for category, trust_status, count in category_rows:
+        item = category_coverage.setdefault(
+            category or "layout",
+            {"total": 0, "trusted": 0, "recommended": 0},
+        )
+        item["total"] += count
+        if trust_status in {"verified", "company_recommended"}:
+            item["trusted"] += count
+        if trust_status == "company_recommended":
+            item["recommended"] += count
+
+    total = sum(trust_rows.values())
+    trusted = trust_rows.get("verified", 0) + trust_rows.get(
+        "company_recommended", 0
+    )
+    reviewed = trusted + trust_rows.get("rejected", 0)
+    preference_count = db.query(models.PreferenceEvent).count()
+    target_trusted = 30
+    target_recommended = 12
+    recommended = trust_rows.get("company_recommended", 0)
+    maturity = min(
+        100,
+        round(
+            50 * min(trusted / target_trusted, 1)
+            + 30 * min(recommended / target_recommended, 1)
+            + 20 * min(preference_count / 50, 1)
+        ),
+    )
+    return {
+        "total_cases": total,
+        "reviewed_cases": reviewed,
+        "unreviewed_cases": trust_rows.get("ai_unverified", 0),
+        "verified_cases": trust_rows.get("verified", 0),
+        "recommended_cases": recommended,
+        "rejected_cases": trust_rows.get("rejected", 0),
+        "preference_events": preference_count,
+        "maturity_score": maturity,
+        "targets": {
+            "trusted_cases": target_trusted,
+            "recommended_cases": target_recommended,
+            "preference_events": 50,
+        },
+        "category_coverage": category_coverage,
+    }
 
 
 @app.patch("/api/cases/{case_id}/project", response_model=CaseOut)

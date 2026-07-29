@@ -209,8 +209,14 @@ def search_cases(
     tag: str | None = None,
     asset_category: str | None = None,
     asset_subcategory: str | None = None,
+    project_id: int | None = None,
+    trust_status: str | None = None,
 ) -> list[models.Case]:
     query = db.query(models.Case)
+    if project_id is not None:
+        query = query.filter(models.Case.project_id == project_id)
+    if trust_status:
+        query = query.filter(models.Case.trust_status == trust_status)
     if asset_category:
         query = query.filter(models.Case.asset_category == asset_category)
     if asset_subcategory:

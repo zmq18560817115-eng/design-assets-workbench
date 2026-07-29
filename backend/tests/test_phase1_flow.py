@@ -177,6 +177,38 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(reanalyzed.json()["analysis"]["version"], 3)
         self.assertEqual(reanalyzed.json()["trust_status"], "ai_unverified")
 
+        filtered = self.client.get(
+            "/api/cases",
+            params={
+                "project_id": project_id,
+                "trust_status": "ai_unverified",
+            },
+        )
+        self.assertEqual(filtered.status_code, 200, filtered.text)
+        self.assertEqual([item["id"] for item in filtered.json()], [case["id"]])
+
+        overview = self.client.get("/api/training/overview")
+        self.assertEqual(overview.status_code, 200, overview.text)
+        self.assertGreaterEqual(overview.json()["unreviewed_cases"], 1)
+        self.assertIn("layout", overview.json()["category_coverage"])
+
+        batch_review = self.client.post(
+            "/api/training/batch-review",
+            json={
+                "case_ids": [case["id"]],
+                "action": "confirm",
+                "reviewer": "测试设计总监",
+                "review_notes": "批量确认进入可信样本",
+                "business_line": "母婴",
+            },
+        )
+        self.assertEqual(batch_review.status_code, 200, batch_review.text)
+        self.assertEqual(batch_review.json()["updated_count"], 1)
+        self.assertEqual(
+            self.client.get(f"/api/cases/{case['id']}").json()["trust_status"],
+            "verified",
+        )
+
         text_search = self.client.post(
             "/api/search",
             data={"query_text": "吸奶器", "product": "吸奶器"},

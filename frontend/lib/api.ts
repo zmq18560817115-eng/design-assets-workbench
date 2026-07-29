@@ -155,12 +155,21 @@ export const api = {
         concurrency: number;
       }>(r)
     ),
-  cases: (q = "", tag = "", assetCategory = "", assetSubcategory = "") => {
+  cases: (
+    q = "",
+    tag = "",
+    assetCategory = "",
+    assetSubcategory = "",
+    projectId?: number,
+    trustStatus = ""
+  ) => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (tag) p.set("tag", tag);
     if (assetCategory) p.set("asset_category", assetCategory);
     if (assetSubcategory) p.set("asset_subcategory", assetSubcategory);
+    if (projectId) p.set("project_id", String(projectId));
+    if (trustStatus) p.set("trust_status", trustStatus);
     return fetch(`/api/cases?${p.toString()}`, { cache: "no-store" }).then((r) =>
       j<CaseOut[]>(r)
     );
@@ -201,6 +210,36 @@ export const api = {
   casePreferences: (id: number | string) =>
     fetch(`/api/cases/${id}/preferences`, { cache: "no-store" }).then((r) =>
       j<Record<string, number>>(r)
+    ),
+  trainingOverview: () =>
+    fetch("/api/training/overview", { cache: "no-store" }).then((r) =>
+      j<TrainingOverview>(r)
+    ),
+  batchReview: (
+    caseIds: number[],
+    action: "confirm" | "recommend" | "reject",
+    reviewer: string,
+    reviewNotes = "",
+    businessLine = ""
+  ) =>
+    fetch("/api/training/batch-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        case_ids: caseIds,
+        action,
+        reviewer,
+        review_notes: reviewNotes,
+        business_line: businessLine,
+      }),
+    }).then((r) =>
+      j<{
+        action: string;
+        updated: number[];
+        updated_count: number;
+        missing: number[];
+        failed: { case_id: number; detail: string }[];
+      }>(r)
     ),
   reanalyzeCase: (id: number | string) =>
     fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
@@ -292,6 +331,26 @@ export type PreferenceEventType =
   | "favorite"
   | "selected"
   | "published";
+
+export interface TrainingOverview {
+  total_cases: number;
+  reviewed_cases: number;
+  unreviewed_cases: number;
+  verified_cases: number;
+  recommended_cases: number;
+  rejected_cases: number;
+  preference_events: number;
+  maturity_score: number;
+  targets: {
+    trusted_cases: number;
+    recommended_cases: number;
+    preference_events: number;
+  };
+  category_coverage: Record<
+    string,
+    { total: number; trusted: number; recommended: number }
+  >;
+}
 
 export interface SearchInput {
   query_text?: string;
