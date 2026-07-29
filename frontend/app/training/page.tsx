@@ -471,6 +471,12 @@ export default function TrainingPage() {
           >
             进入连续分类审核台
           </Link>
+          <Link
+            href="/training/analysis-review"
+            className="ml-2 mt-3 inline-flex rounded-xl border border-line px-4 py-2 text-sm"
+          >
+            进入模型拆解审核台
+          </Link>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           {discovery.map((line) => {
