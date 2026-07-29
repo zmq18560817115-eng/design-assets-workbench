@@ -56,6 +56,22 @@ npm run dev
 
 前端地址：`http://127.0.0.1:3000`
 
+## 业务排版意向系统 V1.0
+
+系统正在保留现有上传、AI 拆解、搜索和案例页面的前提下，增加版本化的标准排版知识层。
+
+阶段 A1 已建立 `layout_blueprints`：
+
+- 每个案例可保存多版排版骨架，人工校正时新增版本，不覆盖历史。
+- 模块坐标统一使用 0～1 的归一化比例。
+- 模块必须完整位于画布内，`x + width` 与 `y + height` 均不得超过 1。
+- `module_count` 必须与 `modules_json` 数量一致，模块 ID 在同一骨架内必须唯一。
+- AI 结果保存 `model_name` 和 `prompt_version`。
+- 审核状态仅允许 `ai_unverified`、`human_edited`、`verified`。
+- 新表由 `Base.metadata.create_all()` 创建，旧数据库不需要删除或重新初始化。
+
+详细数据契约见 [排版意向系统接口与数据规范](docs/排版意向系统接口与数据规范.md)。
+
 ## Docker
 
 ```bash

@@ -11,10 +11,12 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Float,
     Integer,
     String,
     Table,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -83,6 +85,12 @@ class Case(Base):
         "Analysis", back_populates="case", uselist=False, cascade="all, delete-orphan"
     )
     tags = relationship("Tag", secondary=case_tags, back_populates="cases")
+    layout_blueprints = relationship(
+        "LayoutBlueprint",
+        back_populates="case",
+        cascade="all, delete-orphan",
+        order_by="LayoutBlueprint.version",
+    )
 
 
 class Analysis(Base):
@@ -129,6 +137,52 @@ class AnalysisVersion(Base):
     prompt_version = Column(String, default="visual-analysis-v1")
     editor = Column(String, default="")
     created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class LayoutBlueprint(Base):
+    """Versioned, normalized low-fidelity layout skeleton for one case."""
+
+    __tablename__ = "layout_blueprints"
+    __table_args__ = (
+        UniqueConstraint(
+            "case_id",
+            "version",
+            name="uq_layout_blueprints_case_version",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(
+        Integer,
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    canvas_ratio = Column(String, default="1:1")
+    orientation = Column(String, default="square", index=True)
+    grid_columns = Column(Integer, default=1)
+    grid_rows = Column(Integer, default=1)
+    margins = Column(Text, default="{}")
+    alignment = Column(String, default="")
+    reading_flow = Column(String, default="")
+    focal_region = Column(Text, default="{}")
+    information_density = Column(String, default="")
+    text_image_ratio = Column(Float, default=0.5)
+    module_count = Column(Integer, default=0)
+    modules_json = Column(Text, default="[]")
+    version = Column(Integer, default=1, nullable=False, index=True)
+    review_status = Column(String, default="ai_unverified", index=True)
+    model_name = Column(String, default="")
+    prompt_version = Column(String, default="layout-blueprint-v1")
+    editor = Column(String, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=dt.datetime.utcnow,
+        onupdate=dt.datetime.utcnow,
+    )
+
+    case = relationship("Case", back_populates="layout_blueprints")
 
 
 class Project(Base):

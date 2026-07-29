@@ -22,8 +22,12 @@ os.environ["UPLOAD_DIR"] = str(_root / "uploads")
 os.environ["VISION_PROVIDER"] = "mock"
 
 from fastapi.testclient import TestClient  # noqa: E402
+from pydantic import ValidationError  # noqa: E402
 
+from app import crud  # noqa: E402
+from app.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
+from app.schemas import LayoutBlueprintInput  # noqa: E402
 
 
 def sample_image(color: str, accent: str, *, vertical: bool = True) -> bytes:
@@ -77,6 +81,90 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(case["image"]["source_type"], "company_published")
         self.assertIn("layout", case["analysis"])
         self.assertEqual(case["analysis"]["version"], 1)
+
+        blueprint_payload = LayoutBlueprintInput(
+            canvas_ratio="2:3",
+            orientation="portrait",
+            grid_columns=6,
+            grid_rows=12,
+            margins={"top": 0.04, "right": 0.06, "bottom": 0.05, "left": 0.06},
+            alignment="center",
+            reading_flow="top-to-bottom",
+            focal_region={"x": 0.18, "y": 0.22, "width": 0.64, "height": 0.46},
+            information_density="medium",
+            text_image_ratio=0.35,
+            modules_json=[
+                {
+                    "id": "module-1",
+                    "type": "title",
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.84,
+                    "height": 0.12,
+                    "priority": 1,
+                    "alignment": "center",
+                    "description": "主标题区域",
+                },
+                {
+                    "id": "module-2",
+                    "type": "product_image",
+                    "x": 0.18,
+                    "y": 0.22,
+                    "width": 0.64,
+                    "height": 0.46,
+                    "priority": 2,
+                    "alignment": "center",
+                    "description": "产品主视觉",
+                },
+            ],
+            model_name="mock-layout-model",
+            prompt_version="layout-blueprint-v1",
+        )
+        with SessionLocal() as db:
+            blueprint = crud.create_layout_blueprint(
+                db,
+                case["id"],
+                blueprint_payload,
+            )
+            serialized = crud.serialize_layout_blueprint(blueprint)
+            self.assertEqual(serialized["version"], 1)
+            self.assertEqual(serialized["module_count"], 2)
+            self.assertEqual(serialized["modules_json"][1]["x"], 0.18)
+            revised_payload = blueprint_payload.model_copy(
+                update={
+                    "review_status": "human_edited",
+                    "editor": "测试设计师",
+                }
+            )
+            revised = crud.revise_layout_blueprint(
+                db,
+                blueprint.id,
+                revised_payload,
+            )
+            self.assertEqual(revised.version, 2)
+            self.assertEqual(revised.review_status, "human_edited")
+            self.assertEqual(len(crud.list_layout_blueprints(db, case["id"])), 2)
+            revised_again = crud.revise_layout_blueprint(
+                db,
+                blueprint.id,
+                revised_payload,
+            )
+            self.assertEqual(revised_again.version, 3)
+            self.assertEqual(len(crud.list_layout_blueprints(db, case["id"])), 3)
+        with self.assertRaises(ValidationError):
+            LayoutBlueprintInput(
+                orientation="portrait",
+                modules_json=[
+                    {
+                        "id": "outside",
+                        "type": "title",
+                        "x": 0.8,
+                        "y": 0.1,
+                        "width": 0.3,
+                        "height": 0.2,
+                    }
+                ],
+            )
 
         second = sample_image("#EAF3FF", "#596DFF", vertical=False)
         second_response = self.client.post(

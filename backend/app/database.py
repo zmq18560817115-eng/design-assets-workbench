@@ -153,3 +153,44 @@ def _auto_migrate():
                             "TEXT DEFAULT '[]'"
                         )
                     )
+    if "layout_blueprints" in tables:
+        blueprint_cols = {
+            c["name"] for c in inspector.get_columns("layout_blueprints")
+        }
+        blueprint_fields = {
+            "canvas_ratio": ("TEXT", "1:1"),
+            "orientation": ("TEXT", "square"),
+            "grid_columns": ("INTEGER", "1"),
+            "grid_rows": ("INTEGER", "1"),
+            "margins": ("TEXT", "{}"),
+            "alignment": ("TEXT", ""),
+            "reading_flow": ("TEXT", ""),
+            "focal_region": ("TEXT", "{}"),
+            "information_density": ("TEXT", ""),
+            "text_image_ratio": ("REAL", "0.5"),
+            "module_count": ("INTEGER", "0"),
+            "modules_json": ("TEXT", "[]"),
+            "version": ("INTEGER", "1"),
+            "review_status": ("TEXT", "ai_unverified"),
+            "model_name": ("TEXT", ""),
+            "prompt_version": ("TEXT", "layout-blueprint-v1"),
+            "editor": ("TEXT", ""),
+        }
+        for col, (col_type, default) in blueprint_fields.items():
+            if col not in blueprint_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE layout_blueprints ADD COLUMN {col} "
+                            f"{col_type} DEFAULT '{default}'"
+                        )
+                    )
+        for col in ("created_at", "updated_at"):
+            if col not in blueprint_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE layout_blueprints "
+                            f"ADD COLUMN {col} DATETIME"
+                        )
+                    )

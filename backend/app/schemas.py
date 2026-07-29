@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ---------- AI 输出结构 ----------
@@ -156,6 +156,84 @@ class CaseOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class NormalizedRegion(BaseModel):
+    """A rectangle in normalized 0..1 canvas coordinates."""
+
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+    width: float = Field(gt=0, le=1)
+    height: float = Field(gt=0, le=1)
+
+    @model_validator(mode="after")
+    def stays_inside_canvas(self):
+        if self.x + self.width > 1 + 1e-9:
+            raise ValueError("x + width must not exceed 1")
+        if self.y + self.height > 1 + 1e-9:
+            raise ValueError("y + height must not exceed 1")
+        return self
+
+
+class LayoutMargins(BaseModel):
+    top: float = Field(default=0, ge=0, le=1)
+    right: float = Field(default=0, ge=0, le=1)
+    bottom: float = Field(default=0, ge=0, le=1)
+    left: float = Field(default=0, ge=0, le=1)
+
+
+class LayoutModule(NormalizedRegion):
+    id: str = Field(min_length=1, max_length=80)
+    type: str = Field(min_length=1, max_length=80)
+    priority: int = Field(default=1, ge=1)
+    alignment: str = ""
+    description: str = ""
+
+
+class LayoutBlueprintInput(BaseModel):
+    canvas_ratio: str = Field(default="1:1", min_length=3, max_length=24)
+    orientation: Literal["portrait", "landscape", "square"]
+    grid_columns: int = Field(default=1, ge=1, le=24)
+    grid_rows: int = Field(default=1, ge=1, le=48)
+    margins: LayoutMargins = Field(default_factory=LayoutMargins)
+    alignment: str = ""
+    reading_flow: str = ""
+    focal_region: NormalizedRegion | None = None
+    information_density: str = ""
+    text_image_ratio: float = Field(default=0.5, ge=0, le=1)
+    module_count: int | None = Field(default=None, ge=0)
+    modules_json: list[LayoutModule] = Field(default_factory=list)
+    review_status: Literal["ai_unverified", "human_edited", "verified"] = (
+        "ai_unverified"
+    )
+    model_name: str = ""
+    prompt_version: str = "layout-blueprint-v1"
+    editor: str = ""
+
+    @model_validator(mode="after")
+    def module_count_matches(self):
+        actual = len(self.modules_json)
+        if self.module_count is None:
+            self.module_count = actual
+        elif self.module_count != actual:
+            raise ValueError("module_count must equal len(modules_json)")
+        module_ids = [module.id for module in self.modules_json]
+        if len(module_ids) != len(set(module_ids)):
+            raise ValueError("layout module ids must be unique")
+        if self.review_status == "ai_unverified" and not self.model_name.strip():
+            raise ValueError("AI layout blueprints must record model_name")
+        if self.review_status in {"human_edited", "verified"} and not self.editor.strip():
+            raise ValueError("human reviewed layout blueprints must record editor")
+        return self
+
+
+class LayoutBlueprintOut(LayoutBlueprintInput):
+    id: int
+    case_id: int
+    module_count: int
+    version: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
 
 
 class CaseReviewInput(BaseModel):

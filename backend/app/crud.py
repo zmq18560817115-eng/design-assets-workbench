@@ -7,7 +7,7 @@ import datetime as dt
 from sqlalchemy.orm import Session
 
 from . import models
-from .schemas import AnalysisResult, CaseReviewInput
+from .schemas import AnalysisResult, CaseReviewInput, LayoutBlueprintInput
 
 
 def get_or_create_tag(db: Session, name: str, category: str = "style") -> models.Tag:
@@ -169,6 +169,116 @@ def serialize_case(case: models.Case) -> dict:
         "tags": case.tags,
         "analysis": analysis_to_dict(case.analysis),
     }
+
+
+def serialize_layout_blueprint(blueprint: models.LayoutBlueprint) -> dict:
+    return {
+        "id": blueprint.id,
+        "case_id": blueprint.case_id,
+        "canvas_ratio": blueprint.canvas_ratio,
+        "orientation": blueprint.orientation,
+        "grid_columns": blueprint.grid_columns,
+        "grid_rows": blueprint.grid_rows,
+        "margins": json.loads(blueprint.margins or "{}"),
+        "alignment": blueprint.alignment or "",
+        "reading_flow": blueprint.reading_flow or "",
+        "focal_region": (
+            json.loads(blueprint.focal_region)
+            if (blueprint.focal_region or "").strip()
+            else None
+        ),
+        "information_density": blueprint.information_density or "",
+        "text_image_ratio": blueprint.text_image_ratio,
+        "module_count": blueprint.module_count,
+        "modules_json": json.loads(blueprint.modules_json or "[]"),
+        "version": blueprint.version,
+        "review_status": blueprint.review_status,
+        "model_name": blueprint.model_name or "",
+        "prompt_version": blueprint.prompt_version or "",
+        "editor": blueprint.editor or "",
+        "created_at": blueprint.created_at,
+        "updated_at": blueprint.updated_at,
+    }
+
+
+def get_layout_blueprint(
+    db: Session,
+    blueprint_id: int,
+) -> models.LayoutBlueprint | None:
+    return db.get(models.LayoutBlueprint, blueprint_id)
+
+
+def list_layout_blueprints(
+    db: Session,
+    case_id: int,
+) -> list[models.LayoutBlueprint]:
+    return (
+        db.query(models.LayoutBlueprint)
+        .filter(models.LayoutBlueprint.case_id == case_id)
+        .order_by(models.LayoutBlueprint.version.desc())
+        .all()
+    )
+
+
+def get_latest_layout_blueprint(
+    db: Session,
+    case_id: int,
+) -> models.LayoutBlueprint | None:
+    return (
+        db.query(models.LayoutBlueprint)
+        .filter(models.LayoutBlueprint.case_id == case_id)
+        .order_by(models.LayoutBlueprint.version.desc())
+        .first()
+    )
+
+
+def create_layout_blueprint(
+    db: Session,
+    case_id: int,
+    payload: LayoutBlueprintInput,
+    *,
+    version: int | None = None,
+) -> models.LayoutBlueprint:
+    if not db.get(models.Case, case_id):
+        raise ValueError(f"case {case_id} does not exist")
+    if version is None:
+        latest = get_latest_layout_blueprint(db, case_id)
+        version = (latest.version + 1) if latest else 1
+    values = payload.model_dump()
+    modules = values.pop("modules_json")
+    margins = values.pop("margins")
+    focal_region = values.pop("focal_region")
+    blueprint = models.LayoutBlueprint(
+        case_id=case_id,
+        version=version,
+        modules_json=json.dumps(modules, ensure_ascii=False),
+        margins=json.dumps(margins, ensure_ascii=False),
+        focal_region=(
+            json.dumps(focal_region, ensure_ascii=False)
+            if focal_region is not None
+            else ""
+        ),
+        **values,
+    )
+    db.add(blueprint)
+    db.commit()
+    db.refresh(blueprint)
+    return blueprint
+
+
+def revise_layout_blueprint(
+    db: Session,
+    blueprint_id: int,
+    payload: LayoutBlueprintInput,
+) -> models.LayoutBlueprint:
+    current = get_layout_blueprint(db, blueprint_id)
+    if not current:
+        raise ValueError(f"layout blueprint {blueprint_id} does not exist")
+    return create_layout_blueprint(
+        db,
+        current.case_id,
+        payload,
+    )
 
 
 def load_image_hashes(
