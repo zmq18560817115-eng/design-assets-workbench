@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import json
+import datetime as dt
 
 from sqlalchemy.orm import Session
 
 from . import models
-from .schemas import AnalysisResult
+from .schemas import AnalysisResult, CaseReviewInput
 
 
 def get_or_create_tag(db: Session, name: str, category: str = "style") -> models.Tag:
@@ -152,6 +153,14 @@ def serialize_case(case: models.Case) -> dict:
         "industry": case.industry,
         "scene": case.scene,
         "summary": case.summary,
+        "business_line": getattr(case, "business_line", "") or "",
+        "channel": getattr(case, "channel", "") or "",
+        "campaign_stage": getattr(case, "campaign_stage", "") or "",
+        "business_goal": getattr(case, "business_goal", "") or "",
+        "review_decision": getattr(case, "review_decision", "") or "",
+        "review_notes": getattr(case, "review_notes", "") or "",
+        "reviewer": getattr(case, "reviewer", "") or "",
+        "reviewed_at": getattr(case, "reviewed_at", None),
         "trust_status": getattr(case, "trust_status", "") or "ai_unverified",
         "status": getattr(case, "status", "") or "public",
         "created_at": case.created_at,
@@ -219,3 +228,92 @@ def search_cases(
             or any(ql in t.name.lower() for t in c.tags)
         ]
     return cases
+
+
+def review_case(
+    db: Session, case: models.Case, review: CaseReviewInput
+) -> models.Case:
+    """Apply a human correction and preserve a full version snapshot."""
+    if not case.analysis:
+        raise ValueError("案例没有可校验的分析结果")
+
+    analysis = case.analysis
+    layout = json.loads(analysis.layout or "{}")
+    style = json.loads(analysis.style or "{}")
+    color = json.loads(analysis.color or "{}")
+    design_rules = json.loads(analysis.design_rules or "{}")
+
+    if review.name is not None:
+        case.name = review.name.strip() or case.name
+    if review.summary is not None:
+        case.summary = review.summary.strip()
+    if review.layout_type is not None:
+        layout["layout_type"] = review.layout_type.strip()
+    if review.alignment is not None:
+        layout["alignment"] = review.alignment.strip()
+    if review.hierarchy is not None:
+        layout["hierarchy"] = [item.strip() for item in review.hierarchy if item.strip()]
+    if review.style_tags is not None:
+        style["style_tags"] = [item.strip() for item in review.style_tags if item.strip()]
+    if review.mood_keywords is not None:
+        style["mood_keywords"] = [
+            item.strip() for item in review.mood_keywords if item.strip()
+        ]
+    if review.color_description is not None:
+        color["description"] = review.color_description.strip()
+    if review.why_good is not None:
+        design_rules["why_good"] = [
+            item.strip() for item in review.why_good if item.strip()
+        ]
+    if review.reusable_methods is not None:
+        design_rules["reusable_methods"] = [
+            item.strip() for item in review.reusable_methods if item.strip()
+        ]
+    if review.prompt is not None:
+        analysis.prompt = review.prompt.strip()
+
+    analysis.layout = json.dumps(layout, ensure_ascii=False)
+    analysis.style = json.dumps(style, ensure_ascii=False)
+    analysis.color = json.dumps(color, ensure_ascii=False)
+    analysis.design_rules = json.dumps(design_rules, ensure_ascii=False)
+    analysis.version = (analysis.version or 1) + 1
+    analysis.review_status = review.trust_status
+
+    case.trust_status = review.trust_status
+    case.review_decision = review.review_decision
+    case.review_notes = review.review_notes.strip()
+    case.reviewer = review.reviewer.strip()
+    case.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    case.business_line = review.business_line.strip()
+    case.channel = review.channel.strip()
+    case.campaign_stage = review.campaign_stage.strip()
+    case.business_goal = review.business_goal.strip()
+
+    payload = {
+        "case": {
+            "name": case.name,
+            "summary": case.summary,
+            "business_line": case.business_line,
+            "channel": case.channel,
+            "campaign_stage": case.campaign_stage,
+            "business_goal": case.business_goal,
+            "review_decision": case.review_decision,
+            "review_notes": case.review_notes,
+            "trust_status": case.trust_status,
+        },
+        "analysis": analysis_to_dict(analysis),
+    }
+    db.add(
+        models.AnalysisVersion(
+            case_id=case.id,
+            version=analysis.version,
+            payload=json.dumps(payload, ensure_ascii=False),
+            source="manual",
+            model_name=analysis.model_name or analysis.analyzed_by,
+            prompt_version=analysis.prompt_version,
+            editor=case.reviewer,
+        )
+    )
+    db.commit()
+    db.refresh(case)
+    return case

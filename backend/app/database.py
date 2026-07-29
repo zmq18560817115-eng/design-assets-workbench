@@ -103,6 +103,13 @@ def _auto_migrate():
             "product_category": "",
             "asset_category": "layout",
             "asset_subcategory": "",
+            "business_line": "",
+            "channel": "",
+            "campaign_stage": "",
+            "business_goal": "",
+            "review_decision": "",
+            "review_notes": "",
+            "reviewer": "",
             "trust_status": "ai_unverified",
             "status": "public",
         }
@@ -112,3 +119,6 @@ def _auto_migrate():
                     conn.execute(
                         text(f"ALTER TABLE cases ADD COLUMN {col} TEXT DEFAULT '{default}'")
                     )
+        if "reviewed_at" not in case_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE cases ADD COLUMN reviewed_at DATETIME"))

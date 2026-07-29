@@ -100,6 +100,36 @@ class PhaseOneFlowTest(unittest.TestCase):
             all(item["asset_category"] == "layout" for item in layout_library.json())
         )
 
+        review = self.client.patch(
+            f"/api/cases/{case['id']}/review",
+            json={
+                "reviewer": "测试设计师",
+                "trust_status": "company_recommended",
+                "review_decision": "adopt",
+                "review_notes": "符合公司母婴产品信息层级规范",
+                "business_line": "母婴",
+                "channel": "小红书",
+                "campaign_stage": "新品种草",
+                "business_goal": "建立产品差异认知",
+                "layout_type": "人工校正双栏版式",
+                "style_tags": ["公司简约风", "温暖可信"],
+                "why_good": ["信息层级清晰"],
+                "reusable_methods": ["保持标题与产品卖点的三级层级"],
+            },
+        )
+        self.assertEqual(review.status_code, 200, review.text)
+        reviewed = review.json()
+        self.assertEqual(reviewed["trust_status"], "company_recommended")
+        self.assertEqual(reviewed["business_line"], "母婴")
+        self.assertEqual(reviewed["analysis"]["version"], 2)
+        self.assertEqual(
+            reviewed["analysis"]["layout"]["layout_type"], "人工校正双栏版式"
+        )
+        versions = self.client.get(f"/api/cases/{case['id']}/versions")
+        self.assertEqual(versions.status_code, 200)
+        self.assertEqual(len(versions.json()), 2)
+        self.assertEqual(versions.json()[0]["source"], "manual")
+
         text_search = self.client.post(
             "/api/search",
             data={"query_text": "吸奶器", "product": "吸奶器"},

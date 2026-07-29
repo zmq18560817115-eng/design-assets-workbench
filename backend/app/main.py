@@ -16,7 +16,13 @@ from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
 from .database import close_db, get_db, init_db
-from .schemas import AnalysisResult, CaseOut, SearchHit, VisualDirection
+from .schemas import (
+    AnalysisResult,
+    CaseOut,
+    CaseReviewInput,
+    SearchHit,
+    VisualDirection,
+)
 
 app = FastAPI(
     title="设计灵感资产库 API",
@@ -203,6 +209,48 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     return crud.serialize_case(case)
+
+
+@app.patch("/api/cases/{case_id}/review", response_model=CaseOut)
+def review_case(
+    case_id: int,
+    review: CaseReviewInput,
+    db: Session = Depends(get_db),
+):
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    if not review.reviewer.strip():
+        raise HTTPException(status_code=400, detail="校验人不能为空")
+    try:
+        case = crud.review_case(db, case, review)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return crud.serialize_case(case)
+
+
+@app.get("/api/cases/{case_id}/versions")
+def case_versions(case_id: int, db: Session = Depends(get_db)):
+    exists = db.query(models.Case.id).filter(models.Case.id == case_id).first()
+    if not exists:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    versions = (
+        db.query(models.AnalysisVersion)
+        .filter(models.AnalysisVersion.case_id == case_id)
+        .order_by(models.AnalysisVersion.version.desc())
+        .all()
+    )
+    return [
+        {
+            "version": item.version,
+            "source": item.source,
+            "model_name": item.model_name,
+            "prompt_version": item.prompt_version,
+            "editor": item.editor,
+            "created_at": item.created_at,
+        }
+        for item in versions
+    ]
 
 
 @app.get("/api/cases/{case_id}/overlay")

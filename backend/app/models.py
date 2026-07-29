@@ -63,6 +63,14 @@ class Case(Base):
     industry = Column(String, default="")        # 行业
     scene = Column(String, default="")           # 使用场景
     summary = Column(Text, default="")           # 一句话总结
+    business_line = Column(String, default="", index=True)
+    channel = Column(String, default="", index=True)
+    campaign_stage = Column(String, default="", index=True)
+    business_goal = Column(Text, default="")
+    review_decision = Column(String, default="", index=True)
+    review_notes = Column(Text, default="")
+    reviewer = Column(String, default="")
+    reviewed_at = Column(DateTime, nullable=True)
     trust_status = Column(String, default="ai_unverified", index=True)
     status = Column(String, default="public", index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)

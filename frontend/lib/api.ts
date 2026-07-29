@@ -75,6 +75,14 @@ export interface CaseOut {
   industry: string;
   scene: string;
   summary: string;
+  business_line: string;
+  channel: string;
+  campaign_stage: string;
+  business_goal: string;
+  review_decision: string;
+  review_notes: string;
+  reviewer: string;
+  reviewed_at: string | null;
   trust_status: string;
   status: string;
   created_at: string;
@@ -158,6 +166,16 @@ export const api = {
   },
   case: (id: number | string) =>
     fetch(`/api/cases/${id}`, { cache: "no-store" }).then((r) => j<CaseOut>(r)),
+  reviewCase: (id: number | string, review: CaseReviewInput) =>
+    fetch(`/api/cases/${id}/review`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(review),
+    }).then((r) => j<CaseOut>(r)),
+  caseVersions: (id: number | string) =>
+    fetch(`/api/cases/${id}/versions`, { cache: "no-store" }).then((r) =>
+      j<CaseVersion[]>(r)
+    ),
   tags: () =>
     fetch(`/api/tags`, { cache: "no-store" }).then((r) =>
       j<{ id: number; name: string; category: string; count: number }[]>(r)
@@ -191,6 +209,37 @@ export const api = {
     );
   },
 };
+
+export interface CaseReviewInput {
+  reviewer: string;
+  trust_status: "ai_unverified" | "verified" | "company_recommended" | "rejected";
+  review_decision: "" | "adopt" | "adapt" | "reject";
+  review_notes: string;
+  business_line: string;
+  channel: string;
+  campaign_stage: string;
+  business_goal: string;
+  name?: string;
+  summary?: string;
+  layout_type?: string;
+  alignment?: string;
+  hierarchy?: string[];
+  style_tags?: string[];
+  mood_keywords?: string[];
+  color_description?: string;
+  why_good?: string[];
+  reusable_methods?: string[];
+  prompt?: string;
+}
+
+export interface CaseVersion {
+  version: number;
+  source: string;
+  model_name: string;
+  prompt_version: string;
+  editor: string;
+  created_at: string;
+}
 
 export interface SearchInput {
   query_text?: string;

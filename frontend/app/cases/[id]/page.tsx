@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api, CaseOut } from "@/lib/api";
 import { Card, Swatches, Tag } from "@/components/ui";
+import { ReviewPanel } from "@/components/review-panel";
 
 export default function CaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -105,6 +106,7 @@ export default function CaseDetail() {
 
         {a && (
           <>
+            <ReviewPanel item={c} onSaved={setC} />
             {/* 拆解重心：排版优先 */}
             <Card className="border-indigo-500/40">
               <div className="mb-2 flex items-center gap-2">

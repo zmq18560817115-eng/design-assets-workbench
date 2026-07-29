@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -138,6 +138,14 @@ class CaseOut(BaseModel):
     industry: str
     scene: str
     summary: str
+    business_line: str = ""
+    channel: str = ""
+    campaign_stage: str = ""
+    business_goal: str = ""
+    review_decision: str = ""
+    review_notes: str = ""
+    reviewer: str = ""
+    reviewed_at: dt.datetime | None = None
     trust_status: str = "ai_unverified"
     status: str = "public"
     created_at: dt.datetime
@@ -147,6 +155,30 @@ class CaseOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CaseReviewInput(BaseModel):
+    reviewer: str
+    trust_status: Literal[
+        "ai_unverified", "verified", "company_recommended", "rejected"
+    ] = "verified"
+    review_decision: Literal["", "adopt", "adapt", "reject"] = ""
+    review_notes: str = ""
+    business_line: str = ""
+    channel: str = ""
+    campaign_stage: str = ""
+    business_goal: str = ""
+    name: str | None = None
+    summary: str | None = None
+    layout_type: str | None = None
+    alignment: str | None = None
+    hierarchy: list[str] | None = None
+    style_tags: list[str] | None = None
+    mood_keywords: list[str] | None = None
+    color_description: str | None = None
+    why_good: list[str] | None = None
+    reusable_methods: list[str] | None = None
+    prompt: str | None = None
 
 
 class RequirementInput(BaseModel):
