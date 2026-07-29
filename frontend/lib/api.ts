@@ -282,8 +282,13 @@ export const api = {
       j<SearchHit[]>(r)
     );
   },
-  concept: () =>
-    fetch(`/api/concept`, { cache: "no-store" }).then((r) => j<ConceptData>(r)),
+  concept: (businessLine = "") => {
+    const params = new URLSearchParams();
+    if (businessLine) params.set("business_line", businessLine);
+    return fetch(`/api/concept?${params.toString()}`, { cache: "no-store" }).then(
+      (r) => j<ConceptData>(r)
+    );
+  },
   methodology: () =>
     fetch(`/api/concept/methodology`, { method: "POST" }).then((r) =>
       j<{ enabled: boolean; methodology: string; model?: string; note?: string }>(r)
@@ -410,9 +415,18 @@ export interface DistItem {
 }
 
 export interface ConceptData {
+  scope: string;
   total: number;
+  contributing_cases: number;
+  weighted_total: number;
   enough: boolean;
   threshold: number;
+  trusted_count: number;
+  company_published_count: number;
+  model_analyzed_count: number;
+  evidence_count: number;
+  trust_counts: Record<string, number>;
+  category_weights: Record<string, number>;
   distributions: Record<string, DistItem[]>;
   visual_dna: {
     colors: { hex: string; count: number }[];
@@ -429,6 +443,11 @@ export interface ConceptData {
     top_colors: string[];
     principle: string;
   }[];
+  weight_rules: {
+    trust: Record<string, number>;
+    preference: Record<string, number>;
+    gold_project_multiplier: number;
+  };
 }
 
 export interface RecommendResult {
