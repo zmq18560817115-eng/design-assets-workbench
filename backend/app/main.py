@@ -10,7 +10,16 @@ import mimetypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Response,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -20,7 +29,7 @@ from . import batch, concept, config, crud, imagehash, llm, models, overlay, vlm
 from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
-from .database import close_db, get_db, init_db
+from .database import SessionLocal, close_db, get_db, init_db
 from .schemas import (
     AnalysisResult,
     CaseOut,
@@ -506,6 +515,168 @@ def batch_suggest_categories(
         "suggested_count": len(suggestions),
         "failed": failed,
     }
+
+
+def _serialize_category_job(job: models.CategorySuggestionJob) -> dict:
+    try:
+        errors = json.loads(job.errors or "[]")
+    except Exception:
+        errors = []
+    return {
+        "id": job.id,
+        "status": job.status,
+        "total": job.total,
+        "completed": job.completed,
+        "succeeded": job.succeeded,
+        "failed": job.failed,
+        "errors": errors,
+        "created_at": job.created_at,
+        "started_at": job.started_at,
+        "finished_at": job.finished_at,
+    }
+
+
+def _run_category_suggestion_job(job_id: int, case_ids: list[int]) -> None:
+    """Run in FastAPI's background thread and persist progress after every item."""
+    db = SessionLocal()
+    now = lambda: dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    try:
+        job = db.get(models.CategorySuggestionJob, job_id)
+        if not job:
+            return
+        job.status = "running"
+        job.started_at = now()
+        db.commit()
+
+        cases = (
+            db.query(models.Case)
+            .filter(models.Case.id.in_(case_ids))
+            .order_by(models.Case.id)
+            .all()
+        )
+        tasks = [
+            (case.id, config.UPLOAD_DIR / Path(case.image.url).name)
+            for case in cases
+            if case.image
+        ]
+
+        def classify(task: tuple[int, Path]):
+            case_id, path = task
+            if not path.exists():
+                raise FileNotFoundError("原图不存在")
+            mime = mimetypes.guess_type(path.name)[0] or "image/png"
+            return case_id, vlm.suggest_asset_category(path.read_bytes(), mime)
+
+        errors = []
+        with ThreadPoolExecutor(max_workers=min(5, max(1, len(tasks)))) as pool:
+            jobs = {pool.submit(classify, task): task[0] for task in tasks}
+            for future in as_completed(jobs):
+                case_id = jobs[future]
+                try:
+                    _, result = future.result()
+                    (
+                        db.query(models.AssetCategorySuggestion)
+                        .filter(
+                            models.AssetCategorySuggestion.case_id == case_id,
+                            models.AssetCategorySuggestion.status == "pending",
+                        )
+                        .update({"status": "superseded"})
+                    )
+                    db.add(
+                        models.AssetCategorySuggestion(
+                            case_id=case_id,
+                            suggested_category=result["category"],
+                            confidence=result["confidence"],
+                            reason=result["reason"],
+                            signals=json.dumps(
+                                result["signals"],
+                                ensure_ascii=False,
+                            ),
+                            model_name=config.VISION_MODEL,
+                            status="pending",
+                        )
+                    )
+                    job.succeeded += 1
+                except Exception as exc:
+                    job.failed += 1
+                    errors.append({"case_id": case_id, "detail": str(exc)})
+                job.completed += 1
+                job.errors = json.dumps(errors, ensure_ascii=False)
+                db.commit()
+
+        missing = len(case_ids) - len(tasks)
+        if missing > 0:
+            job.failed += missing
+            job.completed += missing
+            errors.append(
+                {
+                    "case_id": None,
+                    "detail": f"{missing} 个案例缺少可分析原图",
+                }
+            )
+        job.errors = json.dumps(errors, ensure_ascii=False)
+        job.status = "completed" if job.failed == 0 else "completed_with_errors"
+        job.finished_at = now()
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        job = db.get(models.CategorySuggestionJob, job_id)
+        if job:
+            job.status = "failed"
+            job.errors = json.dumps(
+                [{"case_id": None, "detail": str(exc)}],
+                ensure_ascii=False,
+            )
+            job.finished_at = now()
+            db.commit()
+    finally:
+        db.close()
+
+
+@app.post("/api/training/category-suggestion-jobs")
+def create_category_suggestion_job(
+    payload: BatchCategorySuggestionInput,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    if not config.vlm_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="视觉模型未配置，不能生成素材分类建议",
+        )
+    case_ids = list(dict.fromkeys(payload.case_ids))
+    if not case_ids or len(case_ids) > 50:
+        raise HTTPException(status_code=400, detail="每次请选择 1～50 个案例")
+    found = {
+        row[0]
+        for row in db.query(models.Case.id)
+        .filter(models.Case.id.in_(case_ids))
+        .all()
+    }
+    missing = [case_id for case_id in case_ids if case_id not in found]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"案例不存在：{missing}")
+    job = models.CategorySuggestionJob(
+        case_ids=json.dumps(case_ids),
+        status="queued",
+        total=len(case_ids),
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    background_tasks.add_task(_run_category_suggestion_job, job.id, case_ids)
+    return _serialize_category_job(job)
+
+
+@app.get("/api/training/category-suggestion-jobs/{job_id}")
+def get_category_suggestion_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+):
+    job = db.get(models.CategorySuggestionJob, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="分类任务不存在")
+    return _serialize_category_job(job)
 
 
 @app.get("/api/cases/{case_id}/versions")

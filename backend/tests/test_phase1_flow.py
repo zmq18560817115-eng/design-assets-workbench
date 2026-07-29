@@ -408,6 +408,30 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(suggestions.status_code, 200, suggestions.text)
         self.assertEqual(suggestions.json()[0]["suggested_category"], "style")
 
+        with (
+            patch("app.main.config.vlm_enabled", return_value=True),
+            patch(
+                "app.main.vlm.suggest_asset_category",
+                return_value={
+                    "category": "style",
+                    "confidence": 93,
+                    "reason": "background classification",
+                    "signals": ["visual signal"],
+                },
+            ),
+        ):
+            job_response = self.client.post(
+                "/api/training/category-suggestion-jobs",
+                json={"case_ids": [case["id"]]},
+            )
+        self.assertEqual(job_response.status_code, 200, job_response.text)
+        job = self.client.get(
+            f"/api/training/category-suggestion-jobs/{job_response.json()['id']}"
+        )
+        self.assertEqual(job.status_code, 200, job.text)
+        self.assertEqual(job.json()["status"], "completed")
+        self.assertEqual(job.json()["succeeded"], 1)
+
         categorized = self.client.post(
             "/api/training/batch-categorize",
             json={

@@ -297,6 +297,16 @@ export const api = {
         failed: { case_id: number; detail: string }[];
       }>(r)
     ),
+  startCategorySuggestionJob: (caseIds: number[]) =>
+    fetch("/api/training/category-suggestion-jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ case_ids: caseIds }),
+    }).then((r) => j<CategorySuggestionJob>(r)),
+  categorySuggestionJob: (jobId: number) =>
+    fetch(`/api/training/category-suggestion-jobs/${jobId}`, {
+      cache: "no-store",
+    }).then((r) => j<CategorySuggestionJob>(r)),
   reanalyzeCase: (id: number | string) =>
     fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
       j<CaseOut>(r)
@@ -522,6 +532,24 @@ export interface CategorySuggestion {
   status: "pending" | "accepted" | "overridden" | "superseded";
   reviewer: string;
   created_at: string;
+}
+
+export interface CategorySuggestionJob {
+  id: number;
+  status:
+    | "queued"
+    | "running"
+    | "completed"
+    | "completed_with_errors"
+    | "failed";
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  errors: { case_id: number | null; detail: string }[];
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 export interface SearchInput {

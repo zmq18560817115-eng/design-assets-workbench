@@ -193,6 +193,24 @@ class AssetCategorySuggestion(Base):
     case = relationship("Case")
 
 
+class CategorySuggestionJob(Base):
+    """Observable background batch for long-running vision classification."""
+
+    __tablename__ = "category_suggestion_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_ids = Column(Text, default="[]")
+    status = Column(String, default="queued", index=True)
+    total = Column(Integer, default=0)
+    completed = Column(Integer, default=0)
+    succeeded = Column(Integer, default=0)
+    failed = Column(Integer, default=0)
+    errors = Column(Text, default="[]")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+
+
 class PreferenceEvent(Base):
     """Explicit business preference signals used for weighted style profiles."""
 

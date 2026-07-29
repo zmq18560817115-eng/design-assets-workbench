@@ -10,6 +10,7 @@ import {
   TrainingReadiness,
   ReviewQuality,
   CategorySuggestion,
+  CategorySuggestionJob,
 } from "@/lib/api";
 
 const categoryLabels: Record<string, string> = {
@@ -52,6 +53,8 @@ export default function TrainingPage() {
   const [suggestions, setSuggestions] = useState<
     Record<number, CategorySuggestion>
   >({});
+  const [categoryJob, setCategoryJob] =
+    useState<CategorySuggestionJob | null>(null);
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
   const [analysisMode, setAnalysisMode] = useState("model");
@@ -225,18 +228,25 @@ export default function TrainingPage() {
       return;
     }
     setSaving(true);
-    setMessage("正在调用视觉模型判断主要学习类别…");
+    setMessage("分类任务已提交，模型将在后台处理…");
     try {
-      const result = await api.suggestCategories(selected);
+      let job = await api.startCategorySuggestionJob(selected);
+      setCategoryJob(job);
+      while (job.status === "queued" || job.status === "running") {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        job = await api.categorySuggestionJob(job.id);
+        setCategoryJob(job);
+      }
+      const suggestionItems = await api.categorySuggestions(projectId);
       setSuggestions((current) => ({
         ...current,
         ...Object.fromEntries(
-          result.suggestions.map((item) => [item.case_id, item])
+          suggestionItems.map((item) => [item.case_id, item])
         ),
       }));
       setMessage(
-        `已生成 ${result.suggested_count} 条建议${
-          result.failed.length ? `，${result.failed.length} 条失败` : ""
+        `已生成 ${job.succeeded} 条建议${
+          job.failed ? `，${job.failed} 条失败` : ""
         }。请人工确认后再归类。`
       );
     } catch (error) {
@@ -763,6 +773,33 @@ export default function TrainingPage() {
           >
             为选中素材生成模型分类建议
           </button>
+          {categoryJob &&
+            (categoryJob.status === "queued" ||
+              categoryJob.status === "running") && (
+              <div className="mt-2 rounded-xl bg-blue-50 p-3 text-xs text-blue-700">
+                <div className="flex items-center justify-between">
+                  <span>后台分类任务 #{categoryJob.id}</span>
+                  <span>
+                    {categoryJob.completed}/{categoryJob.total}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-blue-100">
+                  <div
+                    className="h-full rounded-full bg-blue-500 transition-all"
+                    style={{
+                      width: `${
+                        categoryJob.total
+                          ? (categoryJob.completed / categoryJob.total) * 100
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-2 text-[10px] text-blue-500">
+                  可以继续浏览页面，任务完成后建议会自动刷新。
+                </div>
+              </div>
+            )}
           <div className="mt-3 grid gap-2">
             <button
               disabled={saving}
