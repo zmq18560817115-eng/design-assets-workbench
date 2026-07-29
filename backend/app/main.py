@@ -682,12 +682,18 @@ async def recommend_direction(
     hit_tags = list(dict.fromkeys(hit_tags))
 
     # 从案例库中检索匹配标签的参考案例
-    refs: list[int] = []
-    for c in crud.search_cases(db):
-        if any(t.name in hit_tags for t in c.tags):
-            refs.append(c.id)
-        if len(refs) >= 4:
-            break
+    company_profile = concept.recommendation_context(
+        concept.build_concept(db), industry=industry
+    )
+    ranked_references = multimodal_search.search_cases(
+        db,
+        query_text=" ".join(
+            item for item in [text, industry, " ".join(hit_tags)] if item
+        ),
+        reference=ref,
+        limit=4,
+    )
+    refs = [item.case.id for item in ranked_references]
 
     # —— 组织方向与提示词 ——
     directions: list[str] = []
@@ -742,6 +748,16 @@ async def recommend_direction(
         )
 
     # 需求解读增强：配置了文本模型时，用其把需求+意向图解析成更贴合的方向与提示词
+    if company_profile["applied"]:
+        company_rule = (
+            "公司偏好约束："
+            f"优先版式 {'、'.join(company_profile['layouts']) or '以已确认案例为准'}；"
+            f"优先风格 {'、'.join(company_profile['styles']) or '以已确认案例为准'}；"
+            f"常用色彩 {'、'.join(company_profile['color_families']) or '按业务需求'}。"
+        )
+        directions.insert(0, f"【公司证据】{company_rule}")
+        prompt = f"{prompt}；{company_rule}"
+
     if config.llm_enabled() and (text.strip() or ref is not None):
         try:
             ref_ctx = ""
@@ -750,12 +766,19 @@ async def recommend_direction(
                     f"意向图解析：版式 {ref.layout.layout_type}/{ref.layout.grid_columns}，"
                     f"风格 {'、'.join(ref.style.style_tags)}，主色 {ref.color.primary}。"
                 )
+            company_ctx = (
+                f"公司偏好证据：{company_profile}。"
+                if company_profile["applied"]
+                else "公司可信样本不足，不得虚构公司偏好。"
+            )
             j = llm.chat_json(
                 [
                     {"role": "system", "content": "你是资深视觉设计顾问，只输出 JSON，不要多余文字。"},
                     {
                         "role": "user",
                         "content": (
+                            company_ctx
+                            +
                             f"需求：{text or '（仅意向图，无文字需求）'}；行业：{industry or '未指定'}；"
                             f"{ref_ctx}参考标签：{'、'.join(hit_tags)}。\n"
                             '请输出 JSON：{"directions":["3~4 条以版式为主、风格为辅的视觉方向"],'
@@ -773,6 +796,9 @@ async def recommend_direction(
         except Exception:
             pass  # 模型不可用时保留启发式结果
 
+    if company_profile["applied"] and "公司偏好约束" not in prompt:
+        directions.insert(0, f"【公司证据】{company_rule}")
+        prompt = f"{prompt}；{company_rule}"
     return VisualDirection(
         directions=directions,
         recommended_tags=hit_tags,
@@ -784,4 +810,12 @@ async def recommend_direction(
         reference_layout=ref.layout.layout_type if ref else "",
         reference_font=ref.typography.font_tone if ref else "",
         reference_summary=ref.summary if ref else "",
+        preference_applied=company_profile["applied"],
+        company_evidence=company_profile,
+        company_maturity=company_profile["evidence_level"],
+        evidence_case_ids=[
+            item.case.id
+            for item in ranked_references
+            if item.case.trust_status in {"verified", "company_recommended"}
+        ],
     )

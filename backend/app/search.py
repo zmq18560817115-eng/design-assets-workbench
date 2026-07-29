@@ -134,11 +134,35 @@ def search_cases(
         query = query.filter(models.Image.source_type == source_type)
 
     cases = query.order_by(models.Case.created_at.desc()).all()
+    preference_rows = (
+        db.query(
+            models.PreferenceEvent.case_id,
+            models.PreferenceEvent.event_type,
+            models.PreferenceEvent.value,
+        )
+        .all()
+    )
+    preference_scores: dict[int, float] = {}
+    preference_weights = {
+        "like": 2.0,
+        "favorite": 3.0,
+        "selected": 4.0,
+        "adopt": 6.0,
+        "published": 8.0,
+        "dislike": -4.0,
+        "reject": -8.0,
+    }
+    for case_id, event_type, value in preference_rows:
+        preference_scores[case_id] = preference_scores.get(case_id, 0.0) + (
+            preference_weights.get(event_type, 0.0) * (value or 0)
+        )
     wanted_tags = {x.strip() for x in (tags or []) if x.strip()}
     tokens = _tokens(query_text)
     ranked: list[RankedCase] = []
 
     for case in cases:
+        if case.trust_status == "rejected":
+            continue
         reasons: list[str] = []
         score = 1.0
         tag_names = {tag.name for tag in case.tags}
@@ -190,6 +214,30 @@ def search_cases(
                 continue
             score += ref_score
             reasons.extend(ref_reasons)
+
+        trust_bonus = {
+            "company_recommended": 18.0,
+            "verified": 10.0,
+            "ai_unverified": 0.0,
+        }.get(case.trust_status, 0.0)
+        if trust_bonus:
+            score += trust_bonus
+            reasons.insert(
+                0,
+                "公司推荐样本"
+                if case.trust_status == "company_recommended"
+                else "人工确认样本"
+            )
+        if case.project and case.project.is_gold and trust_bonus:
+            score += 4.0
+            reasons.insert(1, "黄金项目证据")
+        preference_bonus = max(-12.0, min(16.0, preference_scores.get(case.id, 0.0)))
+        if preference_bonus:
+            score += preference_bonus
+            reasons.insert(
+                0,
+                "真实业务采用信号" if preference_bonus > 0 else "存在负向业务反馈"
+            )
 
         ranked.append(
             RankedCase(

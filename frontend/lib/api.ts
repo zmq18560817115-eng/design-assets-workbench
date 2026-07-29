@@ -407,4 +407,18 @@ export interface RecommendResult {
   reference_layout: string;
   reference_font: string;
   reference_summary: string;
+  preference_applied: boolean;
+  company_evidence: {
+    applied: boolean;
+    evidence_level: "insufficient" | "growing" | "strong";
+    trusted_cases: number;
+    layouts: string[];
+    styles: string[];
+    grids: string[];
+    fonts: string[];
+    color_families: string[];
+    industry_profile?: Record<string, unknown> | null;
+  };
+  company_maturity: "insufficient" | "growing" | "strong";
+  evidence_case_ids: number[];
 }

@@ -209,6 +209,30 @@ class PhaseOneFlowTest(unittest.TestCase):
             "verified",
         )
 
+        preference_search = self.client.post(
+            "/api/search",
+            data={"query_text": "", "limit": "10"},
+        )
+        self.assertEqual(preference_search.status_code, 200, preference_search.text)
+        self.assertEqual(preference_search.json()[0]["case"]["id"], case["id"])
+        self.assertTrue(
+            any(
+                reason in {"人工确认样本", "真实业务采用信号", "黄金项目证据"}
+                for reason in preference_search.json()[0]["reasons"]
+            )
+        )
+
+        recommendation = self.client.post(
+            "/api/recommend",
+            data={"text": "母婴新品首发，需要清晰排版", "industry": "母婴"},
+        )
+        self.assertEqual(recommendation.status_code, 200, recommendation.text)
+        recommendation_data = recommendation.json()
+        self.assertTrue(recommendation_data["preference_applied"])
+        self.assertEqual(recommendation_data["company_evidence"]["trusted_cases"], 1)
+        self.assertIn("公司偏好约束", recommendation_data["prompt"])
+        self.assertIn(case["id"], recommendation_data["evidence_case_ids"])
+
         text_search = self.client.post(
             "/api/search",
             data={"query_text": "吸奶器", "product": "吸奶器"},

@@ -242,6 +242,12 @@ class VisualDirection(BaseModel):
     reference_summary: str = ""           # 参考图一句话解析
 
 
+    preference_applied: bool = False
+    company_evidence: dict[str, Any] = {}
+    company_maturity: str = "insufficient"
+    evidence_case_ids: list[int] = []
+
+
 class SearchHit(BaseModel):
     """文本、筛选条件与参考图混合检索结果。"""
 

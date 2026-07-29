@@ -11,6 +11,7 @@ export function Nav() {
     { href: "/analyze", label: "上传入库" },
     { href: "/batch", label: "批量导入" },
     { href: "/training", label: "偏好训练" },
+    { href: "/service", label: "业务生成" },
   ];
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur-xl">

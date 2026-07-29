@@ -322,6 +322,42 @@ def _digest(data: dict) -> str:
     )
 
 
+def recommendation_context(data: dict, industry: str = "") -> dict:
+    """Return a compact, evidence-labelled company preference context."""
+    distributions = data.get("distributions") or {}
+
+    def names(key: str, limit: int = 3) -> list[str]:
+        return [
+            str(item.get("name"))
+            for item in (distributions.get(key) or [])[:limit]
+            if item.get("name")
+        ]
+
+    trusted = int(data.get("trusted_count") or 0)
+    evidence_level = (
+        "strong" if trusted >= 30 else "growing" if trusted >= 10 else "insufficient"
+    )
+    industry_profile = next(
+        (
+            item
+            for item in (data.get("by_industry") or [])
+            if industry and item.get("industry") == industry
+        ),
+        None,
+    )
+    return {
+        "applied": trusted > 0,
+        "evidence_level": evidence_level,
+        "trusted_cases": trusted,
+        "layouts": names("layout"),
+        "styles": names("style"),
+        "grids": names("grid"),
+        "fonts": names("font"),
+        "color_families": names("color_family"),
+        "industry_profile": industry_profile,
+    }
+
+
 def synthesize_methodology(data: dict) -> dict:
     if not config.llm_enabled():
         return {"enabled": False, "methodology": ""}
