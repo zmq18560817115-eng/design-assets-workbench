@@ -477,6 +477,7 @@ export interface TrainingOverview {
   >;
   training_matrix: {
     business_line: string;
+    project_id: number | null;
     ready_categories: number;
     cells: Record<
       "layout" | "style" | "color" | "photo",

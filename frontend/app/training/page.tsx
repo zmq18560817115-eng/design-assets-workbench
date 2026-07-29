@@ -374,10 +374,17 @@ export default function TrainingPage() {
                     <button
                       key={categoryKey}
                       onClick={() => {
+                        const nextProjectId = row.project_id || undefined;
+                        setProjectId(nextProjectId);
                         setCategory(categoryKey);
                         setBusinessLine(row.business_line);
                         setSelected([]);
-                        loadCases(projectId, categoryKey, trustStatus, analysisMode);
+                        loadCases(
+                          nextProjectId,
+                          categoryKey,
+                          trustStatus,
+                          analysisMode
+                        );
                       }}
                       className={`rounded-xl border p-3 text-left ${
                         cell.ready

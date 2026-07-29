@@ -216,6 +216,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertIn("layout", overview.json()["category_coverage"])
         self.assertTrue(overview.json()["training_matrix"])
         matrix_row = overview.json()["training_matrix"][0]
+        self.assertEqual(matrix_row["project_id"], project_id)
         self.assertIn("layout", matrix_row["cells"])
         self.assertFalse(matrix_row["cells"]["layout"]["ready"])
         readiness = self.client.get("/api/training/readiness")

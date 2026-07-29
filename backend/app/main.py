@@ -965,6 +965,11 @@ def training_overview(db: Session = Depends(get_db)):
         for line, coverage in business_line_coverage.items()
         if coverage["company_published"] > 0
     )
+    project_by_line = {
+        project.business_line.strip(): project.id
+        for project in db.query(models.Project).all()
+        if project.business_line and project.business_line.strip()
+    }
     for line in company_training_lines:
         cells = {}
         for category in ("layout", "style", "color", "photo"):
@@ -1015,6 +1020,7 @@ def training_overview(db: Session = Depends(get_db)):
         training_matrix.append(
             {
                 "business_line": line,
+                "project_id": project_by_line.get(line),
                 "ready_categories": sum(
                     1 for cell in cells.values() if cell["ready"]
                 ),
