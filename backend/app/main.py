@@ -933,7 +933,8 @@ def training_overview(db: Session = Depends(get_db)):
         .all()
     )
     business_line_coverage: dict[str, dict[str, int]] = {}
-    for case in db.query(models.Case).all():
+    all_cases = db.query(models.Case).all()
+    for case in all_cases:
         line = (case.business_line or case.industry or "未分类").strip() or "未分类"
         item = business_line_coverage.setdefault(
             line,
@@ -958,6 +959,68 @@ def training_overview(db: Session = Depends(get_db)):
             item["trusted"] += 1
         if case.trust_status == "company_recommended":
             item["recommended"] += 1
+    training_matrix = []
+    company_training_lines = sorted(
+        line
+        for line, coverage in business_line_coverage.items()
+        if coverage["company_published"] > 0
+    )
+    for line in company_training_lines:
+        cells = {}
+        for category in ("layout", "style", "color", "photo"):
+            cell_cases = [
+                case
+                for case in all_cases
+                if (case.business_line or case.industry or "未分类").strip() == line
+                and (case.asset_category or "layout") == category
+            ]
+            published = sum(
+                1
+                for case in cell_cases
+                if case.image and case.image.source_type == "company_published"
+            )
+            analyzed = sum(
+                1
+                for case in cell_cases
+                if case.analysis
+                and case.analysis.model_name
+                and case.analysis.model_name != "启发式规则"
+            )
+            trusted_cell = sum(
+                1
+                for case in cell_cases
+                if case.trust_status in {"verified", "company_recommended"}
+            )
+            recommended_cell = sum(
+                1
+                for case in cell_cases
+                if case.trust_status == "company_recommended"
+            )
+            gaps = []
+            if published < 2:
+                gaps.append(f"补{2 - published}张成品")
+            if analyzed < 1:
+                gaps.append("完成1张模型拆解")
+            if trusted_cell < 1:
+                gaps.append("完成1张人工确认")
+            cells[category] = {
+                "total": len(cell_cases),
+                "company_published": published,
+                "model_analyzed": analyzed,
+                "trusted": trusted_cell,
+                "recommended": recommended_cell,
+                "ready": not gaps,
+                "gaps": gaps,
+            }
+        training_matrix.append(
+            {
+                "business_line": line,
+                "ready_categories": sum(
+                    1 for cell in cells.values() if cell["ready"]
+                ),
+                "cells": cells,
+            }
+        )
     target_trusted = 30
     target_recommended = 12
     recommended = trust_rows.get("company_recommended", 0)
@@ -981,6 +1044,7 @@ def training_overview(db: Session = Depends(get_db)):
         "adopted_service_runs": service_rows.get("adopted", 0),
         "service_outcomes": service_rows,
         "business_line_coverage": business_line_coverage,
+        "training_matrix": training_matrix,
         "maturity_score": maturity,
         "targets": {
             "trusted_cases": target_trusted,

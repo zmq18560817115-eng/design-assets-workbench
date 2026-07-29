@@ -345,6 +345,76 @@ export default function TrainingPage() {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              Training matrix
+            </div>
+            <h2 className="mt-2 text-xl font-semibold">业务线 × 素材仓库训练矩阵</h2>
+            <p className="mt-2 text-xs leading-5 text-gray-400">
+              每个格子至少需要2张公司成品、1张模型拆解和1张人工确认，达到后才具备最低训练证据。
+            </p>
+          </div>
+          <div className="text-xs text-gray-400">
+            绿色可用于试运行，黄色表示仍需补齐
+          </div>
+        </div>
+        <div className="space-y-4">
+          {(overview?.training_matrix || []).map((row) => (
+            <div key={row.business_line} className="rounded-2xl border border-line p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="font-semibold">{row.business_line}</div>
+                <div className="text-xs text-gray-400">
+                  已达标 {row.ready_categories}/4 类
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                {(
+                  ["layout", "style", "color", "photo"] as const
+                ).map((categoryKey) => {
+                  const cell = row.cells[categoryKey];
+                  return (
+                    <button
+                      key={categoryKey}
+                      onClick={() => {
+                        setCategory(categoryKey);
+                        setBusinessLine(row.business_line);
+                        setSelected([]);
+                        loadCases(projectId, categoryKey, trustStatus, analysisMode);
+                      }}
+                      className={`rounded-xl border p-3 text-left ${
+                        cell.ready
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-amber-200 bg-amber-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {categoryLabels[categoryKey]}
+                        </span>
+                        <span className="text-[10px]">
+                          {cell.ready ? "已达标" : "待补齐"}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[11px] leading-5 text-gray-500">
+                        成品 {cell.company_published} · 模型 {cell.model_analyzed} ·
+                        人工 {cell.trusted} · 推荐 {cell.recommended}
+                      </div>
+                      {!cell.ready && (
+                        <div className="mt-2 text-[10px] leading-4 text-amber-700">
+                          {cell.gaps.join("；")}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-line bg-white p-5 md:p-7">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
               Training roadmap
             </div>
             <h2 className="mt-2 text-xl font-semibold">五大品类训练路线图</h2>

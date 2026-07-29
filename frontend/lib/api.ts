@@ -475,6 +475,22 @@ export interface TrainingOverview {
       recommended: number;
     }
   >;
+  training_matrix: {
+    business_line: string;
+    ready_categories: number;
+    cells: Record<
+      "layout" | "style" | "color" | "photo",
+      {
+        total: number;
+        company_published: number;
+        model_analyzed: number;
+        trusted: number;
+        recommended: number;
+        ready: boolean;
+        gaps: string[];
+      }
+    >;
+  }[];
   maturity_score: number;
   targets: {
     trusted_cases: number;
