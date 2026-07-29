@@ -161,7 +161,8 @@ export const api = {
     assetCategory = "",
     assetSubcategory = "",
     projectId?: number,
-    trustStatus = ""
+    trustStatus = "",
+    analysisMode = ""
   ) => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
@@ -170,6 +171,7 @@ export const api = {
     if (assetSubcategory) p.set("asset_subcategory", assetSubcategory);
     if (projectId) p.set("project_id", String(projectId));
     if (trustStatus) p.set("trust_status", trustStatus);
+    if (analysisMode) p.set("analysis_mode", analysisMode);
     return fetch(`/api/cases?${p.toString()}`, { cache: "no-store" }).then((r) =>
       j<CaseOut[]>(r)
     );
@@ -338,6 +340,8 @@ export interface ProjectOut {
   case_count: number;
   verified_count: number;
   recommended_count: number;
+  model_analyzed_count: number;
+  company_published_count: number;
   created_at: string;
 }
 

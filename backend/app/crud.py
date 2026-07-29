@@ -211,12 +211,23 @@ def search_cases(
     asset_subcategory: str | None = None,
     project_id: int | None = None,
     trust_status: str | None = None,
+    analysis_mode: str | None = None,
 ) -> list[models.Case]:
     query = db.query(models.Case)
     if project_id is not None:
         query = query.filter(models.Case.project_id == project_id)
     if trust_status:
         query = query.filter(models.Case.trust_status == trust_status)
+    if analysis_mode == "model":
+        query = query.join(models.Case.analysis).filter(
+            models.Analysis.model_name != "",
+            models.Analysis.model_name != "启发式规则",
+        )
+    elif analysis_mode == "local":
+        query = query.join(models.Case.analysis).filter(
+            (models.Analysis.model_name == "")
+            | (models.Analysis.model_name == "启发式规则")
+        )
     if asset_category:
         query = query.filter(models.Case.asset_category == asset_category)
     if asset_subcategory:

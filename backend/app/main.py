@@ -200,6 +200,7 @@ def list_cases(
     asset_subcategory: str | None = None,
     project_id: int | None = None,
     trust_status: str | None = None,
+    analysis_mode: str | None = None,
     db: Session = Depends(get_db),
 ):
     """案例资产库：支持关键词搜索与标签检索。"""
@@ -211,6 +212,7 @@ def list_cases(
         asset_subcategory=asset_subcategory,
         project_id=project_id,
         trust_status=trust_status,
+        analysis_mode=analysis_mode,
     )
     return [crud.serialize_case(c) for c in cases]
 
@@ -373,6 +375,11 @@ def list_projects(db: Session = Depends(get_db)):
             .group_by(models.Case.trust_status)
             .all()
         )
+        project_cases = (
+            db.query(models.Case)
+            .filter(models.Case.project_id == project.id)
+            .all()
+        )
         result.append(
             {
                 "id": project.id,
@@ -384,6 +391,19 @@ def list_projects(db: Session = Depends(get_db)):
                 "case_count": sum(counts.values()),
                 "verified_count": counts.get("verified", 0),
                 "recommended_count": counts.get("company_recommended", 0),
+                "model_analyzed_count": sum(
+                    1
+                    for case in project_cases
+                    if case.analysis
+                    and case.analysis.model_name
+                    and case.analysis.model_name != "启发式规则"
+                ),
+                "company_published_count": sum(
+                    1
+                    for case in project_cases
+                    if case.image
+                    and case.image.source_type == "company_published"
+                ),
                 "created_at": project.created_at,
             }
         )

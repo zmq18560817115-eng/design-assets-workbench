@@ -25,6 +25,7 @@ export default function TrainingPage() {
   const [overview, setOverview] = useState<TrainingOverview | null>(null);
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
+  const [analysisMode, setAnalysisMode] = useState("model");
   const [selected, setSelected] = useState<number[]>([]);
   const [reviewer, setReviewer] = useState("");
   const [businessLine, setBusinessLine] = useState("");
@@ -39,11 +40,20 @@ export default function TrainingPage() {
   const loadCases = (
     nextProjectId = projectId,
     nextCategory = category,
-    nextTrust = trustStatus
+    nextTrust = trustStatus,
+    nextAnalysisMode = analysisMode
   ) => {
     setLoading(true);
     return api
-      .cases("", "", nextCategory, "", nextProjectId, nextTrust)
+      .cases(
+        "",
+        "",
+        nextCategory,
+        "",
+        nextProjectId,
+        nextTrust,
+        nextAnalysisMode
+      )
       .then(setCases)
       .catch(() => setCases([]))
       .finally(() => setLoading(false));
@@ -55,10 +65,15 @@ export default function TrainingPage() {
         setProjects(projectList);
         setOverview(metrics);
         const preferred =
-          projectList.find((project) => project.is_gold) || projectList[0];
+          projectList.find(
+            (project) =>
+              project.business_line && project.model_analyzed_count > 0
+          ) ||
+          projectList.find((project) => project.is_gold) ||
+          projectList[0];
         const nextId = preferred?.id;
         setProjectId(nextId);
-        return api.cases("", "", "", "", nextId, "ai_unverified");
+        return api.cases("", "", "", "", nextId, "ai_unverified", "model");
       })
       .then(setCases)
       .catch(() => setCases([]))
@@ -210,7 +225,7 @@ export default function TrainingPage() {
                   const next = category === key ? "" : key;
                   setCategory(next);
                   setSelected([]);
-                  loadCases(projectId, next, trustStatus);
+                  loadCases(projectId, next, trustStatus, analysisMode);
                 }}
                 className={`rounded-2xl border p-4 text-left transition ${
                   category === key
@@ -240,7 +255,7 @@ export default function TrainingPage() {
                 当前显示 {cases.length} 条，已选择 {selected.length} 条
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={projectId || ""}
                 onChange={(event) => {
@@ -254,7 +269,8 @@ export default function TrainingPage() {
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.is_gold ? "黄金候选 · " : ""}
-                    {project.name}
+                    {project.name}（模型 {project.model_analyzed_count}/成品{" "}
+                    {project.company_published_count}）
                   </option>
                 ))}
               </select>
@@ -273,6 +289,20 @@ export default function TrainingPage() {
                 <option value="company_recommended">公司推荐</option>
                 <option value="rejected">不采用</option>
                 <option value="">全部状态</option>
+              </select>
+              <select
+                value={analysisMode}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setAnalysisMode(next);
+                  setSelected([]);
+                  loadCases(projectId, category, trustStatus, next);
+                }}
+                className="rounded-xl border border-line bg-canvas px-3 py-2 text-sm"
+              >
+                <option value="model">仅模型深度拆解</option>
+                <option value="local">仅本地结构拆解</option>
+                <option value="">全部拆解来源</option>
               </select>
             </div>
           </div>
@@ -357,6 +387,16 @@ export default function TrainingPage() {
           <p className="mt-1 text-xs leading-5 text-gray-400">
             只批量处理结论明确的案例；需要改标签或提示词时进入详情页单独校正。
           </p>
+          <div className="mt-4 rounded-2xl bg-canvas p-4">
+            <div className="text-xs font-semibold text-gray-700">统一判断准则</div>
+            <ol className="mt-2 space-y-1.5 text-[11px] leading-5 text-gray-500">
+              <li>1. 信息层级是否符合当前品类业务表达？</li>
+              <li>2. 是否代表公司希望继续保持的视觉倾向？</li>
+              <li>3. 排版方法能否复用到下一次设计？</li>
+              <li>4. 是否存在过时、低效或不希望延续的问题？</li>
+              <li>5. 模型拆解与原图是否一致，需要校正什么？</li>
+            </ol>
+          </div>
           <label className="mt-5 block text-xs text-gray-500">
             审核人 *
             <input

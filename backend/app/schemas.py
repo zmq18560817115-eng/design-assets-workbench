@@ -195,6 +195,8 @@ class ProjectOut(ProjectCreate):
     case_count: int = 0
     verified_count: int = 0
     recommended_count: int = 0
+    model_analyzed_count: int = 0
+    company_published_count: int = 0
     created_at: dt.datetime
 
 
