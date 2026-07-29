@@ -232,6 +232,10 @@ class BatchCategorizeInput(BaseModel):
     actor: str
 
 
+class BatchCategorySuggestionInput(BaseModel):
+    case_ids: list[int]
+
+
 class RequirementInput(BaseModel):
     """需求生成页入参。"""
 

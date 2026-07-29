@@ -10,6 +10,7 @@ import io
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -381,6 +382,32 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(duplicate.status_code, 200, duplicate.text)
         self.assertEqual(duplicate.json()["id"], case["id"])
 
+        with (
+            patch("app.main.config.vlm_enabled", return_value=True),
+            patch(
+                "app.main.vlm.suggest_asset_category",
+                return_value={
+                    "category": "style",
+                    "confidence": 91,
+                    "reason": "visual language is the primary reusable value",
+                    "signals": ["consistent illustration", "distinctive texture"],
+                },
+            ),
+        ):
+            suggestion_response = self.client.post(
+                "/api/training/batch-suggest-categories",
+                json={"case_ids": [case["id"]]},
+            )
+        self.assertEqual(
+            suggestion_response.status_code,
+            200,
+            suggestion_response.text,
+        )
+        self.assertEqual(suggestion_response.json()["suggested_count"], 1)
+        suggestions = self.client.get("/api/training/category-suggestions")
+        self.assertEqual(suggestions.status_code, 200, suggestions.text)
+        self.assertEqual(suggestions.json()[0]["suggested_category"], "style")
+
         categorized = self.client.post(
             "/api/training/batch-categorize",
             json={
@@ -395,6 +422,11 @@ class PhaseOneFlowTest(unittest.TestCase):
             self.client.get(f"/api/cases/{case['id']}").json()["asset_category"],
             "style",
         )
+        reviewed_suggestion = self.client.get(
+            "/api/training/category-suggestions"
+        ).json()[0]
+        self.assertEqual(reviewed_suggestion["status"], "accepted")
+        self.assertEqual(reviewed_suggestion["reviewer"], "测试素材管理员")
 
 
 if __name__ == "__main__":

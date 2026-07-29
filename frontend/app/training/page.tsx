@@ -9,6 +9,7 @@ import {
   TrainingOverview,
   TrainingReadiness,
   ReviewQuality,
+  CategorySuggestion,
 } from "@/lib/api";
 
 const categoryLabels: Record<string, string> = {
@@ -48,6 +49,9 @@ export default function TrainingPage() {
   const [overview, setOverview] = useState<TrainingOverview | null>(null);
   const [readiness, setReadiness] = useState<TrainingReadiness[]>([]);
   const [quality, setQuality] = useState<Record<number, ReviewQuality>>({});
+  const [suggestions, setSuggestions] = useState<
+    Record<number, CategorySuggestion>
+  >({});
   const [category, setCategory] = useState("");
   const [trustStatus, setTrustStatus] = useState("ai_unverified");
   const [analysisMode, setAnalysisMode] = useState("model");
@@ -87,16 +91,21 @@ export default function TrainingPage() {
         nextAnalysisMode
       ),
       api.trainingReviewQuality(nextProjectId),
+      api.categorySuggestions(nextProjectId),
     ])
-      .then(([caseItems, qualityItems]) => {
+      .then(([caseItems, qualityItems, suggestionItems]) => {
         setCases(caseItems);
         setQuality(
           Object.fromEntries(qualityItems.map((item) => [item.case_id, item]))
+        );
+        setSuggestions(
+          Object.fromEntries(suggestionItems.map((item) => [item.case_id, item]))
         );
       })
       .catch(() => {
         setCases([]);
         setQuality({});
+        setSuggestions({});
       })
       .finally(() => setLoading(false));
   };
@@ -123,17 +132,22 @@ export default function TrainingPage() {
         return Promise.all([
           api.cases("", "", "", "", nextId, "ai_unverified", "model"),
           api.trainingReviewQuality(nextId),
+          api.categorySuggestions(nextId),
         ]);
       })
-      .then(([caseItems, qualityItems]) => {
+      .then(([caseItems, qualityItems, suggestionItems]) => {
         setCases(caseItems);
         setQuality(
           Object.fromEntries(qualityItems.map((item) => [item.case_id, item]))
+        );
+        setSuggestions(
+          Object.fromEntries(suggestionItems.map((item) => [item.case_id, item]))
         );
       })
       .catch(() => {
         setCases([]);
         setQuality({});
+        setSuggestions({});
       })
       .finally(() => setLoading(false));
   }, []);
@@ -196,6 +210,37 @@ export default function TrainingPage() {
       await Promise.all([loadCases(), loadOverview(), loadReadiness()]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "批量归类失败");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const generateCategorySuggestions = async () => {
+    if (selected.length === 0) {
+      setMessage("请先选择需要模型判断类别的案例。");
+      return;
+    }
+    if (selected.length > 20) {
+      setMessage("每次最多生成 20 个分类建议。");
+      return;
+    }
+    setSaving(true);
+    setMessage("正在调用视觉模型判断主要学习类别…");
+    try {
+      const result = await api.suggestCategories(selected);
+      setSuggestions((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          result.suggestions.map((item) => [item.case_id, item])
+        ),
+      }));
+      setMessage(
+        `已生成 ${result.suggested_count} 条建议${
+          result.failed.length ? `，${result.failed.length} 条失败` : ""
+        }。请人工确认后再归类。`
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "分类建议生成失败");
     } finally {
       setSaving(false);
     }
@@ -531,6 +576,7 @@ export default function TrainingPage() {
               {cases.map((item) => {
                 const active = selected.includes(item.id);
                 const check = quality[item.id];
+                const suggestion = suggestions[item.id];
                 return (
                   <div
                     key={item.id}
@@ -575,6 +621,16 @@ export default function TrainingPage() {
                         >
                           拆解质量 {check.score}
                         </span>
+                      )}
+                      {suggestion && (
+                        <div className="mt-2 rounded-lg bg-blue-50 p-2 text-[10px] leading-4 text-blue-700">
+                          模型建议：{categoryLabels[suggestion.suggested_category]}
+                          {" · "}
+                          {suggestion.confidence}%
+                          <div className="mt-1 text-blue-600">
+                            {suggestion.reason}
+                          </div>
+                        </div>
                       )}
                     </button>
                     <div className="p-3">
@@ -700,6 +756,13 @@ export default function TrainingPage() {
               批量归类
             </button>
           </div>
+          <button
+            disabled={saving}
+            onClick={generateCategorySuggestions}
+            className="mt-2 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm text-blue-700 disabled:opacity-50"
+          >
+            为选中素材生成模型分类建议
+          </button>
           <div className="mt-3 grid gap-2">
             <button
               disabled={saving}

@@ -278,6 +278,25 @@ export const api = {
         updated_count: number;
       }>(r)
     ),
+  categorySuggestions: (projectId?: number) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", String(projectId));
+    return fetch(`/api/training/category-suggestions?${params.toString()}`, {
+      cache: "no-store",
+    }).then((r) => j<CategorySuggestion[]>(r));
+  },
+  suggestCategories: (caseIds: number[]) =>
+    fetch("/api/training/batch-suggest-categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ case_ids: caseIds }),
+    }).then((r) =>
+      j<{
+        suggestions: CategorySuggestion[];
+        suggested_count: number;
+        failed: { case_id: number; detail: string }[];
+      }>(r)
+    ),
   reanalyzeCase: (id: number | string) =>
     fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
       j<CaseOut>(r)
@@ -490,6 +509,19 @@ export interface ReviewQuality {
   warnings: string[];
   model_name: string;
   analysis_version: number;
+}
+
+export interface CategorySuggestion {
+  id: number;
+  case_id: number;
+  suggested_category: "layout" | "style" | "color" | "photo";
+  confidence: number;
+  reason: string;
+  signals: string[];
+  model_name: string;
+  status: "pending" | "accepted" | "overridden" | "superseded";
+  reviewer: string;
+  created_at: string;
 }
 
 export interface SearchInput {

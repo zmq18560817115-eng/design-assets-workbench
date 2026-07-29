@@ -140,3 +140,65 @@ def analyze_image(
     resp.raise_for_status()
     content = resp.json()["choices"][0]["message"]["content"]
     return _extract_json(content)
+
+
+def suggest_asset_category(image_bytes: bytes, mime: str = "image/png") -> dict:
+    """Suggest one primary repository category without changing stored metadata."""
+    b64 = base64.b64encode(image_bytes).decode()
+    data_uri = f"data:{mime or 'image/png'};base64,{b64}"
+    prompt = """
+判断这张公司设计成品最适合进入哪个“主要学习仓库”。只能四选一：
+- layout：主要学习信息层级、栅格、留白、对齐、图文占比或阅读动线。
+- style：主要学习视觉语言、品牌气质、质感、图形元素组合或情绪氛围。
+- color：主要学习稳定而有代表性的配色角色、面积比例、对比或色彩策略。
+- photo：主要学习真实摄影中的场景、人物、产品摆放、光线、景别或材质表现。
+
+请选择这张图对未来设计最有价值的一个主要学习目标，不要因为图片同时包含文字、颜色和照片就多选。
+仅返回 JSON：
+{"category":"layout|style|color|photo","confidence":0到100的整数,
+"reason":"一句具体理由","signals":["2到4个可见判断依据"]}
+"""
+    payload = {
+        "model": config.VISION_MODEL or "gpt-4o-mini",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是公司视觉素材库分类员，只输出严格 JSON。",
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": data_uri}},
+                ],
+            },
+        ],
+        "temperature": 0.1,
+    }
+    headers = {
+        "Authorization": f"Bearer {config.VISION_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    base = (config.VISION_BASE_URL or "https://api.openai.com/v1").rstrip("/")
+    with httpx.Client(trust_env=config.VISION_TRUST_ENV, timeout=300) as client:
+        resp = client.post(
+            f"{base}/chat/completions",
+            json=payload,
+            headers=headers,
+        )
+    resp.raise_for_status()
+    result = _extract_json(resp.json()["choices"][0]["message"]["content"])
+    raw_category = str(result.get("category") or "").strip()
+    if raw_category not in {"layout", "style", "color", "photo"}:
+        raise ValueError("模型未返回有效素材类别")
+    category = normalize_category(raw_category)
+    return {
+        "category": category,
+        "confidence": max(0, min(100, int(result.get("confidence") or 0))),
+        "reason": str(result.get("reason") or "").strip(),
+        "signals": [
+            str(item).strip()
+            for item in (result.get("signals") or [])
+            if str(item).strip()
+        ][:4],
+    }

@@ -173,6 +173,26 @@ class CaseReview(Base):
     project = relationship("Project", back_populates="reviews")
 
 
+class AssetCategorySuggestion(Base):
+    """Model-proposed primary learning category, pending human confirmation."""
+
+    __tablename__ = "asset_category_suggestions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    suggested_category = Column(String, nullable=False, index=True)
+    confidence = Column(Integer, default=0)
+    reason = Column(Text, default="")
+    signals = Column(Text, default="[]")
+    model_name = Column(String, default="")
+    status = Column(String, default="pending", index=True)
+    reviewer = Column(String, default="")
+    reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+    case = relationship("Case")
+
+
 class PreferenceEvent(Base):
     """Explicit business preference signals used for weighted style profiles."""
 

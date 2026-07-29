@@ -5,6 +5,9 @@ import os
 import json
 import tempfile
 import uuid
+import datetime as dt
+import mimetypes
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
@@ -13,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from . import batch, concept, config, crud, imagehash, llm, models, overlay
+from . import batch, concept, config, crud, imagehash, llm, models, overlay, vlm
 from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
@@ -25,6 +28,7 @@ from .schemas import (
     CaseProjectInput,
     BatchReviewInput,
     BatchCategorizeInput,
+    BatchCategorySuggestionInput,
     PreferenceEventInput,
     ProjectCreate,
     ProjectOut,
@@ -347,6 +351,22 @@ def batch_categorize_cases(
     for case in cases:
         previous = case.asset_category or "layout"
         case.asset_category = payload.asset_category
+        pending_suggestions = (
+            db.query(models.AssetCategorySuggestion)
+            .filter(
+                models.AssetCategorySuggestion.case_id == case.id,
+                models.AssetCategorySuggestion.status == "pending",
+            )
+            .all()
+        )
+        for suggestion in pending_suggestions:
+            suggestion.status = (
+                "accepted"
+                if suggestion.suggested_category == payload.asset_category
+                else "overridden"
+            )
+            suggestion.reviewer = actor
+            suggestion.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
         db.add(
             models.CaseReview(
                 case_id=case.id,
@@ -372,6 +392,119 @@ def batch_categorize_cases(
         "asset_category": payload.asset_category,
         "updated": updated,
         "updated_count": len(updated),
+    }
+
+
+def _serialize_category_suggestion(
+    suggestion: models.AssetCategorySuggestion,
+) -> dict:
+    try:
+        signals = json.loads(suggestion.signals or "[]")
+    except Exception:
+        signals = []
+    return {
+        "id": suggestion.id,
+        "case_id": suggestion.case_id,
+        "suggested_category": suggestion.suggested_category,
+        "confidence": suggestion.confidence,
+        "reason": suggestion.reason,
+        "signals": signals,
+        "model_name": suggestion.model_name,
+        "status": suggestion.status,
+        "reviewer": suggestion.reviewer,
+        "created_at": suggestion.created_at,
+    }
+
+
+@app.get("/api/training/category-suggestions")
+def list_category_suggestions(
+    project_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.AssetCategorySuggestion).join(
+        models.Case,
+        models.Case.id == models.AssetCategorySuggestion.case_id,
+    )
+    if project_id is not None:
+        query = query.filter(models.Case.project_id == project_id)
+    rows = query.order_by(models.AssetCategorySuggestion.id.desc()).all()
+    latest = {}
+    for row in rows:
+        latest.setdefault(row.case_id, row)
+    return [_serialize_category_suggestion(row) for row in latest.values()]
+
+
+@app.post("/api/training/batch-suggest-categories")
+def batch_suggest_categories(
+    payload: BatchCategorySuggestionInput,
+    db: Session = Depends(get_db),
+):
+    """Ask the configured vision model for reviewable primary-category suggestions."""
+    if not config.vlm_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="视觉模型未配置，不能生成素材分类建议",
+        )
+    case_ids = list(dict.fromkeys(payload.case_ids))
+    if not case_ids or len(case_ids) > 20:
+        raise HTTPException(status_code=400, detail="每次请选择 1～20 个案例")
+    cases = (
+        db.query(models.Case)
+        .filter(models.Case.id.in_(case_ids))
+        .order_by(models.Case.id)
+        .all()
+    )
+
+    tasks = [
+        (case.id, config.UPLOAD_DIR / Path(case.image.url).name)
+        for case in cases
+        if case.image
+    ]
+    if not tasks:
+        raise HTTPException(status_code=400, detail="所选案例没有可分析的原图")
+
+    def classify(task: tuple[int, Path]):
+        case_id, path = task
+        if not path.exists():
+            raise FileNotFoundError("原图不存在")
+        mime = mimetypes.guess_type(path.name)[0] or "image/png"
+        return case_id, vlm.suggest_asset_category(path.read_bytes(), mime)
+
+    suggestions = []
+    failed = []
+    with ThreadPoolExecutor(max_workers=min(5, len(tasks))) as pool:
+        jobs = {pool.submit(classify, task): task[0] for task in tasks}
+        for future in as_completed(jobs):
+            case_id = jobs[future]
+            try:
+                _, result = future.result()
+                (
+                    db.query(models.AssetCategorySuggestion)
+                    .filter(
+                        models.AssetCategorySuggestion.case_id == case_id,
+                        models.AssetCategorySuggestion.status == "pending",
+                    )
+                    .update({"status": "superseded"})
+                )
+                row = models.AssetCategorySuggestion(
+                    case_id=case_id,
+                    suggested_category=result["category"],
+                    confidence=result["confidence"],
+                    reason=result["reason"],
+                    signals=json.dumps(result["signals"], ensure_ascii=False),
+                    model_name=config.VISION_MODEL,
+                    status="pending",
+                )
+                db.add(row)
+                db.flush()
+                suggestions.append(_serialize_category_suggestion(row))
+            except Exception as exc:
+                failed.append({"case_id": case_id, "detail": str(exc)})
+    db.commit()
+    return {
+        "suggestions": suggestions,
+        "suggested_count": len(suggestions),
+        "failed": failed,
     }
 
 
