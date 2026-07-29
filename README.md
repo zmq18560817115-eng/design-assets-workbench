@@ -115,7 +115,8 @@ export VISION_MODEL=...
 | POST | `/api/search` | 文本、筛选和参考图混合检索 |
 | GET | `/api/cases` | 浏览素材库 |
 | GET | `/api/cases/{id}` | 案例拆解详情 |
-| GET/POST | `/api/cases/{id}/layout-blueprints` | 骨架版本读取／生成 |
+| GET | `/api/cases/{id}/layout-blueprints` | 获取骨架版本 |
+| POST | `/api/cases/{id}/layout-blueprints/generate` | 生成下一版骨架 |
 | POST | `/api/layout-blueprints/{id}/revise` | 保存人工骨架校正 |
 | POST | `/api/layout-blueprints/{id}/verify` | 确认骨架版本 |
 | GET/POST | `/api/layout-patterns` | 查询／沉淀排版模式 |
