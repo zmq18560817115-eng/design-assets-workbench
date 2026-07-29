@@ -1,201 +1,296 @@
-"""设计视觉概论——跨案例聚合沉淀层。
-
-把逐张拆解的案例卡，聚合成团队专属的「设计视觉概论」：
-分布画像、视觉 DNA、以及从高频共性自动提炼的设计原则；随案例增多越来越准。
-"""
+"""Weighted company visual profile built from reviewed cases and preferences."""
 from __future__ import annotations
 
 import colorsys
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from . import config, llm, models
 
-# 素材达到这个量级，概论才比较可信
-ENOUGH_THRESHOLD = 5
+ENOUGH_THRESHOLD = 20
+TRUST_WEIGHTS = {
+    "ai_unverified": 0.25,
+    "verified": 2.0,
+    "company_recommended": 4.0,
+    "rejected": 0.0,
+}
+PREFERENCE_WEIGHTS = {
+    "like": 0.5,
+    "favorite": 0.75,
+    "selected": 1.0,
+    "adopt": 1.5,
+    "published": 2.0,
+    "dislike": -1.0,
+    "reject": -1.5,
+}
 
 
-def _hex_to_family(hexv: str) -> str:
-    """把主色 HEX 归成一个粗色系名，用于统计视觉 DNA。"""
+def _hex_to_family(value: str) -> str:
     try:
-        h = hexv.lstrip("#")
-        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        value = value.lstrip("#")
+        r, g, b = (int(value[index : index + 2], 16) for index in (0, 2, 4))
     except Exception:
         return "其他"
-    hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-    if ss < 0.12:
-        return "黑" if vv < 0.2 else ("白/浅" if vv > 0.85 else "灰")
-    hue = hh * 360
-    if hue < 15 or hue >= 345:
-        return "红"
-    if hue < 45:
-        return "橙"
-    if hue < 70:
-        return "黄"
-    if hue < 160:
-        return "绿"
-    if hue < 200:
-        return "青"
-    if hue < 255:
-        return "蓝"
-    if hue < 290:
-        return "紫"
+    hue, saturation, brightness = colorsys.rgb_to_hsv(
+        r / 255, g / 255, b / 255
+    )
+    if saturation < 0.12:
+        if brightness < 0.2:
+            return "黑色"
+        if brightness > 0.85:
+            return "白/浅色"
+        return "灰色"
+    degree = hue * 360
+    if degree < 15 or degree >= 345:
+        return "红色"
+    if degree < 45:
+        return "橙色"
+    if degree < 70:
+        return "黄色"
+    if degree < 160:
+        return "绿色"
+    if degree < 200:
+        return "青色"
+    if degree < 255:
+        return "蓝色"
+    if degree < 290:
+        return "紫色"
     return "品红"
-
-
-def _dist(counter: Counter, total: int, top: int = 8) -> list[dict]:
-    return [
-        {"name": name, "count": cnt, "pct": round(cnt / total * 100) if total else 0}
-        for name, cnt in counter.most_common(top)
-    ]
 
 
 def _load(analysis: models.Analysis | None) -> dict:
     if not analysis:
         return {}
-    def j(s):
+
+    def parse(value: str) -> dict:
         try:
-            return json.loads(s or "{}")
+            return json.loads(value or "{}")
         except Exception:
             return {}
+
     return {
-        "layout": j(analysis.layout),
-        "typography": j(analysis.typography),
-        "style": j(analysis.style),
-        "color": j(analysis.color),
+        "layout": parse(analysis.layout),
+        "typography": parse(analysis.typography),
+        "style": parse(analysis.style),
+        "color": parse(analysis.color),
     }
 
 
+def _distribution(counter: Counter, total: float, top: int = 8) -> list[dict]:
+    return [
+        {
+            "name": name,
+            "count": round(weight, 2),
+            "pct": round(weight / total * 100) if total else 0,
+        }
+        for name, weight in counter.most_common(top)
+    ]
+
+
+def _preference_map(db: Session) -> dict[int, dict[str, int]]:
+    rows = (
+        db.query(
+            models.PreferenceEvent.case_id,
+            models.PreferenceEvent.event_type,
+            func.sum(models.PreferenceEvent.value),
+        )
+        .group_by(
+            models.PreferenceEvent.case_id,
+            models.PreferenceEvent.event_type,
+        )
+        .all()
+    )
+    result: dict[int, dict[str, int]] = defaultdict(dict)
+    for case_id, event_type, value in rows:
+        result[case_id][event_type] = int(value or 0)
+    return result
+
+
+def _case_weight(case: models.Case, preferences: dict[str, int]) -> float:
+    weight = TRUST_WEIGHTS.get(case.trust_status or "ai_unverified", 0.25)
+    if case.project and case.project.is_gold:
+        weight *= 1.5
+    for event_type, count in preferences.items():
+        weight += PREFERENCE_WEIGHTS.get(event_type, 0.0) * count
+    return max(0.0, weight)
+
+
 def build_concept(db: Session) -> dict:
+    """Aggregate a company profile, prioritizing trusted business evidence."""
     cases = db.query(models.Case).all()
-    n = len(cases)
+    preferences = _preference_map(db)
+    trust_counts = Counter(case.trust_status or "ai_unverified" for case in cases)
 
-    layout_c = Counter()
-    align_c = Counter()
-    grid_c = Counter()
-    style_c = Counter()
-    font_c = Counter()
-    industry_c = Counter()
-    textratio_c = Counter()
-    colorfam_c = Counter()
-    primary_hex_c = Counter()
-
-    # 分行业聚合
+    layout_counter = Counter()
+    alignment_counter = Counter()
+    grid_counter = Counter()
+    style_counter = Counter()
+    font_counter = Counter()
+    industry_counter = Counter()
+    text_ratio_counter = Counter()
+    color_family_counter = Counter()
+    primary_counter = Counter()
+    category_weights = Counter()
     per_industry: dict[str, dict] = {}
+    weighted_total = 0.0
+    contributing_cases = 0
 
-    for c in cases:
-        a = _load(c.analysis)
-        layout = a.get("layout", {})
-        typo = a.get("typography", {})
-        style = a.get("style", {})
-        color = a.get("color", {})
+    for case in cases:
+        weight = _case_weight(case, preferences.get(case.id, {}))
+        if weight <= 0:
+            continue
+        contributing_cases += 1
+        weighted_total += weight
+        category_weights[case.asset_category or "layout"] += weight
 
-        lt = layout.get("layout_type", "")
-        al = layout.get("alignment", "")
+        analysis = _load(case.analysis)
+        layout = analysis.get("layout", {})
+        typography = analysis.get("typography", {})
+        style = analysis.get("style", {})
+        color = analysis.get("color", {})
+
+        layout_type = layout.get("layout_type", "")
+        alignment = layout.get("alignment", "")
         grid = layout.get("grid_columns", "")
-        ft = (typo.get("font_tone", "") or "").split("（")[0].split("/")[0].strip()
-        tr = typo.get("text_ratio", "")
-        ind = c.industry or "未分类"
+        font = (typography.get("font_tone", "") or "").split("，")[0].split("/")[0].strip()
+        text_ratio = typography.get("text_ratio", "")
+        industry = case.business_line or case.industry or "未分类"
         primary = color.get("primary", "")
 
-        if lt:
-            layout_c[lt] += 1
-        if al:
-            align_c[al] += 1
+        if layout_type:
+            layout_counter[layout_type] += weight
+        if alignment:
+            alignment_counter[alignment] += weight
         if grid:
-            grid_c[grid] += 1
-        if ft:
-            font_c[ft] += 1
-        if tr:
-            textratio_c[tr] += 1
-        industry_c[ind] += 1
-        for s in style.get("style_tags", []) or []:
-            style_c[s] += 1
+            grid_counter[grid] += weight
+        if font:
+            font_counter[font] += weight
+        if text_ratio:
+            text_ratio_counter[text_ratio] += weight
+        industry_counter[industry] += weight
+        for tag in style.get("style_tags", []) or []:
+            style_counter[tag] += weight
         if primary:
-            primary_hex_c[primary] += 1
-            colorfam_c[_hex_to_family(primary)] += 1
+            primary_counter[primary] += weight
+            color_family_counter[_hex_to_family(primary)] += weight
 
         bucket = per_industry.setdefault(
-            ind, {"layout": Counter(), "style": Counter(), "colorfam": Counter(), "count": 0}
+            industry,
+            {
+                "layout": Counter(),
+                "style": Counter(),
+                "color": Counter(),
+                "weight": 0.0,
+                "cases": 0,
+            },
         )
-        bucket["count"] += 1
-        if lt:
-            bucket["layout"][lt] += 1
-        for s in style.get("style_tags", []) or []:
-            bucket["style"][s] += 1
+        bucket["weight"] += weight
+        bucket["cases"] += 1
+        if layout_type:
+            bucket["layout"][layout_type] += weight
+        for tag in style.get("style_tags", []) or []:
+            bucket["style"][tag] += weight
         if primary:
-            bucket["colorfam"][_hex_to_family(primary)] += 1
+            bucket["color"][_hex_to_family(primary)] += weight
 
-    # —— 提炼全局设计原则 ——
-    principles: list[str] = []
-    if n:
-        if layout_c:
-            lt, cnt = layout_c.most_common(1)[0]
+    principles = []
+    if weighted_total:
+        if layout_counter:
+            name, weight = layout_counter.most_common(1)[0]
             principles.append(
-                f"版式偏好：{round(cnt / n * 100)}% 的案例采用「{lt}」，是团队最常用的版面骨架。"
+                f"版式偏好：加权证据中 {round(weight / weighted_total * 100)}% "
+                f"指向「{name}」。"
             )
-        if style_c:
-            top_styles = "、".join(s for s, _ in style_c.most_common(3))
-            principles.append(f"风格基因：高频风格为 {top_styles}，构成团队视觉调性的主色调。")
-        if grid_c:
-            g, cnt = grid_c.most_common(1)[0]
-            principles.append(f"栅格习惯：最常用 {g}（{round(cnt / n * 100)}%）。")
-        if colorfam_c:
-            top_col = "、".join(f"{c}" for c, _ in colorfam_c.most_common(3))
-            principles.append(f"色彩倾向：主色多落在 {top_col} 色系。")
-        if font_c:
-            f, _ = font_c.most_common(1)[0]
-            principles.append(f"字体调性：以「{f}」为主。")
+        if style_counter:
+            names = "、".join(name for name, _ in style_counter.most_common(3))
+            principles.append(
+                f"风格基因：高权重风格为 {names}，优先反映人工确认、公司推荐与采用行为。"
+            )
+        if grid_counter:
+            name, weight = grid_counter.most_common(1)[0]
+            principles.append(
+                f"栅格习惯：最常用 {name}，加权占比 "
+                f"{round(weight / weighted_total * 100)}%。"
+            )
+        if color_family_counter:
+            names = "、".join(name for name, _ in color_family_counter.most_common(3))
+            principles.append(f"色彩倾向：高权重案例主要使用 {names} 色系。")
+        if font_counter:
+            principles.append(f"字体调性：以「{font_counter.most_common(1)[0][0]}」为主。")
 
-    # —— 分行业概论 ——
     by_industry = []
-    for ind, b in sorted(per_industry.items(), key=lambda x: -x[1]["count"]):
-        if b["count"] < 1:
-            continue
-        top_layout = b["layout"].most_common(1)
-        top_styles = [s for s, _ in b["style"].most_common(3)]
-        top_cols = [c for c, _ in b["colorfam"].most_common(3)]
-        principle = f"「{ind}」共 {b['count']} 例"
+    for industry, bucket in sorted(
+        per_industry.items(), key=lambda item: -item[1]["weight"]
+    ):
+        top_layout = bucket["layout"].most_common(1)
+        top_styles = [name for name, _ in bucket["style"].most_common(3)]
+        top_colors = [name for name, _ in bucket["color"].most_common(3)]
+        parts = [f"「{industry}」包含 {bucket['cases']} 个有效案例"]
         if top_layout:
-            principle += f"，多用 {top_layout[0][0]}"
+            parts.append(f"版式偏好 {top_layout[0][0]}")
         if top_styles:
-            principle += f"，风格偏 {'、'.join(top_styles)}"
-        if top_cols:
-            principle += f"，主色系 {'、'.join(top_cols)}"
+            parts.append(f"风格偏好 {'、'.join(top_styles)}")
+        if top_colors:
+            parts.append(f"色彩偏好 {'、'.join(top_colors)}")
         by_industry.append(
             {
-                "industry": ind,
-                "count": b["count"],
-                "top_layouts": _dist(b["layout"], b["count"], 3),
+                "industry": industry,
+                "count": bucket["cases"],
+                "weighted_count": round(bucket["weight"], 2),
+                "top_layouts": _distribution(
+                    bucket["layout"], bucket["weight"], 3
+                ),
                 "top_styles": top_styles,
-                "top_colors": top_cols,
-                "principle": principle,
+                "top_colors": top_colors,
+                "principle": "；".join(parts),
             }
         )
 
+    trusted_count = (
+        trust_counts.get("verified", 0)
+        + trust_counts.get("company_recommended", 0)
+    )
     return {
-        "total": n,
-        "enough": n >= ENOUGH_THRESHOLD,
+        "total": len(cases),
+        "contributing_cases": contributing_cases,
+        "weighted_total": round(weighted_total, 2),
+        "enough": trusted_count >= ENOUGH_THRESHOLD,
         "threshold": ENOUGH_THRESHOLD,
+        "trusted_count": trusted_count,
+        "trust_counts": dict(trust_counts),
+        "category_weights": {
+            key: round(value, 2) for key, value in category_weights.items()
+        },
+        "weight_rules": {
+            "trust": TRUST_WEIGHTS,
+            "preference": PREFERENCE_WEIGHTS,
+            "gold_project_multiplier": 1.5,
+        },
         "distributions": {
-            "layout": _dist(layout_c, n),
-            "alignment": _dist(align_c, n),
-            "grid": _dist(grid_c, n),
-            "style": _dist(style_c, n),
-            "font": _dist(font_c, n),
-            "industry": _dist(industry_c, n),
-            "text_ratio": _dist(textratio_c, n),
-            "color_family": _dist(colorfam_c, n),
+            "layout": _distribution(layout_counter, weighted_total),
+            "alignment": _distribution(alignment_counter, weighted_total),
+            "grid": _distribution(grid_counter, weighted_total),
+            "style": _distribution(style_counter, weighted_total),
+            "font": _distribution(font_counter, weighted_total),
+            "industry": _distribution(industry_counter, weighted_total),
+            "text_ratio": _distribution(text_ratio_counter, weighted_total),
+            "color_family": _distribution(color_family_counter, weighted_total),
         },
         "visual_dna": {
             "colors": [
-                {"hex": hexv, "count": cnt} for hexv, cnt in primary_hex_c.most_common(10)
+                {"hex": value, "count": round(weight, 2)}
+                for value, weight in primary_counter.most_common(10)
             ],
-            "top_layout": layout_c.most_common(1)[0][0] if layout_c else "",
-            "top_style": style_c.most_common(1)[0][0] if style_c else "",
-            "top_grid": grid_c.most_common(1)[0][0] if grid_c else "",
+            "top_layout": layout_counter.most_common(1)[0][0]
+            if layout_counter
+            else "",
+            "top_style": style_counter.most_common(1)[0][0]
+            if style_counter
+            else "",
+            "top_grid": grid_counter.most_common(1)[0][0] if grid_counter else "",
         },
         "principles": principles,
         "by_industry": by_industry,
@@ -203,48 +298,59 @@ def build_concept(db: Session) -> dict:
 
 
 def _digest(data: dict) -> str:
-    """把聚合数据压成给模型的简要文字，控制 token。"""
-    d = data["distributions"]
+    distributions = data["distributions"]
 
-    def fmt(items):
-        return "、".join(f"{x['name']}({x['pct']}%)" for x in items[:5]) or "无"
+    def format_items(items: list[dict]) -> str:
+        return "、".join(
+            f"{item['name']}({item['pct']}%)" for item in items[:5]
+        ) or "无"
 
-    lines = [
-        f"案例总数：{data['total']}",
-        f"版式分布：{fmt(d['layout'])}",
-        f"风格分布：{fmt(d['style'])}",
-        f"栅格分布：{fmt(d['grid'])}",
-        f"色系分布：{fmt(d['color_family'])}",
-        f"行业分布：{fmt(d['industry'])}",
-        f"字体调性：{fmt(d['font'])}",
-        "分行业：" + "；".join(b["principle"] for b in data["by_industry"][:6]),
-    ]
-    return "\n".join(lines)
+    return "\n".join(
+        [
+            f"原始案例：{data['total']}",
+            f"人工可信案例：{data['trusted_count']}",
+            f"加权证据量：{data['weighted_total']}",
+            f"版式：{format_items(distributions['layout'])}",
+            f"风格：{format_items(distributions['style'])}",
+            f"栅格：{format_items(distributions['grid'])}",
+            f"色系：{format_items(distributions['color_family'])}",
+            f"业务线：{format_items(distributions['industry'])}",
+            "分业务线：" + "；".join(
+                item["principle"] for item in data["by_industry"][:6]
+            ),
+        ]
+    )
 
 
 def synthesize_methodology(data: dict) -> dict:
-    """用文本模型把聚合数据写成成体系的设计方法论（需配置 LLM）。"""
     if not config.llm_enabled():
         return {"enabled": False, "methodology": ""}
-    if data.get("total", 0) == 0:
-        return {"enabled": True, "methodology": "", "note": "暂无案例，无法生成方法论。"}
-
-    digest = _digest(data)
-    messages = [
-        {
-            "role": "system",
-            "content": "你是资深设计总监，擅长把团队的视觉数据提炼成成体系、可执行的设计方法论。",
-        },
-        {
-            "role": "user",
-            "content": (
-                "以下是我们团队案例库拆解后的聚合统计，请据此写一份**该团队专属的设计视觉方法论**。"
-                "要求：成体系、有洞察、可落地；结合具体数据、避免空话；**精炼，控制在 900 字以内**。"
-                "用 Markdown，包含『整体视觉基调』『版式与栅格规范』『色彩与字体基因』"
-                "『分场景/行业建议』『可复用的设计原则清单』几个小节。\n\n"
-                f"【聚合统计】\n{digest}"
-            ),
-        },
-    ]
-    text = llm.chat(messages, temperature=0.5, max_tokens=1200)
+    if data.get("weighted_total", 0) == 0:
+        return {
+            "enabled": True,
+            "methodology": "",
+            "note": "暂无有效案例，无法生成方法论。",
+        }
+    text = llm.chat(
+        [
+            {
+                "role": "system",
+                "content": (
+                    "你是资深设计总监。只根据加权公司证据总结视觉方法论，"
+                    "明确区分稳定偏好与证据不足的推测。"
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "请基于以下统计输出900字以内的公司视觉方法论，使用Markdown，"
+                    "包括整体视觉基调、版式与栅格、色彩与字体、分业务线建议、"
+                    "可复用原则和禁用项。\n\n"
+                    + _digest(data)
+                ),
+            },
+        ],
+        temperature=0.4,
+        max_tokens=1200,
+    )
     return {"enabled": True, "methodology": text, "model": config.LLM_MODEL}

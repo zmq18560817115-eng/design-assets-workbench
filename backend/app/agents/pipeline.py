@@ -27,7 +27,11 @@ def _vlm_enabled() -> bool:
     return config.vlm_enabled()
 
 
-def run_pipeline(image_path: str, asset_category: str = "layout") -> AnalysisResult:
+def run_pipeline(
+    image_path: str,
+    asset_category: str = "layout",
+    enable_vlm: bool = True,
+) -> AnalysisResult:
     asset_category = normalize_category(asset_category)
     features = analyze(image_path)
 
@@ -83,7 +87,7 @@ def run_pipeline(image_path: str, asset_category: str = "layout") -> AnalysisRes
     )
 
     # 若配置了真实视觉大模型，用其语义理解增强结果（硬参数仍保留 Pillow 测量值）
-    if _vlm_enabled():
+    if enable_vlm and _vlm_enabled():
         try:
             result = _augment_with_vlm(image_path, features, result, asset_category)
         except Exception:

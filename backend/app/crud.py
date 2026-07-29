@@ -145,6 +145,7 @@ def analysis_to_dict(analysis: models.Analysis | None) -> dict | None:
 def serialize_case(case: models.Case) -> dict:
     return {
         "id": case.id,
+        "project_id": getattr(case, "project_id", None),
         "name": case.name,
         "content_type": getattr(case, "content_type", "") or "",
         "product_category": getattr(case, "product_category", "") or "",
@@ -312,6 +313,102 @@ def review_case(
             model_name=analysis.model_name or analysis.analyzed_by,
             prompt_version=analysis.prompt_version,
             editor=case.reviewer,
+        )
+    )
+    action = (
+        "recommend"
+        if review.trust_status == "company_recommended"
+        else "reject"
+        if review.trust_status == "rejected"
+        else "confirm"
+        if review.trust_status == "verified"
+        else "edit"
+    )
+    db.add(
+        models.CaseReview(
+            case_id=case.id,
+            project_id=case.project_id,
+            reviewer=case.reviewer,
+            action=action,
+            trust_status=case.trust_status,
+            decision=case.review_decision,
+            notes=case.review_notes,
+            corrected_payload=json.dumps(payload, ensure_ascii=False),
+            analysis_version=analysis.version,
+        )
+    )
+    if review.review_decision in {"adopt", "reject"}:
+        db.add(
+            models.PreferenceEvent(
+                case_id=case.id,
+                project_id=case.project_id,
+                event_type=review.review_decision,
+                value=1,
+                actor=case.reviewer,
+                context=case.review_notes,
+            )
+        )
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+def replace_analysis_from_result(
+    db: Session,
+    case: models.Case,
+    result: AnalysisResult,
+    source: str = "regenerate",
+) -> models.Case:
+    """Replace the current AI analysis while preserving the previous versions."""
+    analysis = case.analysis
+    if not analysis:
+        raise ValueError("案例没有分析记录")
+    case.name = result.name
+    case.content_type = result.basics.image_type
+    case.industry = result.basics.industry
+    case.scene = result.basics.scene
+    case.summary = result.summary
+    case.trust_status = "ai_unverified"
+    analysis.color = result.color.model_dump_json()
+    analysis.composition = result.composition.model_dump_json()
+    analysis.light = result.light.model_dump_json()
+    analysis.material = result.material
+    analysis.layout = result.layout.model_dump_json()
+    analysis.typography = result.typography.model_dump_json()
+    analysis.style = result.style.model_dump_json()
+    analysis.design_rules = result.design_rules.model_dump_json()
+    analysis.insights = result.insights.model_dump_json() if result.insights else ""
+    analysis.analyzed_by = result.analyzed_by
+    analysis.model_name = result.analyzed_by
+    analysis.prompt = result.prompt
+    analysis.review_status = "ai_unverified"
+    analysis.version = (analysis.version or 1) + 1
+
+    payload = {
+        "basics": result.basics.model_dump(),
+        "style": result.style.model_dump(),
+        "color": result.color.model_dump(),
+        "composition": result.composition.model_dump(),
+        "light": result.light.model_dump(),
+        "material": result.material,
+        "layout": result.layout.model_dump(),
+        "typography": result.typography.model_dump(),
+        "design_rules": result.design_rules.model_dump(),
+        "insights": result.insights.model_dump() if result.insights else None,
+        "prompt": result.prompt,
+        "summary": result.summary,
+        "name": result.name,
+        "tags": result.tags,
+        "analyzed_by": result.analyzed_by,
+    }
+    db.add(
+        models.AnalysisVersion(
+            case_id=case.id,
+            version=analysis.version,
+            payload=json.dumps(payload, ensure_ascii=False),
+            source=source,
+            model_name=result.analyzed_by,
+            prompt_version=analysis.prompt_version,
         )
     )
     db.commit()

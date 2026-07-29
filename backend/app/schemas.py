@@ -130,6 +130,7 @@ class TagOut(BaseModel):
 
 class CaseOut(BaseModel):
     id: int
+    project_id: int | None = None
     name: str
     content_type: str = ""
     product_category: str = ""
@@ -179,6 +180,35 @@ class CaseReviewInput(BaseModel):
     why_good: list[str] | None = None
     reusable_methods: list[str] | None = None
     prompt: str | None = None
+
+
+class ProjectCreate(BaseModel):
+    name: str
+    description: str = ""
+    business_line: str = ""
+    status: Literal["active", "archived"] = "active"
+    is_gold: bool = False
+
+
+class ProjectOut(ProjectCreate):
+    id: int
+    case_count: int = 0
+    verified_count: int = 0
+    recommended_count: int = 0
+    created_at: dt.datetime
+
+
+class CaseProjectInput(BaseModel):
+    project_id: int | None = None
+
+
+class PreferenceEventInput(BaseModel):
+    event_type: Literal[
+        "like", "dislike", "adopt", "reject", "favorite", "selected", "published"
+    ]
+    value: int = 1
+    actor: str = ""
+    context: str = ""
 
 
 class RequirementInput(BaseModel):

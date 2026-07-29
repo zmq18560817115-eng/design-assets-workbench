@@ -122,3 +122,6 @@ def _auto_migrate():
         if "reviewed_at" not in case_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE cases ADD COLUMN reviewed_at DATETIME"))
+        if "project_id" not in case_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE cases ADD COLUMN project_id INTEGER"))

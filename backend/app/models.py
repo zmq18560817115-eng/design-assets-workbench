@@ -7,6 +7,7 @@
 import datetime as dt
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -55,6 +56,7 @@ class Case(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     image_id = Column(Integer, ForeignKey("images.id", ondelete="CASCADE"))
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String, nullable=False)
     content_type = Column(String, default="", index=True)
     product_category = Column(String, default="", index=True)
@@ -76,6 +78,7 @@ class Case(Base):
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
     image = relationship("Image", back_populates="case")
+    project = relationship("Project", back_populates="cases")
     analysis = relationship(
         "Analysis", back_populates="case", uselist=False, cascade="all, delete-orphan"
     )
@@ -126,6 +129,64 @@ class AnalysisVersion(Base):
     prompt_version = Column(String, default="visual-analysis-v1")
     editor = Column(String, default="")
     created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class Project(Base):
+    """A curated business project grouping cases and golden-standard assets."""
+
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text, default="")
+    business_line = Column(String, default="", index=True)
+    status = Column(String, default="active", index=True)
+    is_gold = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+    cases = relationship("Case", back_populates="project")
+    reviews = relationship("CaseReview", back_populates="project")
+    preference_events = relationship("PreferenceEvent", back_populates="project")
+
+
+class CaseReview(Base):
+    """Append-only human decisions and corrected analysis snapshots."""
+
+    __tablename__ = "case_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
+    reviewer = Column(String, nullable=False, index=True)
+    action = Column(String, default="edit", index=True)
+    trust_status = Column(String, default="verified", index=True)
+    decision = Column(String, default="")
+    notes = Column(Text, default="")
+    corrected_payload = Column(Text, default="{}")
+    analysis_version = Column(Integer, default=1)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+    case = relationship("Case")
+    project = relationship("Project", back_populates="reviews")
+
+
+class PreferenceEvent(Base):
+    """Explicit business preference signals used for weighted style profiles."""
+
+    __tablename__ = "preference_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
+    event_type = Column(String, nullable=False, index=True)
+    value = Column(Integer, default=1)
+    actor = Column(String, default="")
+    context = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+    case = relationship("Case")
+    project = relationship("Project", back_populates="preference_events")
 
 
 class Tag(Base):

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { api, CaseOut, CaseReviewInput } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { api, CaseOut, CaseReviewInput, ProjectOut } from "@/lib/api";
 import { Card } from "@/components/ui";
 
 const lines = (items: string[]) => items.join("\n");
@@ -21,6 +21,9 @@ export function ReviewPanel({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [projects, setProjects] = useState<ProjectOut[]>([]);
+  const [preferences, setPreferences] = useState<Record<string, number>>({});
+  const [reanalyzing, setReanalyzing] = useState(false);
   const [form, setForm] = useState({
     reviewer: item.reviewer || "",
     trust_status: item.trust_status || "verified",
@@ -42,6 +45,11 @@ export function ReviewPanel({
     reusable_methods: lines(a?.design_rules.reusable_methods || []),
     prompt: a?.prompt || "",
   });
+
+  useEffect(() => {
+    api.projects().then(setProjects).catch(() => setProjects([]));
+    api.casePreferences(item.id).then(setPreferences).catch(() => setPreferences({}));
+  }, [item.id]);
 
   if (!a) return null;
 
@@ -76,6 +84,48 @@ export function ReviewPanel({
     }
   };
 
+  const setProject = async (value: string) => {
+    try {
+      const saved = await api.assignCaseProject(
+        item.id,
+        value ? Number(value) : null
+      );
+      onSaved(saved);
+      setMessage("项目归属已更新");
+    } catch {
+      setMessage("项目归属更新失败");
+    }
+  };
+
+  const preference = async (
+    event: "like" | "dislike" | "favorite" | "selected"
+  ) => {
+    try {
+      await api.addPreference(item.id, event, form.reviewer);
+      setPreferences((current) => ({
+        ...current,
+        [event]: (current[event] || 0) + 1,
+      }));
+      setMessage("偏好已记录");
+    } catch {
+      setMessage("偏好记录失败");
+    }
+  };
+
+  const reanalyze = async () => {
+    setReanalyzing(true);
+    setMessage("正在调用模型重新拆解，可能需要几分钟…");
+    try {
+      const saved = await api.reanalyzeCase(item.id);
+      onSaved(saved);
+      setMessage(`重新拆解完成，当前版本 v${saved.analysis?.version || ""}`);
+    } catch {
+      setMessage("重新拆解失败，请检查模型服务");
+    } finally {
+      setReanalyzing(false);
+    }
+  };
+
   const inputClass =
     "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-accent";
 
@@ -95,6 +145,48 @@ export function ReviewPanel({
       </button>
       {open && (
         <div className="mt-5 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <select
+              value={item.project_id || ""}
+              onChange={(e) => setProject(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">未归属项目</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.is_gold ? "黄金项目 · " : ""}
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={reanalyze}
+              disabled={reanalyzing}
+              className="rounded-xl border border-accent px-4 py-2 text-sm text-accent disabled:opacity-50"
+            >
+              {reanalyzing ? "重新拆解中…" : "调用模型重新拆解"}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["like", "符合倾向"],
+              ["dislike", "不符合倾向"],
+              ["favorite", "收藏参考"],
+              ["selected", "已进入方案"],
+            ].map(([event, label]) => (
+              <button
+                key={event}
+                onClick={() =>
+                  preference(
+                    event as "like" | "dislike" | "favorite" | "selected"
+                  )
+                }
+                className="rounded-full border border-line bg-white px-3 py-1.5 text-xs text-gray-600 hover:border-accent"
+              >
+                {label} {preferences[event] ? `· ${preferences[event]}` : ""}
+              </button>
+            ))}
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <input
               value={form.reviewer}

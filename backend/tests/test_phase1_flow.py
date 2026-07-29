@@ -130,6 +130,53 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(len(versions.json()), 2)
         self.assertEqual(versions.json()[0]["source"], "manual")
 
+        project = self.client.post(
+            "/api/projects",
+            json={
+                "name": "黄金样本测试项目",
+                "description": "人工确认的业务标准案例",
+                "business_line": "母婴",
+                "status": "active",
+                "is_gold": True,
+            },
+        )
+        self.assertEqual(project.status_code, 200, project.text)
+        project_id = project.json()["id"]
+        assigned = self.client.patch(
+            f"/api/cases/{case['id']}/project",
+            json={"project_id": project_id},
+        )
+        self.assertEqual(assigned.status_code, 200)
+        self.assertEqual(assigned.json()["project_id"], project_id)
+
+        preference = self.client.post(
+            f"/api/cases/{case['id']}/preferences",
+            json={
+                "event_type": "favorite",
+                "value": 1,
+                "actor": "测试设计师",
+                "context": "适合作为新品种草参考",
+            },
+        )
+        self.assertEqual(preference.status_code, 200, preference.text)
+        preference_summary = self.client.get(
+            f"/api/cases/{case['id']}/preferences"
+        )
+        self.assertEqual(preference_summary.json()["favorite"], 1)
+
+        projects = self.client.get("/api/projects")
+        self.assertEqual(projects.status_code, 200)
+        self.assertEqual(projects.json()[0]["case_count"], 1)
+        concept = self.client.get("/api/concept")
+        self.assertEqual(concept.status_code, 200, concept.text)
+        self.assertGreater(concept.json()["weighted_total"], 0)
+        self.assertIn("trust_counts", concept.json())
+
+        reanalyzed = self.client.post(f"/api/cases/{case['id']}/reanalyze")
+        self.assertEqual(reanalyzed.status_code, 200, reanalyzed.text)
+        self.assertEqual(reanalyzed.json()["analysis"]["version"], 3)
+        self.assertEqual(reanalyzed.json()["trust_status"], "ai_unverified")
+
         text_search = self.client.post(
             "/api/search",
             data={"query_text": "吸奶器", "product": "吸奶器"},

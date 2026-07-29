@@ -58,7 +58,12 @@ def discover(root: Path) -> list[dict]:
     return items
 
 
-def import_one(item: dict) -> str:
+def import_one(
+    item: dict,
+    *,
+    enable_vlm: bool = True,
+    project_id: int | None = None,
+) -> str:
     db = SessionLocal()
     copied_path: Path | None = None
     try:
@@ -68,6 +73,16 @@ def import_one(item: dict) -> str:
             db, phash, asset_category=item["category"]
         )
         if duplicate:
+            if project_id is not None:
+                existing = (
+                    db.query(models.Case)
+                    .filter(models.Case.id == duplicate)
+                    .first()
+                )
+                if existing and existing.project_id != project_id:
+                    existing.project_id = project_id
+                    db.commit()
+                    return "assigned"
             return "skipped"
 
         stored_name = f"{uuid.uuid4().hex}{source.suffix.lower()}"
@@ -75,7 +90,9 @@ def import_one(item: dict) -> str:
         shutil.copy2(source, copied_path)
 
         result = run_pipeline(
-            str(copied_path), asset_category=item["category"]
+            str(copied_path),
+            asset_category=item["category"],
+            enable_vlm=enable_vlm,
         )
         image = models.Image(
             url=f"/uploads/{stored_name}",
@@ -90,13 +107,16 @@ def import_one(item: dict) -> str:
         )
         db.add(image)
         db.flush()
-        crud.create_case_from_analysis(
+        case = crud.create_case_from_analysis(
             db,
             image,
             result,
             asset_category=item["category"],
             asset_subcategory=item["subcategory"],
         )
+        if project_id is not None:
+            case.project_id = project_id
+            db.commit()
         return "imported"
     except Exception:
         db.rollback()
@@ -117,6 +137,13 @@ def main() -> int:
     )
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--sample-per-folder", type=int, default=0)
+    parser.add_argument(
+        "--local-only",
+        action="store_true",
+        help="Use local heuristic analysis without paid model calls.",
+    )
+    parser.add_argument("--project-name", default="")
     parser.add_argument(
         "--category", choices=["layout", "style", "color", "photo"]
     )
@@ -128,6 +155,15 @@ def main() -> int:
     items = discover(args.root)
     if args.category:
         items = [item for item in items if item["category"] == args.category]
+    if args.sample_per_folder > 0:
+        sampled = []
+        folder_counts = Counter()
+        for item in items:
+            if folder_counts[item["folder"]] >= args.sample_per_folder:
+                continue
+            sampled.append(item)
+            folder_counts[item["folder"]] += 1
+        items = sampled
     if args.limit > 0:
         items = items[: args.limit]
 
@@ -144,11 +180,38 @@ def main() -> int:
         return 0
 
     init_db()
+    project_id = None
+    if args.project_name:
+        db = SessionLocal()
+        try:
+            project = (
+                db.query(models.Project)
+                .filter(models.Project.name == args.project_name)
+                .first()
+            )
+            if not project:
+                project = models.Project(
+                    name=args.project_name,
+                    description="从本地素材库分层抽样建立的公司黄金项目候选集",
+                    status="active",
+                    is_gold=True,
+                )
+                db.add(project)
+                db.commit()
+                db.refresh(project)
+            project_id = project.id
+            print(f"归属项目：{project.name} (#{project.id})")
+        finally:
+            db.close()
     stats = Counter()
     try:
         for index, item in enumerate(items, 1):
             try:
-                state = import_one(item)
+                state = import_one(
+                    item,
+                    enable_vlm=not args.local_only,
+                    project_id=project_id,
+                )
                 stats[state] += 1
                 print(
                     f"[{index}/{len(items)}] {state}: "

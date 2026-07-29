@@ -67,6 +67,7 @@ export interface AnalysisData {
 
 export interface CaseOut {
   id: number;
+  project_id: number | null;
   name: string;
   content_type: string;
   product_category: string;
@@ -176,6 +177,35 @@ export const api = {
     fetch(`/api/cases/${id}/versions`, { cache: "no-store" }).then((r) =>
       j<CaseVersion[]>(r)
     ),
+  projects: () =>
+    fetch("/api/projects", { cache: "no-store" }).then((r) =>
+      j<ProjectOut[]>(r)
+    ),
+  assignCaseProject: (id: number | string, projectId: number | null) =>
+    fetch(`/api/cases/${id}/project`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: projectId }),
+    }).then((r) => j<CaseOut>(r)),
+  addPreference: (
+    id: number | string,
+    event_type: PreferenceEventType,
+    actor = "",
+    context = ""
+  ) =>
+    fetch(`/api/cases/${id}/preferences`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_type, value: 1, actor, context }),
+    }).then((r) => j<{ id: number }>(r)),
+  casePreferences: (id: number | string) =>
+    fetch(`/api/cases/${id}/preferences`, { cache: "no-store" }).then((r) =>
+      j<Record<string, number>>(r)
+    ),
+  reanalyzeCase: (id: number | string) =>
+    fetch(`/api/cases/${id}/reanalyze`, { method: "POST" }).then((r) =>
+      j<CaseOut>(r)
+    ),
   tags: () =>
     fetch(`/api/tags`, { cache: "no-store" }).then((r) =>
       j<{ id: number; name: string; category: string; count: number }[]>(r)
@@ -240,6 +270,28 @@ export interface CaseVersion {
   editor: string;
   created_at: string;
 }
+
+export interface ProjectOut {
+  id: number;
+  name: string;
+  description: string;
+  business_line: string;
+  status: string;
+  is_gold: boolean;
+  case_count: number;
+  verified_count: number;
+  recommended_count: number;
+  created_at: string;
+}
+
+export type PreferenceEventType =
+  | "like"
+  | "dislike"
+  | "adopt"
+  | "reject"
+  | "favorite"
+  | "selected"
+  | "published";
 
 export interface SearchInput {
   query_text?: string;

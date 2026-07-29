@@ -10,6 +10,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Response, Uploa
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from . import batch, concept, config, crud, imagehash, llm, models, overlay
 from . import platform as plat
@@ -20,6 +21,10 @@ from .schemas import (
     AnalysisResult,
     CaseOut,
     CaseReviewInput,
+    CaseProjectInput,
+    PreferenceEventInput,
+    ProjectCreate,
+    ProjectOut,
     SearchHit,
     VisualDirection,
 )
@@ -229,6 +234,32 @@ def review_case(
     return crud.serialize_case(case)
 
 
+@app.post("/api/cases/{case_id}/confirm", response_model=CaseOut)
+def confirm_case(
+    case_id: int,
+    review: CaseReviewInput,
+    db: Session = Depends(get_db),
+):
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    confirmed = review.model_copy(update={"trust_status": "verified"})
+    return crud.serialize_case(crud.review_case(db, case, confirmed))
+
+
+@app.post("/api/cases/{case_id}/recommend", response_model=CaseOut)
+def recommend_case(
+    case_id: int,
+    review: CaseReviewInput,
+    db: Session = Depends(get_db),
+):
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    recommended = review.model_copy(update={"trust_status": "company_recommended"})
+    return crud.serialize_case(crud.review_case(db, case, recommended))
+
+
 @app.get("/api/cases/{case_id}/versions")
 def case_versions(case_id: int, db: Session = Depends(get_db)):
     exists = db.query(models.Case.id).filter(models.Case.id == case_id).first()
@@ -251,6 +282,127 @@ def case_versions(case_id: int, db: Session = Depends(get_db)):
         }
         for item in versions
     ]
+
+
+@app.post("/api/projects", response_model=ProjectOut)
+def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
+    if not payload.name.strip():
+        raise HTTPException(status_code=400, detail="项目名称不能为空")
+    project = models.Project(**payload.model_dump())
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return {
+        **payload.model_dump(),
+        "id": project.id,
+        "case_count": 0,
+        "verified_count": 0,
+        "recommended_count": 0,
+        "created_at": project.created_at,
+    }
+
+
+@app.get("/api/projects", response_model=list[ProjectOut])
+def list_projects(db: Session = Depends(get_db)):
+    projects = db.query(models.Project).order_by(models.Project.created_at.desc()).all()
+    result = []
+    for project in projects:
+        counts = dict(
+            db.query(models.Case.trust_status, func.count(models.Case.id))
+            .filter(models.Case.project_id == project.id)
+            .group_by(models.Case.trust_status)
+            .all()
+        )
+        result.append(
+            {
+                "id": project.id,
+                "name": project.name,
+                "description": project.description,
+                "business_line": project.business_line,
+                "status": project.status,
+                "is_gold": project.is_gold,
+                "case_count": sum(counts.values()),
+                "verified_count": counts.get("verified", 0),
+                "recommended_count": counts.get("company_recommended", 0),
+                "created_at": project.created_at,
+            }
+        )
+    return result
+
+
+@app.patch("/api/cases/{case_id}/project", response_model=CaseOut)
+def assign_case_project(
+    case_id: int,
+    payload: CaseProjectInput,
+    db: Session = Depends(get_db),
+):
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    if payload.project_id is not None:
+        project = (
+            db.query(models.Project)
+            .filter(models.Project.id == payload.project_id)
+            .first()
+        )
+        if not project:
+            raise HTTPException(status_code=404, detail="项目不存在")
+    case.project_id = payload.project_id
+    db.commit()
+    db.refresh(case)
+    return crud.serialize_case(case)
+
+
+@app.post("/api/cases/{case_id}/preferences")
+def add_preference_event(
+    case_id: int,
+    payload: PreferenceEventInput,
+    db: Session = Depends(get_db),
+):
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    event = models.PreferenceEvent(
+        case_id=case.id,
+        project_id=case.project_id,
+        **payload.model_dump(),
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return {"id": event.id, **payload.model_dump(), "created_at": event.created_at}
+
+
+@app.get("/api/cases/{case_id}/preferences")
+def case_preferences(case_id: int, db: Session = Depends(get_db)):
+    exists = db.query(models.Case.id).filter(models.Case.id == case_id).first()
+    if not exists:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    rows = (
+        db.query(models.PreferenceEvent.event_type, func.sum(models.PreferenceEvent.value))
+        .filter(models.PreferenceEvent.case_id == case_id)
+        .group_by(models.PreferenceEvent.event_type)
+        .all()
+    )
+    return {event_type: int(value or 0) for event_type, value in rows}
+
+
+@app.post("/api/cases/{case_id}/reanalyze", response_model=CaseOut)
+def reanalyze_case(case_id: int, db: Session = Depends(get_db)):
+    case = db.query(models.Case).filter(models.Case.id == case_id).first()
+    if not case or not case.image:
+        raise HTTPException(status_code=404, detail="案例或图片不存在")
+    image_path = config.UPLOAD_DIR / Path(case.image.url).name
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="原始图片文件不存在")
+    try:
+        result = run_pipeline(
+            str(image_path), asset_category=case.asset_category or "layout"
+        )
+        case = crud.replace_analysis_from_result(db, case, result)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"重新拆解失败：{exc}") from exc
+    return crud.serialize_case(case)
 
 
 @app.get("/api/cases/{case_id}/overlay")
