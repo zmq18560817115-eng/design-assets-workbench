@@ -74,6 +74,8 @@ npm run dev
 - 提供骨架读取、重新生成、人工修订与确认 API。
 - 案例详情页提供排版骨架校正台：默认以白底、单色描边的“纯框架图”表达模块位置、
   大小和层级，不模拟真实图片与文案内容。
+- 首版骨架基于原图内容边界、纵向区段和列组检测生成；检测不足时才回退方向模板，
+  并在 Prompt 版本中明确区分。
 - 可按需显示模块标签和焦点区；人工校正、确认或重新生成都会保留历史版本。
 - 已确认骨架可在案例详情中沉淀为排版模式；`/patterns` 提供模式库框架预览、
   版本状态和来源案例追溯。
@@ -113,6 +115,15 @@ export VISION_MODEL=...
 | POST | `/api/search` | 文本、筛选和参考图混合检索 |
 | GET | `/api/cases` | 浏览素材库 |
 | GET | `/api/cases/{id}` | 案例拆解详情 |
+| GET/POST | `/api/cases/{id}/layout-blueprints` | 骨架版本读取／生成 |
+| POST | `/api/layout-blueprints/{id}/revise` | 保存人工骨架校正 |
+| POST | `/api/layout-blueprints/{id}/verify` | 确认骨架版本 |
+| GET/POST | `/api/layout-patterns` | 查询／沉淀排版模式 |
+| POST | `/api/layout-patterns/{id}/verify` | 确认模式版本 |
+| GET/POST | `/api/business-requirements` | 查询／保存结构化需求 |
+| POST | `/api/business-requirements/{id}/match` | 场景化匹配模式与案例 |
+| POST | `/api/business-requirements/{id}/directions/generate` | 生成三个排版方向 |
+| GET/POST | `/api/layout-directions/{id}/feedback` | 查询／记录选择与调整 |
 
 ## 当前检索说明
 

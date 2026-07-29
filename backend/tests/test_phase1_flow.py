@@ -92,7 +92,9 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(auto_blueprint["version"], 1)
         self.assertEqual(auto_blueprint["canvas_ratio"], "2:3")
         self.assertEqual(auto_blueprint["orientation"], "portrait")
-        self.assertEqual(auto_blueprint["module_count"], 4)
+        self.assertGreaterEqual(auto_blueprint["module_count"], 2)
+        self.assertLessEqual(auto_blueprint["module_count"], 12)
+        self.assertIn("region-detection", auto_blueprint["model_name"])
         self.assertTrue(auto_blueprint["model_name"])
         self.assertTrue(auto_blueprint["prompt_version"])
 
@@ -346,6 +348,25 @@ class PhaseOneFlowTest(unittest.TestCase):
             confirmed_feedback.json()["adjusted_modules_json"],
             adjusted_modules,
         )
+        invalid_adjustment = self.client.post(
+            f"/api/layout-directions/{first_direction['id']}/feedback",
+            json={
+                "action": "adjusted_confirmed",
+                "actor": "业务负责人",
+                "adjusted_modules_json": [
+                    {
+                        "id": "outside",
+                        "type": "title",
+                        "x": 0.9,
+                        "y": 0.1,
+                        "width": 0.2,
+                        "height": 0.1,
+                        "priority": 1,
+                    }
+                ],
+            },
+        )
+        self.assertEqual(invalid_adjustment.status_code, 422)
         feedback_history = self.client.get(
             f"/api/layout-directions/{first_direction['id']}/feedback"
         )
@@ -367,11 +388,38 @@ class PhaseOneFlowTest(unittest.TestCase):
             regenerated_directions.json()["generation_version"],
             2,
         )
+        with (
+            patch("app.crud.config.LLM_API_KEY", "test-key"),
+            patch("app.crud.config.LLM_MODEL", "test-model"),
+            patch(
+                "app.crud.llm.chat_json",
+                side_effect=RuntimeError("simulated provider timeout"),
+            ),
+        ):
+            fallback_directions = self.client.post(
+                f"/api/business-requirements/{requirement.json()['id']}/directions/generate"
+            )
+        self.assertEqual(
+            fallback_directions.status_code,
+            200,
+            fallback_directions.text,
+        )
+        self.assertEqual(
+            fallback_directions.json()["generation_version"],
+            3,
+        )
+        for direction in fallback_directions.json()["directions"]:
+            self.assertEqual(direction["generation_mode"], "heuristic")
+            self.assertEqual(
+                direction["model_name"],
+                "heuristic-layout-direction",
+            )
+            self.assertIn("RuntimeError", direction["failure_reason"])
         direction_history = self.client.get(
             f"/api/business-requirements/{requirement.json()['id']}/directions"
         )
         self.assertEqual(direction_history.status_code, 200)
-        self.assertEqual(len(direction_history.json()), 6)
+        self.assertEqual(len(direction_history.json()), 9)
         generated = self.client.post(
             f"/api/cases/{case['id']}/layout-blueprints/generate"
         )

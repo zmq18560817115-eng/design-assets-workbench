@@ -62,8 +62,8 @@ from .schemas import (
 
 app = FastAPI(
     title="设计灵感资产库 API",
-    description="素材进入 → AI拆解 → 多模态检索 → 案例选择",
-    version="0.1.0",
+    description="标准化排版拆解、模式沉淀与业务排版意向方向系统",
+    version="1.0.0",
 )
 
 app.add_middleware(

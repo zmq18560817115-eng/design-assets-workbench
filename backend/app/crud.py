@@ -11,6 +11,7 @@ from PIL import Image as PILImage
 from sqlalchemy.orm import Session
 
 from . import config, llm, models
+from .vision_provider import analyze_layout_regions
 from .schemas import (
     AnalysisResult,
     CaseReviewInput,
@@ -46,6 +47,131 @@ def _image_canvas(image: models.Image | None) -> tuple[int, int]:
 def _canvas_ratio(width: int, height: int) -> str:
     divisor = math.gcd(max(1, width), max(1, height))
     return f"{max(1, width) // divisor}:{max(1, height) // divisor}"
+
+
+def _merge_region_bands(
+    bands: list[tuple[float, float]],
+    limit: int = 6,
+) -> list[tuple[float, float]]:
+    clean = [
+        (max(0.0, start), min(1.0, end))
+        for start, end in bands
+        if end - start >= 0.018
+    ]
+    if len(clean) <= limit:
+        return clean
+    chunk_size = math.ceil(len(clean) / limit)
+    return [
+        (chunk[0][0], chunk[-1][1])
+        for offset in range(0, len(clean), chunk_size)
+        if (chunk := clean[offset : offset + chunk_size])
+    ]
+
+
+def _edge_bands_to_boxes(
+    bands: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    """Pair projected leading/trailing edges into visible content boxes."""
+    ordered = sorted(bands)
+    if len(ordered) < 2:
+        return ordered
+    boxes = []
+    for offset in range(0, len(ordered) - 1, 2):
+        start = ordered[offset][0]
+        end = ordered[offset + 1][1]
+        if end > start:
+            boxes.append((start, end))
+    if len(ordered) % 2:
+        start, end = ordered[-1]
+        boxes.append((max(0, start - 0.01), min(1, end + 0.01)))
+    return boxes
+
+
+def _detected_layout_modules(
+    image: models.Image,
+    alignment: str,
+) -> list[dict]:
+    path = config.UPLOAD_DIR / Path(image.url or "").name
+    regions = analyze_layout_regions(str(path))
+    top, left, bottom, right = regions["bbox"]
+    content_width = max(0.05, right - left)
+    row_bands = _merge_region_bands(
+        _edge_bands_to_boxes(regions.get("row_bands") or [])
+    )
+    col_bands = _merge_region_bands(
+        _edge_bands_to_boxes(regions.get("col_bands") or []),
+        limit=4,
+    )
+    if not row_bands:
+        return []
+
+    row_bands = [
+        (max(top, start), min(bottom, end))
+        for start, end in row_bands
+        if min(bottom, end) - max(top, start) >= 0.018
+    ]
+    if not row_bands:
+        return []
+    largest_index = max(
+        range(len(row_bands)),
+        key=lambda index: row_bands[index][1] - row_bands[index][0],
+    )
+    modules: list[dict] = []
+    for index, (start, end) in enumerate(row_bands):
+        height = end - start
+        should_split = (
+            index == largest_index
+            and 2 <= len(col_bands) <= 4
+            and height >= 0.08
+        )
+        if should_split:
+            for col_index, (col_start, col_end) in enumerate(col_bands, 1):
+                x = max(left, col_start)
+                width = min(right, col_end) - x
+                if width < 0.025:
+                    continue
+                modules.append(
+                    {
+                        "id": f"module-row-{index + 1}-col-{col_index}",
+                        "type": "product_image",
+                        "x": round(x, 4),
+                        "y": round(start, 4),
+                        "width": round(width, 4),
+                        "height": round(height, 4),
+                        "priority": len(modules) + 1,
+                        "alignment": alignment or "center",
+                        "description": f"主内容分栏 {col_index}",
+                    }
+                )
+            continue
+        module_type = (
+            "title"
+            if index == 0
+            else "cta"
+            if index == len(row_bands) - 1 and height <= 0.12
+            else "product_image"
+            if index == largest_index
+            else "supporting_text"
+        )
+        modules.append(
+            {
+                "id": f"module-row-{index + 1}",
+                "type": module_type,
+                "x": round(left, 4),
+                "y": round(start, 4),
+                "width": round(content_width, 4),
+                "height": round(height, 4),
+                "priority": len(modules) + 1,
+                "alignment": alignment or "center",
+                "description": {
+                    "title": "检测到的顶部标题框",
+                    "product_image": "检测到的主视觉框",
+                    "supporting_text": "检测到的辅助信息框",
+                    "cta": "检测到的底部引导框",
+                }[module_type],
+            }
+        )
+    return modules[:12]
 
 
 def _layout_blueprint_model(
@@ -101,7 +227,7 @@ def build_initial_layout_blueprint(
             ("cta", 0.32, 0.88, 0.36, 0.06, "行动引导区域"),
         ],
     }
-    modules = [
+    template_modules = [
         {
             "id": f"module-{index}",
             "type": module_type,
@@ -122,7 +248,28 @@ def build_initial_layout_blueprint(
             description,
         ) in enumerate(templates[orientation], 1)
     ]
-    visual = next(module for module in modules if module["type"] == "product_image")
+    detected_modules: list[dict] = []
+    try:
+        detected_modules = _detected_layout_modules(
+            image,
+            result.layout.alignment,
+        )
+    except Exception:
+        detected_modules = []
+    used_detection = len(detected_modules) >= 2
+    modules = detected_modules if used_detection else template_modules
+    visual = max(
+        (
+            module
+            for module in modules
+            if module["type"] == "product_image"
+        ),
+        key=lambda module: module["width"] * module["height"],
+        default=max(
+            modules,
+            key=lambda module: module["width"] * module["height"],
+        ),
+    )
     raw_grid = result.layout.grid_columns or ""
     grid_match = re.search(r"\d+", raw_grid)
     grid_columns = max(1, min(24, int(grid_match.group()))) if grid_match else 6
@@ -143,15 +290,20 @@ def build_initial_layout_blueprint(
     )
     source_model = (result.analyzed_by or "").strip()
     heuristic_sources = {"", "启发式规则", "heuristic"}
-    model_name = (
+    source_label = (
         source_model
         if source_model not in heuristic_sources
-        else "heuristic-layout-blueprint"
+        else "heuristic"
+    )
+    model_name = (
+        f"region-detection+{source_label}"
+        if used_detection
+        else f"template-fallback+{source_label}"
     )
     prompt_version = (
-        "layout-blueprint-from-analysis-v1"
-        if source_model not in heuristic_sources
-        else "layout-blueprint-heuristic-v1"
+        "layout-blueprint-region-detection-v2"
+        if used_detection
+        else "layout-blueprint-template-fallback-v2"
     )
     return LayoutBlueprintInput(
         canvas_ratio=_canvas_ratio(width, height),
@@ -760,6 +912,7 @@ def generate_layout_directions(
                                 },
                             },
                             ensure_ascii=False,
+                            default=str,
                         ),
                     },
                 ],
