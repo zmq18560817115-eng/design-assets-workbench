@@ -251,6 +251,7 @@ class VisualDirection(BaseModel):
     preference_applied: bool = False
     company_evidence: dict[str, Any] = {}
     company_maturity: str = "insufficient"
+    company_usage_mode: str = "reference_only"
     evidence_case_ids: list[int] = []
     run_id: int = 0
 

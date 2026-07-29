@@ -439,6 +439,11 @@ export interface TrainingReadiness {
     | "operational";
   score: number;
   next_action: string;
+  service_mode: "reference_only" | "pilot" | "operational";
+  review_candidate_ids: number[];
+  weekly_actions: string[];
+  owner_role: string;
+  acceptance_criteria: string[];
   gates: Record<
     | "company_assets"
     | "model_analyzed"
@@ -492,6 +497,8 @@ export interface ConceptData {
   company_published_count: number;
   model_analyzed_count: number;
   evidence_count: number;
+  service_run_count: number;
+  adopted_run_count: number;
   trust_counts: Record<string, number>;
   category_weights: Record<string, number>;
   distributions: Record<string, DistItem[]>;
@@ -542,6 +549,9 @@ export interface RecommendResult {
     company_published_cases: number;
     model_analyzed_cases: number;
     evidence_cases: number;
+    service_runs: number;
+    adopted_runs: number;
+    usage_mode: "reference_only" | "pilot" | "operational";
     layouts: string[];
     styles: string[];
     grids: string[];
@@ -552,6 +562,7 @@ export interface RecommendResult {
     industry_profile?: Record<string, unknown> | null;
   };
   company_maturity: "insufficient" | "growing" | "strong";
+  company_usage_mode: "reference_only" | "pilot" | "operational";
   evidence_case_ids: number[];
 }
 

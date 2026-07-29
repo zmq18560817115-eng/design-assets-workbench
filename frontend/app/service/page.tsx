@@ -10,6 +10,12 @@ const maturityLabels = {
   strong: "公司画像稳定",
 };
 
+const usageModeLabels = {
+  reference_only: "仅供方向参考，尚未完成人工训练",
+  pilot: "业务试运行，需要逐次回填结果",
+  operational: "已达到正式业务服务门槛",
+};
+
 export default function ServicePage() {
   const [text, setText] = useState("");
   const [industry, setIndustry] = useState("");
@@ -234,6 +240,9 @@ export default function ServicePage() {
                   {result.company_evidence.company_published_cases}／人工确认{" "}
                   {result.company_evidence.trusted_cases}／模型拆解{" "}
                   {result.company_evidence.model_analyzed_cases}）
+                </div>
+                <div className="mt-2 text-xs font-medium text-gray-700">
+                  使用范围：{usageModeLabels[result.company_usage_mode]}
                 </div>
               </div>
               <Link href="/training" className="text-sm text-accent">

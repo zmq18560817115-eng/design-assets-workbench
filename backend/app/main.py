@@ -558,6 +558,14 @@ def training_readiness(db: Session = Depends(get_db)):
             if case.trust_status == "company_recommended"
         )
         adopted_runs = sum(1 for run in line_runs if run.status == "adopted")
+        review_candidates = [
+            case.id
+            for case in line_cases
+            if case.trust_status == "ai_unverified"
+            and case.analysis
+            and case.analysis.model_name
+            and case.analysis.model_name != "启发式规则"
+        ][:3]
         gates = {
             "company_assets": {
                 "current": published,
@@ -611,6 +619,31 @@ def training_readiness(db: Session = Depends(get_db)):
         else:
             stage = "operational"
             next_action = "已达到初步可运营标准，继续按月复盘和扩充"
+        service_mode = (
+            "operational"
+            if stage == "operational"
+            else "pilot"
+            if verified >= 3 and recommended >= 1
+            else "reference_only"
+        )
+        weekly_actions = {
+            "collect": ["补齐代表性公司成品", "检查品类和业务线标注"],
+            "analyze": ["选择差异明显的样本", "调用视觉模型完成结构化拆解"],
+            "verify": ["设计负责人逐张核对模型结论", "填写希望延续与应避免规则"],
+            "curate": ["从已确认样本中选出黄金标准", "标记为公司推荐"],
+            "operate": ["带真实需求生成设计方向", "保存采用、拒绝或修改反馈"],
+            "feedback": ["补录实际上线结果", "复盘生成建议与最终成品差异"],
+            "operational": ["每月补充新成品", "每月复盘低采用规则并清理过时偏好"],
+        }[stage]
+        owner_role = {
+            "collect": "素材管理员",
+            "analyze": "素材管理员 / AI 运营",
+            "verify": "设计负责人",
+            "curate": "设计总监 / 业务负责人",
+            "operate": "需求发起人 / 设计师",
+            "feedback": "业务负责人",
+            "operational": "素材库运营负责人",
+        }[stage]
         score = round(
             20 * min(published / 10, 1)
             + 20 * min(model_analyzed / 3, 1)
@@ -626,6 +659,16 @@ def training_readiness(db: Session = Depends(get_db)):
                 "score": score,
                 "next_action": next_action,
                 "gates": gates,
+                "service_mode": service_mode,
+                "review_candidate_ids": review_candidates,
+                "weekly_actions": weekly_actions,
+                "owner_role": owner_role,
+                "acceptance_criteria": [
+                    "模型拆解与原图一致",
+                    "延续项和避坑项均有明确业务理由",
+                    "公司推荐样本可作为同品类设计基准",
+                    "真实服务结果必须回填采用状态",
+                ],
             }
         )
     return result
@@ -1083,6 +1126,7 @@ async def recommend_direction(
         preference_applied=company_profile["applied"],
         company_evidence=company_profile,
         company_maturity=company_profile["evidence_level"],
+        company_usage_mode=company_profile["usage_mode"],
         evidence_case_ids=[
             item.case.id
             for item in ranked_references

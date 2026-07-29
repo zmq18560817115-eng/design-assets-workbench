@@ -134,6 +134,11 @@ def build_concept(db: Session, business_line: str = "") -> dict:
             for case in cases
             if (case.business_line or case.industry or "").strip() == scope
         ]
+    run_query = db.query(models.ServiceRun)
+    if scope:
+        run_query = run_query.filter(models.ServiceRun.industry == scope)
+    service_runs = run_query.all()
+    adopted_runs = sum(1 for run in service_runs if run.status == "adopted")
     case_ids = {case.id for case in cases}
     keep_counter = Counter()
     avoid_counter = Counter()
@@ -318,6 +323,8 @@ def build_concept(db: Session, business_line: str = "") -> dict:
         "company_published_count": company_published_count,
         "model_analyzed_count": model_analyzed_count,
         "evidence_count": evidence_count,
+        "service_run_count": len(service_runs),
+        "adopted_run_count": adopted_runs,
         "trust_counts": dict(trust_counts),
         "category_weights": {
             key: round(value, 2) for key, value in category_weights.items()
@@ -419,6 +426,21 @@ def recommendation_context(data: dict, industry: str = "") -> dict:
         None,
     )
     guidance = data.get("explicit_guidance") or {}
+    service_runs = int(data.get("service_run_count") or 0)
+    adopted_runs = int(data.get("adopted_run_count") or 0)
+    recommended_cases = int(
+        (data.get("trust_counts") or {}).get("company_recommended") or 0
+    )
+    usage_mode = (
+        "operational"
+        if trusted >= 3
+        and recommended_cases >= 1
+        and service_runs >= 5
+        and adopted_runs >= 2
+        else "pilot"
+        if trusted >= 3 and recommended_cases >= 1
+        else "reference_only"
+    )
     return {
         "scope": data.get("scope") or "company",
         "applied": evidence_count > 0,
@@ -427,6 +449,9 @@ def recommendation_context(data: dict, industry: str = "") -> dict:
         "company_published_cases": int(data.get("company_published_count") or 0),
         "model_analyzed_cases": int(data.get("model_analyzed_count") or 0),
         "evidence_cases": evidence_count,
+        "service_runs": service_runs,
+        "adopted_runs": adopted_runs,
+        "usage_mode": usage_mode,
         "layouts": names("layout"),
         "styles": names("style"),
         "grids": names("grid"),

@@ -34,6 +34,12 @@ const gateLabels: Record<string, string> = {
   adopted_runs: "采用",
 };
 
+const serviceModeLabels = {
+  reference_only: "仅供参考",
+  pilot: "业务试运行",
+  operational: "可正式使用",
+};
+
 export default function TrainingPage() {
   const [projects, setProjects] = useState<ProjectOut[]>([]);
   const [projectId, setProjectId] = useState<number>();
@@ -236,10 +242,16 @@ export default function TrainingPage() {
                   <div className="mt-1 text-xs text-gray-500">
                     下一步：{item.next_action}
                   </div>
+                  <div className="mt-1 text-[10px] text-gray-400">
+                    建议负责人：{item.owner_role}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-semibold">{item.score}%</div>
                   <div className="text-[10px] text-gray-400">训练就绪度</div>
+                  <div className="mt-1 text-[10px] font-medium text-accent">
+                    {serviceModeLabels[item.service_mode]}
+                  </div>
                 </div>
               </div>
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-canvas">
@@ -264,6 +276,40 @@ export default function TrainingPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl bg-canvas p-3">
+                  <div className="text-[10px] font-semibold text-gray-500">
+                    本周执行动作
+                  </div>
+                  <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                    {item.weekly_actions.map((action) => (
+                      <li key={action}>· {action}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl bg-canvas p-3">
+                  <div className="text-[10px] font-semibold text-gray-500">
+                    建议优先审核案例
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {item.review_candidate_ids.length ? (
+                      item.review_candidate_ids.map((id) => (
+                        <Link
+                          key={id}
+                          href={`/cases/${id}`}
+                          className="rounded-lg bg-white px-2 py-1 text-xs text-accent"
+                        >
+                          #{id}
+                        </Link>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        当前阶段暂无待审样本
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           ))}

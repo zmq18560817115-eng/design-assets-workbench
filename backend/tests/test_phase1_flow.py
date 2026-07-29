@@ -221,6 +221,10 @@ class PhaseOneFlowTest(unittest.TestCase):
             if item["business_line"] == "母婴"
         )
         self.assertEqual(line_readiness["stage"], "collect")
+        self.assertEqual(line_readiness["service_mode"], "reference_only")
+        self.assertTrue(line_readiness["weekly_actions"])
+        self.assertTrue(line_readiness["owner_role"])
+        self.assertTrue(line_readiness["acceptance_criteria"])
         self.assertEqual(
             line_readiness["gates"]["company_assets"]["current"],
             1,
@@ -282,6 +286,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(recommendation.status_code, 200, recommendation.text)
         recommendation_data = recommendation.json()
         self.assertTrue(recommendation_data["preference_applied"])
+        self.assertEqual(recommendation_data["company_usage_mode"], "reference_only")
         self.assertEqual(recommendation_data["company_evidence"]["trusted_cases"], 1)
         self.assertIn("公司偏好约束", recommendation_data["prompt"])
         self.assertIn("业务约束", recommendation_data["prompt"])
