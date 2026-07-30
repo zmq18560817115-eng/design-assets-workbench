@@ -353,14 +353,27 @@ class BusinessRequirementCreate(BaseModel):
     forbidden_modules_json: list[str] = Field(default_factory=list)
     selling_points_json: list[str] = Field(default_factory=list)
     style_keywords_json: list[str] = Field(default_factory=list)
-    raw_requirement: str = ""
-    reference_case_ids_json: list[int] = Field(default_factory=list)
     reference_image_path: str = ""
-    creator: str = ""
     information_density: Literal["", "low", "medium", "high"] = ""
     reference_case_ids: list[int] = Field(default_factory=list)
     created_by: str = ""
     status: Literal["draft", "confirmed", "archived", "ready"] = "draft"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_legacy_aliases(cls, data):
+        """兼容历史字段名：raw_requirement/creator/reference_case_ids_json
+        已收敛到 request_text/created_by/reference_case_ids，旧调用方仍可用。"""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        if not data.get("request_text") and data.get("raw_requirement"):
+            data["request_text"] = data["raw_requirement"]
+        if not data.get("created_by") and data.get("creator"):
+            data["created_by"] = data["creator"]
+        if not data.get("reference_case_ids") and data.get("reference_case_ids_json"):
+            data["reference_case_ids"] = data["reference_case_ids_json"]
+        return data
 
     @model_validator(mode="after")
     def validate_requirement(self):
@@ -375,14 +388,7 @@ class BusinessRequirementCreate(BaseModel):
         )
         if conflict:
             raise ValueError(f"必需模块与禁止模块冲突: {conflict}")
-        self.reference_case_ids_json = list(
-            dict.fromkeys(self.reference_case_ids_json or self.reference_case_ids)
-        )
-        self.reference_case_ids = list(self.reference_case_ids_json)
-        self.raw_requirement = self.raw_requirement or self.request_text
-        self.request_text = self.request_text or self.raw_requirement
-        self.creator = self.creator or self.created_by
-        self.created_by = self.created_by or self.creator
+        self.reference_case_ids = list(dict.fromkeys(self.reference_case_ids))
         return self
 
 

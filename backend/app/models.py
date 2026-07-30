@@ -249,13 +249,13 @@ class BusinessRequirement(Base):
     forbidden_modules_json = Column(Text, default="[]")
     selling_points_json = Column(Text, default="[]")
     style_keywords_json = Column(Text, default="[]")
-    raw_requirement = Column(Text, default="")
-    reference_case_ids_json = Column(Text, default="[]")
     reference_image_path = Column(Text, default="")
-    creator = Column(String, default="")
     key_message = Column(Text, default="")
     mandatory_elements = Column(Text, default="[]")
     information_density = Column(String, default="", index=True)
+    # 参考案例与创建人的规范字段。历史别名 reference_case_ids_json、creator、
+    # raw_requirement 已收敛：request_text 见上方，输入层仍兼容旧字段名
+    # （见 schemas.BusinessRequirementCreate）。
     reference_case_ids = Column(Text, default="[]")
     created_by = Column(String, default="")
     status = Column(String, default="draft", index=True)

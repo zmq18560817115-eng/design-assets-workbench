@@ -220,10 +220,7 @@ def _auto_migrate():
             "forbidden_modules_json": ("TEXT", "[]"),
             "selling_points_json": ("TEXT", "[]"),
             "style_keywords_json": ("TEXT", "[]"),
-            "raw_requirement": ("TEXT", ""),
-            "reference_case_ids_json": ("TEXT", "[]"),
             "reference_image_path": ("TEXT", ""),
-            "creator": ("TEXT", ""),
         }
         for col, (col_type, default) in requirement_fields.items():
             if col not in requirement_cols:

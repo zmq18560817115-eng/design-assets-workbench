@@ -197,10 +197,7 @@ export interface BusinessRequirementCreate {
   forbidden_modules_json: string[];
   selling_points_json: string[];
   style_keywords_json: string[];
-  raw_requirement: string;
-  reference_case_ids_json: number[];
   reference_image_path: string;
-  creator: string;
   status: "draft" | "confirmed" | "archived" | "ready";
 }
 

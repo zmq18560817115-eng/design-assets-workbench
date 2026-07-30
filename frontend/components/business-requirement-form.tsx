@@ -10,8 +10,7 @@ export const emptyRequirement: BusinessRequirementCreate = {
   information_density: "medium", reference_case_ids: [], created_by: "",
   content_purpose: "", required_modules_json: [], optional_modules_json: [],
   forbidden_modules_json: [], selling_points_json: [], style_keywords_json: [],
-  raw_requirement: "", reference_case_ids_json: [], reference_image_path: "",
-  creator: "", status: "draft",
+  reference_image_path: "", status: "draft",
 };
 
 const moduleTypes = [
@@ -61,18 +60,13 @@ export function BusinessRequirementForm({
           return;
         }
         setMessage("");
-        await onSubmit({
-          ...form,
-          request_text: form.raw_requirement,
-          reference_case_ids: form.reference_case_ids_json,
-          created_by: form.creator,
-        });
+        await onSubmit(form);
       }}
     >
       <Section title="基础任务信息">
         <Input label="需求标题" value={form.title} onChange={(v) => set("title", v)} required />
-        <Input label="创建人" value={form.creator} onChange={(v) => set("creator", v)} />
-        <TextArea label="原始需求" value={form.raw_requirement} onChange={(v) => set("raw_requirement", v)} />
+        <Input label="创建人" value={form.created_by} onChange={(v) => set("created_by", v)} />
+        <TextArea label="原始需求" value={form.request_text} onChange={(v) => set("request_text", v)} />
       </Section>
       <Section title="产品、渠道与内容目的">
         <Input label="产品品类" value={form.product_category} onChange={(v) => set("product_category", v)} />
@@ -108,7 +102,7 @@ export function BusinessRequirementForm({
       <Section title="内容补充与参考">
         <TextArea label="核心卖点（逗号或换行分隔）" value={form.selling_points_json.join("，")} onChange={(v) => set("selling_points_json", csv(v))} />
         <TextArea label="风格关键词（逗号或换行分隔）" value={form.style_keywords_json.join("，")} onChange={(v) => set("style_keywords_json", csv(v))} />
-        <Input label="参考案例 ID（逗号分隔）" value={form.reference_case_ids_json.join(",")} onChange={(v) => set("reference_case_ids_json", csv(v).map(Number).filter(Number.isInteger))} />
+        <Input label="参考案例 ID（逗号分隔）" value={form.reference_case_ids.join(",")} onChange={(v) => set("reference_case_ids", csv(v).map(Number).filter(Number.isInteger))} />
         <label className="text-sm text-gray-600">参考图片
           <input type="file" accept="image/*" className="mt-2 block w-full text-sm"
             onChange={async (event) => {

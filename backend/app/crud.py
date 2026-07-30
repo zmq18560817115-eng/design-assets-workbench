@@ -546,13 +546,7 @@ def create_business_requirement(
             "style_keywords_json",
         )
     }
-    reference_case_ids = list(
-        dict.fromkeys(
-            values.pop("reference_case_ids_json")
-            or values.pop("reference_case_ids")
-        )
-    )
-    values.pop("reference_case_ids", None)
+    reference_case_ids = list(dict.fromkeys(values.pop("reference_case_ids")))
     if reference_case_ids:
         existing_case_ids = {
             case_id
@@ -571,7 +565,6 @@ def create_business_requirement(
         **values,
         mandatory_elements=json.dumps(mandatory_elements, ensure_ascii=False),
         reference_case_ids=json.dumps(reference_case_ids, ensure_ascii=False),
-        reference_case_ids_json=json.dumps(reference_case_ids, ensure_ascii=False),
         **{
             key: json.dumps(value, ensure_ascii=False)
             for key, value in list_fields.items()
@@ -604,12 +597,7 @@ def serialize_business_requirement(
         "forbidden_modules_json": _json_list(requirement.forbidden_modules_json),
         "selling_points_json": _json_list(requirement.selling_points_json),
         "style_keywords_json": _json_list(requirement.style_keywords_json),
-        "raw_requirement": requirement.raw_requirement or requirement.request_text,
-        "reference_case_ids_json": _json_list(
-            requirement.reference_case_ids_json or requirement.reference_case_ids
-        ),
         "reference_image_path": requirement.reference_image_path or "",
-        "creator": requirement.creator or requirement.created_by,
         "key_message": requirement.key_message,
         "mandatory_elements": _json_list(requirement.mandatory_elements),
         "information_density": requirement.information_density,
@@ -629,13 +617,7 @@ def update_business_requirement(
     if requirement.status == "archived":
         raise ValueError("已归档需求不能修改")
     values = payload.model_dump()
-    reference_ids = list(
-        dict.fromkeys(
-            values.pop("reference_case_ids_json")
-            or values.pop("reference_case_ids")
-        )
-    )
-    values.pop("reference_case_ids", None)
+    reference_ids = list(dict.fromkeys(values.pop("reference_case_ids")))
     if reference_ids:
         existing = {
             row[0]
@@ -655,7 +637,6 @@ def update_business_requirement(
     ):
         setattr(requirement, key, json.dumps(values.pop(key), ensure_ascii=False))
     requirement.reference_case_ids = json.dumps(reference_ids, ensure_ascii=False)
-    requirement.reference_case_ids_json = json.dumps(reference_ids, ensure_ascii=False)
     requirement.mandatory_elements = json.dumps(
         values.pop("mandatory_elements"), ensure_ascii=False
     )
