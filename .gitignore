@@ -12,6 +12,7 @@ venv/
 node_modules/
 .next/
 next-env.d.ts
+*.tsbuildinfo
 npm-debug.log*
 *.log
 .npm-cache/

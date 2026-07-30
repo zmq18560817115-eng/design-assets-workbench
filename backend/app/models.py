@@ -568,6 +568,26 @@ class CategorySuggestionJob(Base):
     finished_at = Column(DateTime, nullable=True)
 
 
+class BatchImportJob(Base):
+    """Persisted, restart-surviving progress for one bulk asset import."""
+
+    __tablename__ = "batch_import_jobs"
+
+    id = Column(String, primary_key=True, index=True)  # uuid hex = batch_id
+    status = Column(String, default="processing", index=True)
+    total = Column(Integer, default=0)
+    done = Column(Integer, default=0)
+    failed = Column(Integer, default=0)
+    skipped = Column(Integer, default=0)
+    case_ids = Column(Text, default="[]")
+    errors = Column(Text, default="[]")
+    skipped_files = Column(Text, default="[]")
+    concurrency = Column(Integer, default=1)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+
+
 class PreferenceEvent(Base):
     """Legacy preference evidence; never read by LayoutPattern discovery."""
     """Explicit business preference signals used for weighted style profiles."""

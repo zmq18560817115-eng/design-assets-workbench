@@ -19,6 +19,7 @@ from PIL import Image
 
 from . import config
 from .asset_categories import category_focus, category_label, normalize_category
+from .layout_blueprint import MODULE_TYPE_ORDER
 
 
 def _model_image_payload(
@@ -99,7 +100,7 @@ USER_TEMPLATE = """你是资深视觉设计分析师，请对这张设计图做*
 - 优先识别图片中真实存在的版面结构，不确定时降低 confidence，禁止虚构模块；
 - 模块坐标和尺寸必须为 0～1 归一化数值且不能超出画布；
 - 区分内容模块和 decoration/background，区分 product/person/scene image；
-- blueprint_modules 只能使用约定类型，输出严格 JSON。
+- blueprint_modules 的 type 只能取以下之一：{module_types}；不得使用其它任何值，输出严格 JSON。
 
 生图提示词必须以“白板版式图/低保真布局白模”为目标：白色或浅灰画布，使用灰阶块、线框、占位图片框和占位文字表现结构，
 清楚标注网格、模块、间距、留白和信息层级；不生成完整成品文案，不生成品牌 Logo，不追求成品摄影渲染。
@@ -147,6 +148,7 @@ def analyze_image(
         grid_columns=hints.get("grid_columns", ""),
         modules=hints.get("modules", ""),
         margins=hints.get("margins", ""),
+        module_types=", ".join(MODULE_TYPE_ORDER),
     )
     user_text += (
         f"\n\n本素材归入「{category_label(asset_category)}」仓库。"

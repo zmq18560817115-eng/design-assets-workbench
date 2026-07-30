@@ -50,7 +50,7 @@ export default function BatchPage() {
         try {
           const s = await api.batchStatus(r.batch_id);
           setStatus(s);
-          if (s.status === "completed" && timer.current) {
+          if (s.status !== "processing" && timer.current) {
             clearInterval(timer.current);
             timer.current = null;
           }
@@ -136,12 +136,12 @@ export default function BatchPage() {
 
         <button
           onClick={start}
-          disabled={submitting || files.length === 0 || (!!status && status.status !== "completed")}
+          disabled={submitting || files.length === 0 || status?.status === "processing"}
           className="mt-4 w-full rounded-lg bg-indigo-500 py-2.5 font-medium hover:bg-indigo-400 disabled:opacity-40"
         >
           {submitting
             ? "提交中…"
-            : status && status.status !== "completed"
+            : status?.status === "processing"
             ? "拆解进行中…"
             : `开始批量拆解（${files.length} 张）`}
         </button>
@@ -151,7 +151,11 @@ export default function BatchPage() {
         <Card className="mt-6">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-semibold text-gray-200">
-              {status.status === "completed" ? "已完成" : "拆解中…"}
+              {status.status === "completed"
+                ? "已完成"
+                : status.status === "interrupted"
+                ? "已中断（服务重启，请重新上传未完成的图）"
+                : "拆解中…"}
             </span>
             <span className="text-gray-400">
               {processed}/{status.total} · 成功 {status.done} · 跳过重复 {status.skipped}
