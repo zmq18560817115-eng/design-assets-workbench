@@ -56,6 +56,9 @@ export default function IntentionsPage() {
   const [directionDrafts, setDirectionDrafts] = useState<
     Record<number, LayoutModule[]>
   >({});
+  const [usedModuleSelections, setUsedModuleSelections] = useState<
+    Record<number, string[]>
+  >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -106,6 +109,14 @@ export default function IntentionsPage() {
           ])
         )
       );
+      setUsedModuleSelections(
+        Object.fromEntries(
+          generated.directions.map((direction) => [
+            direction.id,
+            direction.modules_json.map((module) => module.id),
+          ])
+        )
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "生成排版方向失败");
     } finally {
@@ -125,6 +136,18 @@ export default function IntentionsPage() {
         index === moduleIndex ? { ...module, [key]: value } : module
       ),
     }));
+  };
+
+  const toggleUsedModule = (directionId: number, moduleId: string) => {
+    setUsedModuleSelections((current) => {
+      const selected = current[directionId] || [];
+      return {
+        ...current,
+        [directionId]: selected.includes(moduleId)
+          ? selected.filter((id) => id !== moduleId)
+          : [...selected, moduleId],
+      };
+    });
   };
 
   const sendDirectionFeedback = async (
@@ -157,7 +180,8 @@ export default function IntentionsPage() {
             : undefined,
         used_module_ids:
           action === "selected" || action === "adjusted_confirmed"
-            ? carriedModules.map((module) => module.id)
+            ? usedModuleSelections[direction.id] ??
+              carriedModules.map((module) => module.id)
             : [],
         outcome: feedbackOutcome,
         change_reason: feedbackChangeReason,
@@ -415,6 +439,34 @@ export default function IntentionsPage() {
                         <div>回退说明：{direction.failure_reason}</div>
                       )}
                     </div>
+                    <div className="mt-4">
+                      <div className="text-[10px] font-semibold text-gray-400">
+                        实际使用模块（勾选后随反馈记录）
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {direction.modules_json.map((module) => {
+                          const active = (
+                            usedModuleSelections[direction.id] || []
+                          ).includes(module.id);
+                          return (
+                            <button
+                              type="button"
+                              key={module.id}
+                              onClick={() =>
+                                toggleUsedModule(direction.id, module.id)
+                              }
+                              className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                                active
+                                  ? "border-accent bg-lilac text-accent"
+                                  : "border-line text-gray-500"
+                              }`}
+                            >
+                              {module.description || module.type}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div className="mt-4 grid grid-cols-3 gap-2">
                       <button
                         onClick={() =>
@@ -533,7 +585,8 @@ export default function IntentionsPage() {
                   className="rounded-xl border border-line px-4 py-3 text-sm"
                 />
                 <p className="text-xs text-gray-400 md:col-span-2">
-                  选择或确认调整时，系统会记录该方向实际带入使用的模块，用于后续检索排序优化。
+                  选择或确认调整时，系统会记录你在该方向勾选的实际使用模块（默认全选），
+                  用于后续检索排序优化。
                 </p>
                 {feedbackMessage && (
                   <p className="text-sm text-emerald-600 md:col-span-2">
