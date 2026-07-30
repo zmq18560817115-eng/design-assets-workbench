@@ -1,0 +1,12 @@
+{
+  "case_count": 20,
+  "pattern_count": 5,
+  "requirement_count": 5,
+  "groups": [
+    {"key": "social", "product_category": "奶瓶", "channel": "小红书", "purpose": "卖点说明", "canvas_ratio": "3:4", "orientation": "portrait", "density": "medium", "modules": ["main_title", "product_image", "selling_point", "cta"]},
+    {"key": "parameter", "product_category": "吸奶器", "channel": "产品海报", "purpose": "参数对比", "canvas_ratio": "3:4", "orientation": "portrait", "density": "high", "modules": ["main_title", "product_image", "parameter_table", "cta"]},
+    {"key": "launch", "product_category": "纸尿裤", "channel": "电商", "purpose": "上新宣传", "canvas_ratio": "1:1", "orientation": "square", "density": "low", "modules": ["main_title", "product_image", "selling_point"]},
+    {"key": "banner", "product_category": "辅食机", "channel": "官网", "purpose": "品牌横幅", "canvas_ratio": "16:9", "orientation": "landscape", "density": "low", "modules": ["main_title", "product_image", "cta"]},
+    {"key": "education", "product_category": "消毒柜", "channel": "公众号", "purpose": "知识科普", "canvas_ratio": "3:4", "orientation": "portrait", "density": "high", "modules": ["main_title", "product_image", "selling_point", "body_text"]}
+  ]
+}

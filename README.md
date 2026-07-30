@@ -2,11 +2,12 @@
 
 产品定位：**AI业务排版知识库与意向方向生成系统**。
 
-当前唯一正式业务主线：
+当前正式业务主线：
 
 ```text
 素材上传 → AI拆解 → LayoutBlueprint → 人工校正与确认
-         → LayoutPattern 候选发现 → 设计负责人人工审核模式
+         → LayoutPattern 候选发现与审核 → BusinessRequirement
+         → 已确认模式/案例检索 → 相关性反馈与 Precision 评估
 ```
 
 更完整的阶段约束见 [CURRENT_STAGE.md](CURRENT_STAGE.md)。
@@ -20,11 +21,11 @@
 - BusinessRequirement 基础数据结构、草稿、编辑和确认。
 - 从已确认蓝图人工沉淀排版模式。
 
-本轮建设：
+P3 本轮建设：
 
-- 从每个案例最新的 verified 蓝图自动发现候选模式。
-- 模式结构相似度、平均骨架、稳定 `pattern_code`。
-- 模式证据、可信度、人工确认和停用。
+- 使用必需/禁止模块、业务字段和画布结构检索已确认模式与案例。
+- 参考图片临时蓝图，不创建公共 Case。
+- 保存检索快照和人工相关性反馈，统计 Precision@5/10。
 
 实验性保留：
 
@@ -34,7 +35,7 @@
 
 暂未正式验收：
 
-- 真实场景检索准确率。
+- 50 张公司真实素材和 10 条真实需求的真实场景准确率。
 - 多案例融合方向。
 - 业务反馈学习。
 - 模型训练。
@@ -82,6 +83,21 @@ legacy 兼容能力。旧接口、表和历史数据暂时保留，但不属于�
 | POST | `/api/layout-patterns/{id}/disable` | 停用但不删除 |
 | GET | `/api/layout-patterns/{id}/evidence` | 查看案例、蓝图、相似度和模块证据 |
 
+## P3 业务场景检索
+
+评分固定为 100 分：业务场景 35、必需模块 25、画布结构 20、信息密度 10、
+视觉风格 5、人工验证 5。未填写条件保持中性；禁止模块命中结果进入排除区。
+检索不读取 PreferenceEvent 或公司偏好权重。
+
+| 方法 | 地址 | 说明 |
+|---|---|---|
+| POST | `/api/business-requirements/{id}/layout-search` | 执行并保存一次检索 |
+| GET | `/api/business-requirements/{id}/layout-search/latest` | 获取最近运行 |
+| POST | `/api/layout-search-runs/{id}/feedback` | 保存相关性反馈 |
+| GET | `/api/layout-search/evaluation` | 查看 Precision@5/10 与违规数 |
+
+真实验收流程见 [业务场景检索验收手册](docs/业务场景检索验收手册.md)。
+
 dry-run 示例：
 
 ```powershell
@@ -98,9 +114,11 @@ Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/layout-patterns/rebuild
 cd backend
 .\.venv\Scripts\python.exe .\scripts\upgrade_layout_patterns_v2.py
 .\.venv\Scripts\python.exe .\scripts\upgrade_layout_patterns_v2.py --execute
+.\.venv\Scripts\python.exe .\scripts\upgrade_layout_search_v1.py
+.\.venv\Scripts\python.exe .\scripts\upgrade_layout_search_v1.py --execute
 ```
 
-第一条仅预览缺失字段，不修改数据库。应用正常启动时也会安全增量建表、补列。
+不带 `--execute` 的命令仅预览，不修改数据库。应用正常启动时也会安全增量建表。
 
 ## 本地启动
 
@@ -130,7 +148,7 @@ npm.cmd run dev
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
-.\.venv\Scripts\python.exe -m py_compile app\main.py app\models.py app\schemas.py app\crud.py app\layout_blueprint.py app\layout_patterns.py
+.\.venv\Scripts\python.exe -m py_compile app\main.py app\models.py app\schemas.py app\crud.py app\layout_blueprint.py app\layout_patterns.py app\layout_search.py app\search.py
 cd ..\frontend
 npm.cmd run lint
 npm.cmd run build

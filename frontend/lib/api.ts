@@ -202,6 +202,8 @@ export interface LayoutPatternCandidate {
   grouping_basis: Record<string, unknown>;
   participating_modules: string[];
   excluded_modules: string[];
+  historical_pattern_ids?: number[];
+  warnings?: string[];
 }
 
 export interface LayoutPatternEvidence {
@@ -274,6 +276,55 @@ export interface BusinessRequirementMatch {
     score: number;
     reasons: string[];
   }[];
+}
+
+export interface LayoutSearchResult {
+  id: number;
+  name: string;
+  result_type: "pattern" | "case";
+  total_score: number;
+  score_breakdown: {
+    business_scene: number;
+    required_modules: number;
+    layout_structure: number;
+    information_density: number;
+    visual_style: number;
+    verification: number;
+  };
+  match_reasons: string[];
+  matched_required_modules: string[];
+  missing_required_modules: string[];
+  reusable_modules: string[];
+  adaptation_needed: string[];
+  risks: string[];
+  source_case_ids: number[];
+  source_blueprint_ids: number[];
+  related_pattern_ids: number[];
+  review_status: string;
+  rank: number;
+}
+
+export interface LayoutSearchResponse {
+  requirement: BusinessRequirement;
+  search_run_id: number;
+  patterns: LayoutSearchResult[];
+  cases: LayoutSearchResult[];
+  excluded_results: LayoutSearchResult[];
+  constraints_applied: Record<string, unknown>;
+  search_summary: {
+    pattern_count: number;
+    case_count: number;
+    excluded_count: number;
+    elapsed_ms: number;
+    reference_analysis: {
+      id: number;
+      generation_mode: string;
+      model_name: string;
+      prompt_version: string;
+      failure_reason: string;
+    } | null;
+  };
+  scoring_version: string;
 }
 
 export interface LayoutDirection extends LayoutBlueprintInput {
@@ -535,6 +586,53 @@ export const api = {
     fetch(`/api/business-requirements/${requirementId}/match`, {
       method: "POST",
     }).then((r) => j<BusinessRequirementMatch>(r)),
+  searchRequirementLayouts: (
+    requirementId: number | string,
+    payload = {
+      pattern_limit: 10,
+      case_limit: 20,
+      include_unverified: false,
+      reanalyze_reference: false,
+    }
+  ) =>
+    fetch(`/api/business-requirements/${requirementId}/layout-search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutSearchResponse>(r)),
+  latestRequirementLayoutSearch: (requirementId: number | string) =>
+    fetch(`/api/business-requirements/${requirementId}/layout-search/latest`, {
+      cache: "no-store",
+    }).then((r) => j<LayoutSearchResponse>(r)),
+  addLayoutSearchFeedback: (
+    runId: number,
+    payload: {
+      result_type: "pattern" | "case";
+      result_id: number;
+      rank: number;
+      relevance: "relevant" | "partially_relevant" | "irrelevant";
+      reviewer: string;
+      notes?: string;
+    }
+  ) =>
+    fetch(`/api/layout-search-runs/${runId}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<{ id: number }>(r)),
+  layoutSearchEvaluation: () =>
+    fetch("/api/layout-search/evaluation", { cache: "no-store" }).then((r) =>
+      j<{
+        evaluated_requirement_count: number;
+        evaluated_result_count: number;
+        top5_relevant_count: number;
+        top10_relevant_count: number;
+        precision_at_5: number;
+        precision_at_10: number;
+        forbidden_module_violation_count: number;
+        average_search_elapsed_ms: number;
+      }>(r)
+    ),
   generateLayoutDirections: (requirementId: number) =>
     fetch(`/api/business-requirements/${requirementId}/directions/generate`, {
       method: "POST",

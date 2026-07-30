@@ -25,7 +25,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from . import batch, concept, config, crud, imagehash, layout_patterns, llm, models, overlay, vlm
+from . import (
+    batch, concept, config, crud, imagehash, layout_patterns, layout_search,
+    llm, models, overlay, vlm,
+)
 from .asset_categories import category_focus, category_label, normalize_category
 from . import platform as plat
 from . import search as multimodal_search
@@ -48,6 +51,8 @@ from .schemas import (
     LayoutPatternUpdate,
     LayoutPatternPatch,
     LayoutPatternRebuildInput,
+    LayoutSearchInput,
+    LayoutSearchFeedbackCreate,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -796,6 +801,7 @@ def confirm_business_requirement(
 @app.post(
     "/api/business-requirements/{requirement_id}/match",
     response_model=BusinessRequirementMatchOut,
+    deprecated=True,
 )
 def match_business_requirement(
     requirement_id: int,
@@ -805,6 +811,80 @@ def match_business_requirement(
     if not requirement:
         raise HTTPException(status_code=404, detail="业务需求不存在")
     return crud.match_business_requirement(db, requirement)
+
+
+@app.post("/api/business-requirements/{requirement_id}/layout-search")
+def search_requirement_layouts(
+    requirement_id: int,
+    payload: LayoutSearchInput,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    return layout_search.run_search(
+        db,
+        requirement,
+        pattern_limit=payload.pattern_limit,
+        case_limit=payload.case_limit,
+        include_unverified=payload.include_unverified,
+        reanalyze_reference=payload.reanalyze_reference,
+    )
+
+
+@app.get("/api/business-requirements/{requirement_id}/layout-search/latest")
+def latest_requirement_layout_search(
+    requirement_id: int,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    result = layout_search.latest_search(db, requirement)
+    if not result:
+        raise HTTPException(status_code=404, detail="该需求尚无检索记录")
+    return result
+
+
+@app.post("/api/layout-search-runs/{run_id}/feedback")
+def create_layout_search_feedback(
+    run_id: int,
+    payload: LayoutSearchFeedbackCreate,
+    db: Session = Depends(get_db),
+):
+    run = db.get(models.LayoutSearchRun, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="检索运行不存在")
+    try:
+        row = layout_search.add_feedback(
+            db,
+            run,
+            result_type=payload.result_type,
+            result_id=payload.result_id,
+            rank=payload.rank,
+            relevance=payload.relevance,
+            reviewer=payload.reviewer,
+            notes=payload.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "id": row.id,
+        "search_run_id": row.search_run_id,
+        "requirement_id": row.requirement_id,
+        "result_type": row.result_type,
+        "result_id": row.result_id,
+        "rank": row.rank,
+        "relevance": row.relevance,
+        "reviewer": row.reviewer,
+        "notes": row.notes,
+        "created_at": row.created_at,
+    }
+
+
+@app.get("/api/layout-search/evaluation")
+def get_layout_search_evaluation(db: Session = Depends(get_db)):
+    return layout_search.evaluation(db)
 
 
 @app.get(

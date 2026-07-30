@@ -282,6 +282,84 @@ class BusinessRequirement(Base):
     )
 
 
+class RequirementReferenceAnalysis(Base):
+    """Cached temporary blueprint for a requirement reference image."""
+
+    __tablename__ = "requirement_reference_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    image_path = Column(Text, nullable=False)
+    blueprint_json = Column(Text, default="{}")
+    model_name = Column(String, default="")
+    prompt_version = Column(String, default="requirement-reference-layout-v1")
+    generation_mode = Column(String, default="heuristic_fallback", index=True)
+    failure_reason = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=dt.datetime.utcnow,
+        onupdate=dt.datetime.utcnow,
+    )
+
+
+class LayoutSearchRun(Base):
+    """Immutable query/result snapshot used only for retrieval evaluation."""
+
+    __tablename__ = "layout_search_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    query_snapshot_json = Column(Text, default="{}")
+    result_snapshot_json = Column(Text, default="{}")
+    scoring_version = Column(String, default="layout-search-rules-v1", index=True)
+    reference_analysis_id = Column(
+        Integer,
+        ForeignKey("requirement_reference_analyses.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    elapsed_ms = Column(Integer, default=0)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
+class LayoutSearchFeedback(Base):
+    """Human relevance judgment for one result in one retrieval run."""
+
+    __tablename__ = "layout_search_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    search_run_id = Column(
+        Integer,
+        ForeignKey("layout_search_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    result_type = Column(String, nullable=False, index=True)
+    result_id = Column(Integer, nullable=False, index=True)
+    rank = Column(Integer, nullable=False)
+    relevance = Column(String, nullable=False, index=True)
+    reviewer = Column(String, nullable=False, index=True)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
 class LayoutDirection(Base):
     """One generated low-fidelity direction tied to evidence and a brief."""
 

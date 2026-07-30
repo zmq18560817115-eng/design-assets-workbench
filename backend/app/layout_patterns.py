@@ -9,7 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -70,35 +70,56 @@ def latest_verified_blueprints(db: Session) -> list[models.LayoutBlueprint]:
     return list(selected.values())
 
 
-def _type_set(blueprint: models.LayoutBlueprint) -> set[str]:
-    return {str(item.get("type", "other")) for item in _modules(blueprint)}
+def normalize_module_type(value: str) -> str:
+    """Remove only the deterministic trailing instance suffix."""
+    head, separator, tail = str(value or "other").rpartition("-")
+    return head if separator and tail.isdigit() and head else str(value or "other")
+
+
+def module_type_counts(modules: list[dict[str, Any]]) -> Counter[str]:
+    return Counter(normalize_module_type(item.get("type", "other")) for item in modules)
 
 
 def _ordered_by_type(blueprint: models.LayoutBlueprint) -> dict[str, list[dict]]:
     grouped: dict[str, list[dict]] = defaultdict(list)
     for module in _modules(blueprint):
-        grouped[str(module.get("type", "other"))].append(module)
+        grouped[normalize_module_type(module.get("type", "other"))].append(module)
     for items in grouped.values():
         items.sort(key=lambda item: (float(item.get("y", 0)), float(item.get("x", 0))))
     return grouped
 
 
 def _module_type_similarity(left: models.LayoutBlueprint, right: models.LayoutBlueprint) -> float:
-    a, b = _type_set(left), _type_set(right)
-    return len(a & b) / len(a | b) if a | b else 1.0
+    a, b = module_type_counts(_modules(left)), module_type_counts(_modules(right))
+    keys = set(a) | set(b)
+    return (
+        sum(min(a[key], b[key]) for key in keys)
+        / sum(max(a[key], b[key]) for key in keys)
+        if keys else 1.0
+    )
 
 
 def _position_similarity(left: models.LayoutBlueprint, right: models.LayoutBlueprint) -> float:
     a, b = _ordered_by_type(left), _ordered_by_type(right)
     scores: list[float] = []
-    for module_type in sorted(set(a) & set(b)):
-        for first, second in zip(a[module_type], b[module_type]):
+    for module_type in sorted(set(a) | set(b)):
+        left_items, right_items = a.get(module_type, []), b.get(module_type, [])
+        for first, second in zip(left_items, right_items):
             delta = sum(
                 abs(float(first.get(key, 0)) - float(second.get(key, 0)))
                 for key in ("x", "y", "width", "height")
             ) / 4
             scores.append(max(0.0, 1.0 - delta))
-    return sum(scores) / len(scores) if scores else 0.0
+        # Every unpaired module contributes a zero instead of silently
+        # disappearing from the position score.
+        scores.extend([0.0] * abs(len(left_items) - len(right_items)))
+    paired_score = sum(scores) / len(scores) if scores else 1.0
+    left_total, right_total = len(_modules(left)), len(_modules(right))
+    total_count_score = (
+        min(left_total, right_total) / max(left_total, right_total)
+        if max(left_total, right_total) else 1.0
+    )
+    return paired_score * 0.75 + total_count_score * 0.25
 
 
 def structure_similarity(left: models.LayoutBlueprint, right: models.LayoutBlueprint) -> dict[str, float]:
@@ -285,6 +306,17 @@ def discover_candidates(
             case_ids = sorted(unique_cases)
             blueprint_ids = [item.id for item in sorted(group, key=lambda value: value.case_id)]
             module_types = {item["type"] for item in averages}
+            historical_ids = [
+                pattern.id
+                for pattern in db.query(models.LayoutPattern).filter(
+                    models.LayoutPattern.review_status == "verified",
+                    models.LayoutPattern.orientation == anchor.orientation,
+                    models.LayoutPattern.canvas_ratio == anchor.canvas_ratio,
+                    models.LayoutPattern.information_density
+                    == anchor.information_density,
+                ).all()
+                if pattern.pattern_code != _pattern_code(group, averages)
+            ]
             candidates.append({
                 "pattern_code": _pattern_code(group, averages),
                 "name": _name(module_types, anchor.orientation),
@@ -311,6 +343,11 @@ def discover_candidates(
                 "confidence_level": _confidence(len(case_ids)),
                 "discovery_method": DISCOVERY_METHOD,
                 "review_status": "draft",
+                "historical_pattern_ids": sorted(historical_ids),
+                "warnings": (
+                    ["存在同画布分组的历史已确认模式；本次候选不会覆盖或删除它们。"]
+                    if historical_ids else []
+                ),
                 "mean_similarity": mean_similarity,
                 "similarities": similarities,
                 "grouping_basis": {

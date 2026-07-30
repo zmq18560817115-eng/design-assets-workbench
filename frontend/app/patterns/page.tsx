@@ -97,6 +97,7 @@ export default function LayoutPatternsPage() {
                 <p className="mt-1 text-xs text-gray-500">{candidate.pattern_code}</p>
                 <div className="mt-3 flex flex-wrap gap-2"><Tag>证据 {candidate.evidence_count}</Tag><Tag>{candidate.confidence_level}</Tag><Tag>相似度 {(candidate.mean_similarity*100).toFixed(1)}%</Tag></div>
                 <p className="mt-3 text-xs text-gray-500">来源案例：{candidate.evidence_case_ids_json.join("、")}</p>
+                {candidate.warnings?.map(value => <p key={value} className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-700">{value}</p>)}
               </Card>
             ))}
           </div>

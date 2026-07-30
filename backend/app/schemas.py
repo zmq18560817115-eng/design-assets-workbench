@@ -426,6 +426,22 @@ class BusinessRequirementOut(BusinessRequirementCreate):
     updated_at: dt.datetime
 
 
+class LayoutSearchInput(BaseModel):
+    pattern_limit: int = Field(default=10, ge=1, le=50)
+    case_limit: int = Field(default=20, ge=1, le=100)
+    include_unverified: bool = False
+    reanalyze_reference: bool = False
+
+
+class LayoutSearchFeedbackCreate(BaseModel):
+    result_type: Literal["pattern", "case"]
+    result_id: int = Field(ge=1)
+    rank: int = Field(ge=1)
+    relevance: Literal["relevant", "partially_relevant", "irrelevant"]
+    reviewer: str = Field(min_length=1, max_length=120)
+    notes: str = ""
+
+
 class LayoutPatternMatchOut(BaseModel):
     pattern: LayoutPatternOut
     score: float
