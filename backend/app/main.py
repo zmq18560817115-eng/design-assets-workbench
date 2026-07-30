@@ -108,6 +108,7 @@ def _startup() -> None:
                 ],
                 ensure_ascii=False,
             )
+        batch.recover_stale_jobs(db)
         db.commit()
     finally:
         db.close()
