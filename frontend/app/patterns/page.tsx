@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, LayoutPattern } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api, LayoutPattern, LayoutPatternCandidate } from "@/lib/api";
 import { LayoutWireframe } from "@/components/layout-wireframe";
 import { Card, Tag } from "@/components/ui";
 
@@ -11,20 +11,65 @@ export default function LayoutPatternsPage() {
   const [error, setError] = useState("");
   const [orientation, setOrientation] = useState("");
   const [reviewStatus, setReviewStatus] = useState("");
+  const [candidates, setCandidates] = useState<LayoutPatternCandidate[]>([]);
+  const [editor, setEditor] = useState("");
+  const [adoptingKey, setAdoptingKey] = useState("");
+  const [candidateMessage, setCandidateMessage] = useState("");
 
-  useEffect(() => {
+  const loadPatterns = useCallback(() => {
     setLoading(true);
     api
-      .layoutPatterns({
-        orientation,
-        review_status: reviewStatus,
-      })
+      .layoutPatterns({ orientation, review_status: reviewStatus })
       .then(setItems)
       .catch((cause) =>
         setError(cause instanceof Error ? cause.message : "读取排版模式失败")
       )
       .finally(() => setLoading(false));
   }, [orientation, reviewStatus]);
+
+  const loadCandidates = useCallback(() => {
+    api
+      .layoutPatternCandidates()
+      .then(setCandidates)
+      .catch(() => setCandidates([]));
+  }, []);
+
+  useEffect(() => {
+    loadPatterns();
+  }, [loadPatterns]);
+
+  useEffect(() => {
+    loadCandidates();
+  }, [loadCandidates]);
+
+  const adoptCandidate = async (candidate: LayoutPatternCandidate) => {
+    if (!editor.trim()) {
+      setCandidateMessage("采纳候选模式前，请先填写负责人。");
+      return;
+    }
+    setAdoptingKey(candidate.structure_key);
+    setCandidateMessage("");
+    try {
+      await api.createLayoutPattern({
+        name: candidate.suggested_name,
+        source_blueprint_ids: candidate.blueprint_ids,
+        industry_tags: candidate.industry_tags,
+        scene_tags: candidate.scene_tags,
+        channel_tags: candidate.channel_tags,
+        business_goal_tags: candidate.business_goal_tags,
+        editor: editor.trim(),
+      });
+      setCandidateMessage(`已采纳候选模式：${candidate.suggested_name}（待确认）。`);
+      loadCandidates();
+      loadPatterns();
+    } catch (cause) {
+      setCandidateMessage(
+        cause instanceof Error ? cause.message : "采纳候选模式失败"
+      );
+    } finally {
+      setAdoptingKey("");
+    }
+  };
 
   return (
     <div>
@@ -60,6 +105,68 @@ export default function LayoutPatternsPage() {
           </select>
         </div>
       </div>
+
+      {candidates.length > 0 && (
+        <section className="mt-8 rounded-2xl border border-dashed border-accent/40 bg-lilac/20 p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">自动归纳候选模式</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                从已确认蓝图里按结构相似度聚类得到，需负责人审核后沉淀为待确认模式。
+              </p>
+            </div>
+            <input
+              value={editor}
+              onChange={(event) => setEditor(event.target.value)}
+              placeholder="负责人 *"
+              className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          {candidateMessage && (
+            <p className="mt-3 rounded-lg bg-white/70 p-2 text-sm text-gray-600">
+              {candidateMessage}
+            </p>
+          )}
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {candidates.map((candidate) => (
+              <Card key={candidate.structure_key} className="flex flex-col">
+                <div className="rounded-xl bg-gray-50 p-4">
+                  <LayoutWireframe
+                    blueprint={candidate}
+                    showLabels={false}
+                    className="max-h-[280px] max-w-[280px]"
+                  />
+                </div>
+                <div className="mt-4 flex items-start justify-between gap-3">
+                  <h3 className="font-semibold">{candidate.suggested_name}</h3>
+                  <span className="shrink-0 rounded-full bg-accent/10 px-2 py-1 text-[10px] text-accent">
+                    {candidate.blueprint_count} 个蓝图
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {[...candidate.industry_tags, ...candidate.channel_tags].map(
+                    (tag) => (
+                      <Tag key={`${candidate.structure_key}-${tag}`}>{tag}</Tag>
+                    )
+                  )}
+                </div>
+                <div className="mt-2 text-[11px] text-gray-400">
+                  来源案例 {candidate.case_ids.join("、")}
+                </div>
+                <button
+                  onClick={() => adoptCandidate(candidate)}
+                  disabled={adoptingKey === candidate.structure_key}
+                  className="mt-auto pt-4 text-left text-sm font-medium text-accent disabled:opacity-40"
+                >
+                  {adoptingKey === candidate.structure_key
+                    ? "采纳中…"
+                    : "采纳为待确认模式 →"}
+                </button>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {loading && <p className="mt-8 text-sm text-gray-500">正在读取模式库…</p>}
       {error && <p className="mt-8 text-sm text-rose-500">{error}</p>}

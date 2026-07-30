@@ -515,6 +515,12 @@ def list_layout_patterns(
     ]
 
 
+@app.get("/api/layout-pattern-candidates")
+def list_layout_pattern_candidates(db: Session = Depends(get_db)):
+    """从已验证蓝图自动归纳候选排版模式，供人工审核后沉淀。"""
+    return crud.auto_induce_layout_patterns(db)
+
+
 @app.post("/api/layout-patterns", response_model=LayoutPatternOut)
 def create_layout_pattern(
     payload: LayoutPatternCreate,

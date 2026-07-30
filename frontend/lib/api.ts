@@ -175,6 +175,18 @@ export interface LayoutPatternCreate {
   editor: string;
 }
 
+export interface LayoutPatternCandidate extends LayoutBlueprintInput {
+  structure_key: string;
+  suggested_name: string;
+  blueprint_ids: number[];
+  case_ids: number[];
+  blueprint_count: number;
+  industry_tags: string[];
+  scene_tags: string[];
+  channel_tags: string[];
+  business_goal_tags: string[];
+}
+
 export interface BusinessRequirementCreate {
   title: string;
   request_text: string;
@@ -399,6 +411,10 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then((r) => j<LayoutPattern>(r)),
+  layoutPatternCandidates: () =>
+    fetch("/api/layout-pattern-candidates", { cache: "no-store" }).then((r) =>
+      j<LayoutPatternCandidate[]>(r)
+    ),
   verifyLayoutPattern: (patternId: number, editor: string) =>
     fetch(`/api/layout-patterns/${patternId}/verify`, {
       method: "POST",

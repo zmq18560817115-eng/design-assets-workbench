@@ -157,3 +157,79 @@ class LayoutBlueprintRequirementV2Test(unittest.TestCase):
             self.assertEqual(fallback.analyzed_by, "启发式规则")
             with self.assertRaisesRegex(ValueError, "非法JSON"):
                 run_pipeline(str(path), strict_vlm=True)
+
+    def test_05_auto_induce_layout_pattern_candidates(self):
+        import json as _json
+
+        from app import models
+        from app.database import SessionLocal
+
+        modules = [
+            {"id": "m1", "type": "main_title", "x": 0.1, "y": 0.05,
+             "width": 0.8, "height": 0.15},
+            {"id": "m2", "type": "product_image", "x": 0.1, "y": 0.26,
+             "width": 0.8, "height": 0.5},
+            {"id": "m3", "type": "cta", "x": 0.3, "y": 0.82,
+             "width": 0.4, "height": 0.1},
+        ]
+        case_ids: list[int] = []
+        with SessionLocal() as db:
+            for index in range(2):
+                image = models.Image(
+                    url=f"/uploads/induce-{index}.png",
+                    filename=f"induce-{index}.png",
+                )
+                db.add(image)
+                db.flush()
+                case = models.Case(
+                    image_id=image.id,
+                    name=f"归纳案例{index}",
+                    industry="母婴",
+                    channel="小红书",
+                    campaign_stage="新品种草",
+                )
+                db.add(case)
+                db.flush()
+                db.add(
+                    models.LayoutBlueprint(
+                        case_id=case.id,
+                        canvas_ratio="2:3",
+                        orientation="portrait",
+                        module_count=len(modules),
+                        modules_json=_json.dumps(modules, ensure_ascii=False),
+                        review_status="verified",
+                        version=1,
+                    )
+                )
+                case_ids.append(case.id)
+            db.commit()
+
+        candidates = self.client.get("/api/layout-pattern-candidates").json()
+        mine = [
+            item
+            for item in candidates
+            if set(case_ids).issubset(set(item["case_ids"]))
+        ]
+        self.assertTrue(mine, candidates)
+        candidate = mine[0]
+        self.assertGreaterEqual(candidate["blueprint_count"], 2)
+        self.assertIn("母婴", candidate["industry_tags"])
+        self.assertEqual(candidate["module_count"], len(modules))
+
+        created = self.client.post(
+            "/api/layout-patterns",
+            json={
+                "name": "归纳确认模式",
+                "source_blueprint_ids": candidate["blueprint_ids"],
+                "editor": "设计负责人",
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        after = self.client.get("/api/layout-pattern-candidates").json()
+        self.assertFalse(
+            [
+                item
+                for item in after
+                if item["structure_key"] == candidate["structure_key"]
+            ]
+        )

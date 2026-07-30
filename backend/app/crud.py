@@ -392,6 +392,20 @@ def _json_list(value: str | None) -> list:
         return []
 
 
+def _focal_region_or_none(value: str | None) -> dict | None:
+    """把持久化的焦点区解析为合法归一化区域；空对象 {} 或非法值一律返回 None，
+    避免落到只有 4 个坐标字段的响应模型上引发校验错误。"""
+    if not value:
+        return None
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if isinstance(parsed, dict) and {"x", "y", "width", "height"} <= parsed.keys():
+        return parsed
+    return None
+
+
 def create_layout_pattern(
     db: Session,
     payload: LayoutPatternCreate | LayoutPatternUpdate,
@@ -496,12 +510,7 @@ def list_layout_patterns(
 
 
 def serialize_layout_pattern(pattern: models.LayoutPattern) -> dict:
-    focal_region = None
-    if pattern.focal_region:
-        try:
-            focal_region = json.loads(pattern.focal_region)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            focal_region = None
+    focal_region = _focal_region_or_none(pattern.focal_region)
     return {
         "id": pattern.id,
         "name": pattern.name,
@@ -533,6 +542,113 @@ def serialize_layout_pattern(pattern: models.LayoutPattern) -> dict:
         "created_at": pattern.created_at,
         "updated_at": pattern.updated_at,
     }
+
+
+def _structure_key(
+    modules: list[dict], orientation: str, canvas_ratio: str
+) -> str:
+    """相似排版的结构指纹：方向 + 画布 + 阅读序上的模块类型序列。
+
+    比 layout_signature 粗，用于把不同案例中结构一致（模块组成与排布相同、
+    像素坐标略有差异）的蓝图聚到同一候选模式。"""
+    ordered = sorted(
+        modules,
+        key=lambda item: (
+            round(float(item.get("y", 0)), 1),
+            round(float(item.get("x", 0)), 1),
+        ),
+    )
+    types = ">".join(str(item.get("type", "")) for item in ordered)
+    return f"{orientation}|{canvas_ratio}|{types}"
+
+
+def auto_induce_layout_patterns(
+    db: Session, *, min_group: int = 2
+) -> list[dict]:
+    """从已验证蓝图按结构相似度聚类，产出待人工确认的候选排版模式。
+
+    只做归纳与去重，不落库、不改状态：设计负责人审核后再用现有沉淀接口确认。"""
+    latest_verified: dict[int, models.LayoutBlueprint] = {}
+    for blueprint in (
+        db.query(models.LayoutBlueprint)
+        .filter(models.LayoutBlueprint.review_status == "verified")
+        .order_by(
+            models.LayoutBlueprint.case_id,
+            models.LayoutBlueprint.version.desc(),
+        )
+        .all()
+    ):
+        latest_verified.setdefault(blueprint.case_id, blueprint)
+
+    covered = {
+        _structure_key(
+            _json_list(pattern.modules_json),
+            pattern.orientation,
+            pattern.canvas_ratio,
+        )
+        for pattern in db.query(models.LayoutPattern).all()
+    }
+
+    groups: dict[str, list[models.LayoutBlueprint]] = {}
+    for blueprint in latest_verified.values():
+        key = _structure_key(
+            _json_list(blueprint.modules_json),
+            blueprint.orientation,
+            blueprint.canvas_ratio,
+        )
+        groups.setdefault(key, []).append(blueprint)
+
+    def _distinct(values) -> list[str]:
+        return sorted({(value or "").strip() for value in values if (value or "").strip()})
+
+    candidates: list[dict] = []
+    for key, blueprints in groups.items():
+        if len(blueprints) < min_group or key in covered:
+            continue
+        anchor = blueprints[0]
+        case_ids = [item.case_id for item in blueprints]
+        cases = db.query(models.Case).filter(models.Case.id.in_(case_ids)).all()
+        focal_region = _focal_region_or_none(anchor.focal_region)
+        candidates.append(
+            {
+                "structure_key": key,
+                "suggested_name": (
+                    f"{ORIENTATION_LABELS.get(anchor.orientation, anchor.orientation)}·"
+                    f"{anchor.module_count}模块候选模式"
+                ),
+                "blueprint_ids": [item.id for item in blueprints],
+                "case_ids": case_ids,
+                "blueprint_count": len(blueprints),
+                "industry_tags": _distinct(case.industry for case in cases),
+                "scene_tags": _distinct(case.campaign_stage for case in cases),
+                "channel_tags": _distinct(case.channel for case in cases),
+                "business_goal_tags": _distinct(
+                    case.business_goal for case in cases
+                ),
+                # 完整 LayoutBlueprintInput 字段，便于前端直接用框架图预览。
+                "canvas_ratio": anchor.canvas_ratio,
+                "orientation": anchor.orientation,
+                "grid_columns": anchor.grid_columns,
+                "grid_rows": anchor.grid_rows,
+                "margins": json.loads(anchor.margins or "{}"),
+                "alignment": anchor.alignment,
+                "reading_flow": anchor.reading_flow,
+                "focal_region": focal_region,
+                "information_density": anchor.information_density,
+                "text_image_ratio": anchor.text_image_ratio,
+                "module_count": anchor.module_count,
+                "modules_json": _json_list(anchor.modules_json),
+                "layout_signature": anchor.layout_signature,
+                "review_status": "verified",
+                "model_name": anchor.model_name,
+                "prompt_version": anchor.prompt_version,
+                "editor": anchor.editor,
+            }
+        )
+    candidates.sort(
+        key=lambda item: (-item["blueprint_count"], item["structure_key"])
+    )
+    return candidates
 
 
 def create_business_requirement(
@@ -1074,12 +1190,7 @@ def _direction_modules(base_modules: list[dict], strategy: str) -> list[dict]:
 
 
 def serialize_layout_direction(direction: models.LayoutDirection) -> dict:
-    focal_region = None
-    if direction.focal_region:
-        try:
-            focal_region = json.loads(direction.focal_region)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            focal_region = None
+    focal_region = _focal_region_or_none(direction.focal_region)
     return {
         "id": direction.id,
         "requirement_id": direction.requirement_id,
@@ -1537,11 +1648,7 @@ def serialize_layout_blueprint(blueprint: models.LayoutBlueprint) -> dict:
         ),
         "alignment": blueprint.alignment or "",
         "reading_flow": blueprint.reading_flow or "",
-        "focal_region": (
-            json.loads(blueprint.focal_region)
-            if (blueprint.focal_region or "").strip()
-            else None
-        ),
+        "focal_region": _focal_region_or_none(blueprint.focal_region),
         "information_density": blueprint.information_density or "",
         "text_image_ratio": blueprint.text_image_ratio,
         "module_count": blueprint.module_count,
