@@ -8,6 +8,7 @@ import {
   LayoutModule,
 } from "@/lib/api";
 import { LayoutWireframe } from "@/components/layout-wireframe";
+import { MODULE_TYPE_OPTIONS } from "@/lib/module-types";
 
 const statusLabels = {
   ai_generated: "AI 已生成",
@@ -94,7 +95,7 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
       ...draft.modules_json,
       {
         id: `module-${index}`,
-        type: "supporting_text",
+        type: "body_text",
         x: 0.1,
         y: 0.8,
         width: 0.8,
@@ -384,12 +385,20 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
               {draft.modules_json.map((module, index) => (
                 <div key={`${module.id}-${index}`} className="rounded-xl border border-line bg-ink p-3">
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <input
+                    <select
                       value={module.type}
                       onChange={(event) => updateModule(index, { type: event.target.value })}
-                      placeholder="模块类型"
                       className="rounded-lg border border-line bg-panel px-2 py-1.5 text-xs"
-                    />
+                    >
+                      {!MODULE_TYPE_OPTIONS.some((option) => option.value === module.type) && (
+                        <option value={module.type}>{module.type}（旧类型）</option>
+                      )}
+                      {MODULE_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       value={module.description}
                       onChange={(event) => updateModule(index, { description: event.target.value })}
