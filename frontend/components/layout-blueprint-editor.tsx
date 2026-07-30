@@ -264,7 +264,11 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
               showLabels={showLabels}
               showFocalRegion={showFocalRegion}
               className="max-w-[460px]"
+              onModuleChange={updateModule}
             />
+            <p className="mt-2 text-center text-[11px] text-gray-400">
+              直接拖动模块移动，拖右下角小方块缩放；也可在右侧精确填坐标。
+            </p>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-400">
             <label className="flex items-center gap-2">
