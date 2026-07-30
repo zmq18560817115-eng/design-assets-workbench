@@ -176,3 +176,15 @@ npm.cmd run build
 
 真实 AI 配置使用 `.env` 中的 `VISION_PROVIDER`、`VISION_API_KEY`、
 `VISION_BASE_URL` 和 `VISION_MODEL`。凭证不得提交；未配置时使用明确标记的 fallback。
+
+## P3.2-A 统一业务素材数据合同
+
+- 公司成品使用 `company_published`，代表真实发布证据，但上传或 AI 分析本身不等于公司推荐。
+- 外部素材使用 `external_reference`，只能作为参考证据，不能代表公司业务标准，也不会自动创建黄金项目。
+- 历史 `company_finished_asset`、`internal_reference` 继续可读；新导入使用规范值。
+- Case 业务字段包括 `product_name`、`content_purpose`、`page_role`、`sequence_index`、`brief_ref`。
+- CSV/JSON manifest 字段优先于文件夹推断；无 manifest 时标记 `metadata_status=inferred`。
+- 当前阶段是大批量拆解、人工审核和知识沉淀，不是模型微调。
+- 正式主线仍是 `LayoutBlueprint → LayoutPattern → layout_search`，不读取 PreferenceEvent 作为正式权重。
+
+Manifest 模板：`docs/templates/asset-import-manifest.csv`。

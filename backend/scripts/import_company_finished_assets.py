@@ -7,6 +7,7 @@ perceptual-hash diversity so near-identical exports do not dominate the profile.
 from __future__ import annotations
 
 import argparse
+import json
 import mimetypes
 import shutil
 import sys
@@ -22,6 +23,7 @@ from app import config, crud, imagehash, models, vlm  # noqa: E402
 from app.agents import run_pipeline  # noqa: E402
 from app.database import SessionLocal, close_db, init_db  # noqa: E402
 from app.sampling import color_sample  # noqa: E402
+from app.ingestion import dry_run_summary, execute_items, prepare_manifest  # noqa: E402
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
@@ -206,7 +208,6 @@ def import_one(
                     )
                 case.project_id = project_id
                 case.business_line = item["business_line"]
-                case.product_category = item["business_line"]
                 case.asset_subcategory = item["subcategory"]
                 if case.image:
                     case.image.source_type = "company_published"
@@ -247,7 +248,6 @@ def import_one(
         )
         case.project_id = project_id
         case.business_line = item["business_line"]
-        case.product_category = item["business_line"]
         db.commit()
         return "imported"
     except Exception:
@@ -264,6 +264,7 @@ def main() -> int:
     parser.add_argument("root", type=Path)
     parser.add_argument("--sample-per-line", type=int, default=10)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--manifest", type=Path)
     parser.add_argument("--local-only", action="store_true")
     parser.add_argument(
         "--reanalyze-existing",
@@ -319,7 +320,7 @@ def main() -> int:
             for item in items
             if item["business_line"] == args.business_line
         ]
-    if args.confirm_with_model:
+    if args.execute and args.confirm_with_model:
         before = len(items)
         items = confirm_categories(
             items,
@@ -329,6 +330,29 @@ def main() -> int:
         )
         print(f"模型确认通过：{len(items)}/{before}")
     counts = Counter(item["business_line"] for item in items)
+    for item in items:
+        item["project_name"] = f"公司成品·{item['business_line']}"
+        item["product_category"] = ""
+    prepared, report = prepare_manifest(
+        args.root,
+        args.manifest,
+        default_source_type="company_published",
+        inferred_items=items,
+    )
+    summary = dry_run_summary(prepared, report)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if not args.execute:
+        return 0 if summary["valid"] else 2
+    if not summary["valid"]:
+        print("manifest validation failed; execute aborted")
+        return 2
+    init_db()
+    try:
+        result = execute_items(prepared)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1 if result.get("failed") else 0
+    finally:
+        close_db()
     print(f"代表样本：{len(items)}")
     if args.sampling == "color":
         print(

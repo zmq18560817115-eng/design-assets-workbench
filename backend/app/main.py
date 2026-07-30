@@ -41,6 +41,7 @@ from .schemas import (
     BusinessRequirementMatchOut,
     BusinessRequirementOut,
     CaseOut,
+    CaseBusinessUpdate,
     CaseReviewInput,
     CaseProjectInput,
     LayoutBlueprintInput,
@@ -265,6 +266,9 @@ def list_cases(
     project_id: int | None = None,
     trust_status: str | None = None,
     analysis_mode: str | None = None,
+    product_name: str | None = None,
+    content_purpose: str | None = None,
+    page_role: str | None = None,
     db: Session = Depends(get_db),
 ):
     """案例资产库：支持关键词搜索与标签检索。"""
@@ -277,6 +281,9 @@ def list_cases(
         project_id=project_id,
         trust_status=trust_status,
         analysis_mode=analysis_mode,
+        product_name=product_name,
+        content_purpose=content_purpose,
+        page_role=page_role,
     )
     return [crud.serialize_case(c) for c in cases]
 
@@ -287,6 +294,18 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="案例不存在")
     return crud.serialize_case(case)
+
+
+@app.patch("/api/cases/{case_id}/business", response_model=CaseOut)
+def update_case_business(
+    case_id: int,
+    payload: CaseBusinessUpdate,
+    db: Session = Depends(get_db),
+):
+    case = db.get(models.Case, case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="案例不存在")
+    return crud.serialize_case(crud.update_case_business_fields(db, case, payload))
 
 
 @app.get(

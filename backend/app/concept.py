@@ -91,22 +91,8 @@ def _distribution(counter: Counter, total: float, top: int = 8) -> list[dict]:
 
 
 def _preference_map(db: Session) -> dict[int, dict[str, int]]:
-    rows = (
-        db.query(
-            models.PreferenceEvent.case_id,
-            models.PreferenceEvent.event_type,
-            func.sum(models.PreferenceEvent.value),
-        )
-        .group_by(
-            models.PreferenceEvent.case_id,
-            models.PreferenceEvent.event_type,
-        )
-        .all()
-    )
-    result: dict[int, dict[str, int]] = defaultdict(dict)
-    for case_id, event_type, value in rows:
-        result[case_id][event_type] = int(value or 0)
-    return result
+    # Historical events remain stored for compatibility only.
+    return {}
 
 
 def _case_weight(case: models.Case, preferences: dict[str, int]) -> float:
@@ -119,8 +105,6 @@ def _case_weight(case: models.Case, preferences: dict[str, int]) -> float:
         weight = 1.0
     if case.project and case.project.is_gold:
         weight *= 1.5
-    for event_type, count in preferences.items():
-        weight += PREFERENCE_WEIGHTS.get(event_type, 0.0) * count
     return max(0.0, weight)
 
 

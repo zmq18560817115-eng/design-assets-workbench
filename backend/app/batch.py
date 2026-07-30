@@ -14,6 +14,8 @@ import datetime as dt
 import json
 import threading
 import uuid
+import shutil
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 from . import config, crud, imagehash, models
@@ -27,7 +29,7 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.UTC).replace(tzinfo=None)
 
 
-def create_batch(items: list[dict]) -> str:
+def create_batch(items: list[dict], *, background: bool = True) -> str:
     """落库一个批次任务，起后台线程处理，返回 batch_id 供轮询进度。"""
     batch_id = uuid.uuid4().hex
     db = SessionLocal()
@@ -44,7 +46,10 @@ def create_batch(items: list[dict]) -> str:
         db.commit()
     finally:
         db.close()
-    threading.Thread(target=_run, args=(batch_id, items), daemon=True).start()
+    if background:
+        threading.Thread(target=_run, args=(batch_id, items), daemon=True).start()
+    else:
+        _run(batch_id, items)
     return batch_id
 
 
@@ -59,6 +64,7 @@ def get_batch(batch_id: str) -> dict | None:
             "done": job.done,
             "failed": job.failed,
             "skipped": job.skipped,
+            "fallback": getattr(job, "fallback", 0) or 0,
             "status": job.status,
             "case_ids": json.loads(job.case_ids or "[]"),
             "errors": json.loads(job.errors or "[]"),
@@ -93,6 +99,7 @@ def _record(
     done: int = 0,
     failed: int = 0,
     skipped: int = 0,
+    fallback: int = 0,
     case_id: int | None = None,
     error: str | None = None,
     skipped_file: str | None = None,
@@ -107,6 +114,7 @@ def _record(
             job.done += done
             job.failed += failed
             job.skipped += skipped
+            job.fallback = (getattr(job, "fallback", 0) or 0) + fallback
             if case_id is not None:
                 ids = json.loads(job.case_ids or "[]")
                 ids.append(case_id)
@@ -179,9 +187,17 @@ def _run(batch_id: str, items: list[dict]) -> None:
 
             with _db_write_lock:  # DB 写入串行
                 wdb = SessionLocal()
+                copied_path = None
                 try:
+                    source_path = Path(it["path"])
+                    stored_name = it.get("stored_name") or (
+                        f"{uuid.uuid4().hex}{source_path.suffix.lower()}"
+                    )
+                    if it.get("copy_to_uploads"):
+                        copied_path = config.UPLOAD_DIR / stored_name
+                        shutil.copy2(source_path, copied_path)
                     image = models.Image(
-                        url=it["url"],
+                        url=it.get("url") or f"/uploads/{stored_name}",
                         filename=it["filename"],
                         source="batch",
                         source_type=it.get("source_type", "external_reference"),
@@ -200,7 +216,25 @@ def _run(batch_id: str, items: list[dict]) -> None:
                         product_category=it.get("product_category", ""),
                         asset_category=it.get("asset_category", "layout"),
                         asset_subcategory=it.get("asset_subcategory", ""),
+                        business_metadata=it,
                     )
+                    project_name = (it.get("project_name") or "").strip()
+                    if project_name:
+                        project = (
+                            wdb.query(models.Project)
+                            .filter(models.Project.name == project_name)
+                            .first()
+                        )
+                        if not project:
+                            project = models.Project(
+                                name=project_name,
+                                business_line=it.get("business_line", ""),
+                                status="active",
+                                is_gold=False,
+                            )
+                            wdb.add(project)
+                            wdb.flush()
+                        case.project_id = project.id
                     cid = case.id
                     job = wdb.get(models.BatchImportJob, batch_id)
                     if job:
@@ -208,7 +242,14 @@ def _run(batch_id: str, items: list[dict]) -> None:
                         ids = json.loads(job.case_ids or "[]")
                         ids.append(cid)
                         job.case_ids = json.dumps(ids)
+                        if result.analyzed_by in ("", "启发式规则"):
+                            job.fallback = (getattr(job, "fallback", 0) or 0) + 1
                     wdb.commit()
+                except Exception:
+                    wdb.rollback()
+                    if copied_path:
+                        copied_path.unlink(missing_ok=True)
+                    raise
                 finally:
                     wdb.close()
         except Exception as exc:  # noqa: BLE001

@@ -19,6 +19,7 @@ npm-debug.log*
 backend/acceptance_data/
 *.acceptance.private.json
 小红书内容图片素材库/
+公司成品素材/
 
 # Env
 .env

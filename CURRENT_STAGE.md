@@ -86,3 +86,11 @@ LayoutPattern 自动发现，也不提供当前产品决策权重。
 - 检索结果分项之和等于总分并可追溯来源。
 - 隔离 Fixture 的 Precision@5 和 Precision@10 均不低于 0.60。
 - 后端测试、Python 编译、前端 lint 和 build 全部通过。
+
+## P3.2-A 证据边界
+
+公司成品与外部素材是两种不同证据。`company_published` 只能证明作品真实发布；
+只有人工审核才能设置 `company_recommended` 或项目 `is_gold`。
+`external_reference` 仅用于结构、风格或素材参考，不能作为公司业务标准。
+当前工作是批量拆解与知识沉淀，不是模型微调，也不开发多案例方向、设计审核、
+排序模型或图片生成。正式主线保持 LayoutBlueprint、LayoutPattern 和 layout_search。

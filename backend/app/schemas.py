@@ -142,6 +142,16 @@ class CaseOut(BaseModel):
     name: str
     content_type: str = ""
     product_category: str = ""
+    product_name: str = ""
+    content_purpose: str = ""
+    page_role: Literal[
+        "cover_hook", "problem_statement", "cause_explanation",
+        "product_display", "function_explanation", "parameter_comparison",
+        "usage_step", "service_assurance", "conclusion", "call_to_action", "other",
+    ] = "other"
+    sequence_index: int | None = None
+    brief_ref: str = ""
+    metadata_status: Literal["manifest", "inferred", "manual"] = "inferred"
     asset_category: str = "layout"
     asset_subcategory: str = ""
     industry: str
@@ -164,6 +174,22 @@ class CaseOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CaseBusinessUpdate(BaseModel):
+    product_name: str = ""
+    content_purpose: str = ""
+    page_role: Literal[
+        "cover_hook", "problem_statement", "cause_explanation",
+        "product_display", "function_explanation", "parameter_comparison",
+        "usage_step", "service_assurance", "conclusion", "call_to_action", "other",
+    ] = "other"
+    sequence_index: int | None = Field(default=None, ge=0)
+    brief_ref: str = ""
+    business_line: str = ""
+    product_category: str = ""
+    channel: str = ""
+    campaign_stage: str = ""
 
 
 class NormalizedRegion(BaseModel):
@@ -594,6 +620,15 @@ class CaseReviewInput(BaseModel):
     channel: str = ""
     campaign_stage: str = ""
     business_goal: str = ""
+    product_name: str = ""
+    content_purpose: str = ""
+    page_role: Literal[
+        "cover_hook", "problem_statement", "cause_explanation",
+        "product_display", "function_explanation", "parameter_comparison",
+        "usage_step", "service_assurance", "conclusion", "call_to_action", "other",
+    ] = "other"
+    sequence_index: int | None = Field(default=None, ge=0)
+    brief_ref: str = ""
     asset_category: Literal["layout", "style", "color", "photo"] | None = None
     name: str | None = None
     summary: str | None = None

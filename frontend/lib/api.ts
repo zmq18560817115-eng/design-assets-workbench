@@ -60,6 +60,7 @@ export interface AnalysisData {
   confidence: number;
   model_name: string;
   prompt_version: string;
+  generation_mode: "model" | "heuristic_fallback";
   review_status: string;
   material: string;
   prompt: string;
@@ -71,6 +72,12 @@ export interface CaseOut {
   name: string;
   content_type: string;
   product_category: string;
+  product_name: string;
+  content_purpose: string;
+  page_role: PageRole;
+  sequence_index: number | null;
+  brief_ref: string;
+  metadata_status: "manifest" | "inferred" | "manual";
   asset_category: string;
   asset_subcategory: string;
   industry: string;
@@ -90,6 +97,24 @@ export interface CaseOut {
   image: ImageOut | null;
   tags: TagOut[];
   analysis: AnalysisData | null;
+}
+
+export type PageRole =
+  | "cover_hook" | "problem_statement" | "cause_explanation"
+  | "product_display" | "function_explanation" | "parameter_comparison"
+  | "usage_step" | "service_assurance" | "conclusion"
+  | "call_to_action" | "other";
+
+export interface CaseBusinessUpdate {
+  product_name: string;
+  content_purpose: string;
+  page_role: PageRole;
+  sequence_index: number | null;
+  brief_ref: string;
+  business_line: string;
+  product_category: string;
+  channel: string;
+  campaign_stage: string;
 }
 
 export interface NormalizedRegion {
@@ -497,7 +522,10 @@ export const api = {
     assetSubcategory = "",
     projectId?: number,
     trustStatus = "",
-    analysisMode = ""
+    analysisMode = "",
+    productName = "",
+    contentPurpose = "",
+    pageRole = ""
   ) => {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
@@ -507,12 +535,21 @@ export const api = {
     if (projectId) p.set("project_id", String(projectId));
     if (trustStatus) p.set("trust_status", trustStatus);
     if (analysisMode) p.set("analysis_mode", analysisMode);
+    if (productName) p.set("product_name", productName);
+    if (contentPurpose) p.set("content_purpose", contentPurpose);
+    if (pageRole) p.set("page_role", pageRole);
     return fetch(`/api/cases?${p.toString()}`, { cache: "no-store" }).then((r) =>
       j<CaseOut[]>(r)
     );
   },
   case: (id: number | string) =>
     fetch(`/api/cases/${id}`, { cache: "no-store" }).then((r) => j<CaseOut>(r)),
+  updateCaseBusiness: (id: number | string, payload: CaseBusinessUpdate) =>
+    fetch(`/api/cases/${id}/business`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<CaseOut>(r)),
   layoutBlueprints: (caseId: number | string) =>
     fetch(`/api/cases/${caseId}/layout-blueprints`, {
       cache: "no-store",

@@ -63,6 +63,7 @@ def _auto_migrate():
             "confidence": "60",
             "model_name": "",
             "prompt_version": "visual-analysis-v1",
+            "generation_mode": "heuristic_fallback",
             "review_status": "ai_unverified",
         }
         for col, default in new_cols.items():
@@ -101,6 +102,11 @@ def _auto_migrate():
         case_fields = {
             "content_type": "",
             "product_category": "",
+            "product_name": "",
+            "content_purpose": "",
+            "page_role": "other",
+            "brief_ref": "",
+            "metadata_status": "inferred",
             "asset_category": "layout",
             "asset_subcategory": "",
             "business_line": "",
@@ -119,6 +125,9 @@ def _auto_migrate():
                     conn.execute(
                         text(f"ALTER TABLE cases ADD COLUMN {col} TEXT DEFAULT '{default}'")
                     )
+        if "sequence_index" not in case_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE cases ADD COLUMN sequence_index INTEGER"))
         if "reviewed_at" not in case_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE cases ADD COLUMN reviewed_at DATETIME"))
@@ -153,6 +162,13 @@ def _auto_migrate():
                             "TEXT DEFAULT '[]'"
                         )
                     )
+    if "batch_import_jobs" in tables:
+        job_cols = {c["name"] for c in inspector.get_columns("batch_import_jobs")}
+        if "fallback" not in job_cols:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("ALTER TABLE batch_import_jobs ADD COLUMN fallback INTEGER DEFAULT 0")
+                )
     if "layout_blueprints" in tables:
         blueprint_cols = {
             c["name"] for c in inspector.get_columns("layout_blueprints")

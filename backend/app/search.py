@@ -137,28 +137,7 @@ def search_cases(
         query = query.filter(models.Case.asset_category == asset_category)
 
     cases = query.order_by(models.Case.created_at.desc()).all()
-    preference_rows = (
-        db.query(
-            models.PreferenceEvent.case_id,
-            models.PreferenceEvent.event_type,
-            models.PreferenceEvent.value,
-        )
-        .all()
-    )
     preference_scores: dict[int, float] = {}
-    preference_weights = {
-        "like": 2.0,
-        "favorite": 3.0,
-        "selected": 4.0,
-        "adopt": 6.0,
-        "published": 8.0,
-        "dislike": -4.0,
-        "reject": -8.0,
-    }
-    for case_id, event_type, value in preference_rows:
-        preference_scores[case_id] = preference_scores.get(case_id, 0.0) + (
-            preference_weights.get(event_type, 0.0) * (value or 0)
-        )
     wanted_tags = {x.strip() for x in (tags or []) if x.strip()}
     tokens = _tokens(query_text)
     ranked: list[RankedCase] = []

@@ -13,6 +13,9 @@ function CasesInner() {
   const [tag, setTag] = useState(initialTag);
   const [cases, setCases] = useState<CaseOut[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productName, setProductName] = useState("");
+  const [contentPurpose, setContentPurpose] = useState("");
+  const [pageRole, setPageRole] = useState("");
   const assetCategory = "layout";
   const assetSubcategory = "";
 
@@ -24,7 +27,7 @@ function CasesInner() {
   ) => {
     setLoading(true);
     api
-      .cases(query, t, category, subcategory)
+      .cases(query, t, category, subcategory, undefined, "", "", productName, contentPurpose, pageRole)
       .then(setCases)
       .catch(() => setCases([]))
       .finally(() => setLoading(false));
@@ -52,7 +55,7 @@ function CasesInner() {
           e.preventDefault();
           load(q, tag);
         }}
-        className="mb-6 flex gap-2 rounded-2xl border border-line bg-white p-2"
+        className="mb-6 grid gap-2 rounded-2xl border border-line bg-white p-2 md:grid-cols-4"
       >
         <input
           value={q}
@@ -60,6 +63,28 @@ function CasesInner() {
           placeholder="搜索素材名称、产品品类或使用场景…"
           className="flex-1 rounded-xl border-0 bg-canvas px-4 py-2.5 outline-none focus:ring-2 focus:ring-accent/20"
         />
+        <input
+          value={productName}
+          onChange={(e) => setProductName(e.target.value)}
+          placeholder="产品名称"
+          className="rounded-xl border-0 bg-canvas px-4 py-2.5 outline-none"
+        />
+        <input
+          value={contentPurpose}
+          onChange={(e) => setContentPurpose(e.target.value)}
+          placeholder="内容用途"
+          className="rounded-xl border-0 bg-canvas px-4 py-2.5 outline-none"
+        />
+        <select
+          value={pageRole}
+          onChange={(e) => setPageRole(e.target.value)}
+          className="rounded-xl border-0 bg-canvas px-4 py-2.5 outline-none"
+        >
+          <option value="">全部页面角色</option>
+          {["cover_hook","problem_statement","cause_explanation","product_display","function_explanation","parameter_comparison","usage_step","service_assurance","conclusion","call_to_action","other"].map((role) => (
+            <option key={role} value={role}>{role}</option>
+          ))}
+        </select>
         <button className="rounded-xl bg-accent px-5 font-medium text-white hover:bg-ink">
           搜索
         </button>

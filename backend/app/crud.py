@@ -1199,8 +1199,10 @@ def create_case_from_analysis(
     product_category: str = "",
     asset_category: str = "layout",
     asset_subcategory: str = "",
+    business_metadata: dict | None = None,
 ) -> models.Case:
     """将一次 AI 拆解结果落库为完整案例卡。"""
+    metadata = business_metadata or {}
     case = models.Case(
         image_id=image.id,
         name=result.name,
@@ -1208,6 +1210,18 @@ def create_case_from_analysis(
         product_category=product_category,
         asset_category=asset_category,
         asset_subcategory=asset_subcategory,
+        business_line=metadata.get("business_line", ""),
+        channel=metadata.get("channel", ""),
+        campaign_stage=metadata.get("campaign_stage", ""),
+        product_name=metadata.get("product_name", ""),
+        content_purpose=metadata.get("content_purpose", ""),
+        page_role=metadata.get("page_role", "other") or "other",
+        sequence_index=metadata.get("sequence_index"),
+        brief_ref=metadata.get("brief_ref", ""),
+        review_decision=metadata.get("review_decision", ""),
+        review_notes=metadata.get("notes", ""),
+        reviewer=metadata.get("reviewer", ""),
+        metadata_status=metadata.get("metadata_status", "inferred"),
         industry=result.basics.industry,
         scene=result.basics.scene,
         summary=result.summary,
@@ -1234,6 +1248,9 @@ def create_case_from_analysis(
         confidence=85 if result.analyzed_by != "启发式规则" else 55,
         model_name=result.analyzed_by,
         prompt_version="visual-analysis-v1",
+        generation_mode=(
+            "heuristic_fallback" if result.analyzed_by == "启发式规则" else "model"
+        ),
         review_status="ai_unverified",
     )
     db.add(analysis)
@@ -1315,6 +1332,7 @@ def analysis_to_dict(analysis: models.Analysis | None) -> dict | None:
         "confidence": getattr(analysis, "confidence", 0) or 0,
         "model_name": getattr(analysis, "model_name", "") or "",
         "prompt_version": getattr(analysis, "prompt_version", "") or "",
+        "generation_mode": getattr(analysis, "generation_mode", "") or "heuristic_fallback",
         "review_status": getattr(analysis, "review_status", "") or "ai_unverified",
         "material": getattr(analysis, "material", ""),
         "prompt": analysis.prompt or "",
@@ -1328,6 +1346,12 @@ def serialize_case(case: models.Case) -> dict:
         "name": case.name,
         "content_type": getattr(case, "content_type", "") or "",
         "product_category": getattr(case, "product_category", "") or "",
+        "product_name": getattr(case, "product_name", "") or "",
+        "content_purpose": getattr(case, "content_purpose", "") or "",
+        "page_role": getattr(case, "page_role", "") or "other",
+        "sequence_index": getattr(case, "sequence_index", None),
+        "brief_ref": getattr(case, "brief_ref", "") or "",
+        "metadata_status": getattr(case, "metadata_status", "") or "inferred",
         "asset_category": getattr(case, "asset_category", "") or "layout",
         "asset_subcategory": getattr(case, "asset_subcategory", "") or "",
         "industry": case.industry,
@@ -1490,6 +1514,9 @@ def search_cases(
     project_id: int | None = None,
     trust_status: str | None = None,
     analysis_mode: str | None = None,
+    product_name: str | None = None,
+    content_purpose: str | None = None,
+    page_role: str | None = None,
 ) -> list[models.Case]:
     query = db.query(models.Case)
     if project_id is not None:
@@ -1510,6 +1537,12 @@ def search_cases(
         query = query.filter(models.Case.asset_category == asset_category)
     if asset_subcategory:
         query = query.filter(models.Case.asset_subcategory == asset_subcategory)
+    if product_name:
+        query = query.filter(models.Case.product_name == product_name)
+    if content_purpose:
+        query = query.filter(models.Case.content_purpose == content_purpose)
+    if page_role:
+        query = query.filter(models.Case.page_role == page_role)
     if tag:
         query = query.join(models.Case.tags).filter(models.Tag.name == tag)
     cases = query.order_by(models.Case.created_at.desc()).all()
@@ -1524,6 +1557,19 @@ def search_cases(
             or any(ql in t.name.lower() for t in c.tags)
         ]
     return cases
+
+
+def update_case_business_fields(db: Session, case: models.Case, payload) -> models.Case:
+    """Apply explicit human business metadata without changing review status."""
+    for field in (
+        "product_name", "content_purpose", "page_role", "sequence_index",
+        "brief_ref", "business_line", "product_category", "channel", "campaign_stage",
+    ):
+        setattr(case, field, getattr(payload, field))
+    case.metadata_status = "manual"
+    db.commit()
+    db.refresh(case)
+    return case
 
 
 def review_case(
@@ -1584,6 +1630,12 @@ def review_case(
     case.channel = review.channel.strip()
     case.campaign_stage = review.campaign_stage.strip()
     case.business_goal = review.business_goal.strip()
+    case.product_name = review.product_name.strip()
+    case.content_purpose = review.content_purpose.strip()
+    case.page_role = review.page_role
+    case.sequence_index = review.sequence_index
+    case.brief_ref = review.brief_ref.strip()
+    case.metadata_status = "manual"
     if review.asset_category is not None:
         case.asset_category = review.asset_category
     keep_reasons = [item.strip() for item in review.keep_reasons if item.strip()]
@@ -1597,6 +1649,11 @@ def review_case(
             "channel": case.channel,
             "campaign_stage": case.campaign_stage,
             "business_goal": case.business_goal,
+            "product_name": case.product_name,
+            "content_purpose": case.content_purpose,
+            "page_role": case.page_role,
+            "sequence_index": case.sequence_index,
+            "brief_ref": case.brief_ref,
             "asset_category": case.asset_category,
             "review_decision": case.review_decision,
             "review_notes": case.review_notes,
@@ -1684,6 +1741,9 @@ def replace_analysis_from_result(
     analysis.insights = result.insights.model_dump_json() if result.insights else ""
     analysis.analyzed_by = result.analyzed_by
     analysis.model_name = result.analyzed_by
+    analysis.generation_mode = (
+        "heuristic_fallback" if result.analyzed_by == "启发式规则" else "model"
+    )
     analysis.prompt = result.prompt
     analysis.review_status = "ai_unverified"
     analysis.version = (analysis.version or 1) + 1

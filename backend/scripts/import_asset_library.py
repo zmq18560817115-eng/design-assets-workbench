@@ -7,6 +7,7 @@ are checked inside each repository category.
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
 import uuid
@@ -20,6 +21,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 from app import crud, imagehash, models  # noqa: E402
 from app.agents import run_pipeline  # noqa: E402
 from app.database import SessionLocal, close_db, init_db  # noqa: E402
+from app.ingestion import dry_run_summary, execute_items, prepare_manifest  # noqa: E402
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 
@@ -98,7 +100,7 @@ def import_one(
             url=f"/uploads/{stored_name}",
             filename=source.name,
             source="local_library",
-            source_type="internal_reference",
+            source_type="external_reference",
             source_url=str(source),
             rights_note="本地素材库导入",
             visibility="team",
@@ -136,6 +138,7 @@ def main() -> int:
         default=PROJECT_DIR / "小红书内容图片素材库",
     )
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--manifest", type=Path)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--sample-per-folder", type=int, default=0)
     parser.add_argument(
@@ -167,6 +170,30 @@ def main() -> int:
     if args.limit > 0:
         items = items[: args.limit]
 
+    prepared, report = prepare_manifest(
+        args.root,
+        args.manifest,
+        default_source_type="external_reference",
+        inferred_items=items,
+    )
+    if args.project_name:
+        for item in prepared:
+            item["project_name"] = args.project_name
+    summary = dry_run_summary(prepared, report)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if not args.execute:
+        return 0 if summary["valid"] else 2
+    if not summary["valid"]:
+        print("manifest validation failed; execute aborted")
+        return 2
+    init_db()
+    try:
+        result = execute_items(prepared)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1 if result.get("failed") else 0
+    finally:
+        close_db()
+
     by_category = Counter(item["category"] for item in items)
     by_folder = Counter(item["folder"] for item in items)
     print(f"扫描图片：{len(items)}")
@@ -194,7 +221,7 @@ def main() -> int:
                     name=args.project_name,
                     description="从本地素材库分层抽样建立的公司黄金项目候选集",
                     status="active",
-                    is_gold=True,
+                    is_gold=False,
                 )
                 db.add(project)
                 db.commit()
