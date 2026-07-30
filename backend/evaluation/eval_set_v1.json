@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "description": "检索评测金标准集。每条 = 一个真实业务需求 + 由设计负责人人工标注的正确参考(模式/案例 id)。id 以下划线开头的条目仅作说明，会被评测跳过。",
+  "items": [
+    {
+      "id": "_template",
+      "title": "填写说明（此条会被跳过）",
+      "requirement": {
+        "title": "需求名称",
+        "request_text": "一句话业务描述",
+        "industry": "行业，如 母婴",
+        "product_category": "产品品类，如 吸奶器",
+        "channel": "渠道，如 小红书",
+        "canvas_ratio": "如 2:3",
+        "orientation": "portrait | landscape | square",
+        "campaign_stage": "业务场景，如 新品种草",
+        "business_goal": "业务目标",
+        "key_message": "核心信息",
+        "information_density": "low | medium | high",
+        "required_modules": ["main_title", "product_image"],
+        "forbidden_modules": [],
+        "reference_case_ids": []
+      },
+      "relevant": {
+        "patterns": [101, 102],
+        "cases": {"30": 2, "31": 1}
+      },
+      "_help": "relevant.patterns / relevant.cases 支持两种写法：[id,...] 表示全部相关度=1；{\"id\": grade} 表示分级相关度(用于 nDCG)。id 必须是目标数据库里真实的、已确认的 pattern / case id。"
+    },
+    {
+      "id": "seed-001",
+      "title": "吸奶器新品小红书种草长图",
+      "requirement": {
+        "title": "吸奶器新品小红书种草长图",
+        "request_text": "突出吸力模式、舒适度和便携性，形成清晰的购买理由",
+        "industry": "母婴",
+        "product_category": "吸奶器",
+        "channel": "小红书",
+        "canvas_ratio": "2:3",
+        "orientation": "portrait",
+        "campaign_stage": "新品种草",
+        "business_goal": "建立产品差异认知",
+        "key_message": "舒适高效地完成吸奶",
+        "information_density": "medium",
+        "required_modules": ["main_title", "product_image", "selling_point"],
+        "forbidden_modules": [],
+        "reference_case_ids": []
+      },
+      "relevant": {
+        "patterns": [],
+        "cases": []
+      },
+      "_help": "把 relevant 里的 id 换成你库里真实的正确参考；留空则该条不计入指标。"
+    }
+  ]
+}
