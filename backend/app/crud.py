@@ -727,6 +727,84 @@ def _match_advice(
     return reusable_modules, adaptation, risks
 
 
+# 阶段四反馈回流：方向反馈按来源模式/案例聚合，回流影响检索排序。
+_FEEDBACK_ACTION_WEIGHT = {
+    "selected": 3.0,
+    "adjusted_confirmed": 3.0,
+    "adjustment_requested": 1.0,
+    "rejected": -3.0,
+}
+_FEEDBACK_OUTCOME_WEIGHT = {
+    "landed": 3.0,
+    "iterating": 1.0,
+    "not_landed": -2.0,
+    "": 0.0,
+}
+
+
+def _feedback_signals(
+    db: Session,
+) -> tuple[dict[int, dict], dict[int, dict]]:
+    """把历史方向反馈按来源模式/案例聚合成可用于检索排序的学习信号。"""
+    pattern_signals: dict[int, dict] = {}
+    case_signals: dict[int, dict] = {}
+    rows = (
+        db.query(models.LayoutDirectionFeedback, models.LayoutDirection)
+        .join(
+            models.LayoutDirection,
+            models.LayoutDirectionFeedback.direction_id
+            == models.LayoutDirection.id,
+        )
+        .all()
+    )
+
+    def _bucket(store: dict[int, dict], key: int) -> dict:
+        return store.setdefault(
+            key,
+            {"raw": 0.0, "adopted": 0, "landed": 0, "rejected": 0},
+        )
+
+    for feedback, direction in rows:
+        delta = _FEEDBACK_ACTION_WEIGHT.get(feedback.action, 0.0)
+        delta += _FEEDBACK_OUTCOME_WEIGHT.get(feedback.outcome or "", 0.0)
+        adopted = feedback.action in ("selected", "adjusted_confirmed")
+        landed = (feedback.outcome or "") == "landed"
+        rejected = feedback.action == "rejected"
+        for store, raw_ids in (
+            (pattern_signals, _json_list(direction.source_pattern_ids)),
+            (case_signals, _json_list(direction.source_case_ids)),
+        ):
+            for raw_id in raw_ids:
+                try:
+                    key = int(raw_id)
+                except (TypeError, ValueError):
+                    continue
+                bucket = _bucket(store, key)
+                bucket["raw"] += delta
+                bucket["adopted"] += int(adopted)
+                bucket["landed"] += int(landed)
+                bucket["rejected"] += int(rejected)
+    return pattern_signals, case_signals
+
+
+def _feedback_bonus(bucket: dict | None) -> tuple[float, str]:
+    """把一个模式/案例的聚合反馈信号转成有界、可解释的排序加成。"""
+    if not bucket:
+        return 0.0, ""
+    bonus = round(max(-15.0, min(15.0, bucket["raw"])), 2)
+    if bonus == 0:
+        return 0.0, ""
+    if bonus > 0:
+        parts = []
+        if bucket["adopted"]:
+            parts.append(f"采纳 {bucket['adopted']} 次")
+        if bucket["landed"]:
+            parts.append(f"落地 {bucket['landed']} 次")
+        return bonus, f"历史反馈：{'、'.join(parts) or '正向反馈'}"
+    detail = f"淘汰 {bucket['rejected']} 次" if bucket["rejected"] else "负向反馈"
+    return bonus, f"历史反馈：{detail}"
+
+
 def _text_overlap(left: str, right: str) -> float:
     tokens_left = set(re.findall(r"[\w\u4e00-\u9fff]{2,}", (left or "").lower()))
     tokens_right = set(re.findall(r"[\w\u4e00-\u9fff]{2,}", (right or "").lower()))
@@ -760,6 +838,7 @@ def match_business_requirement(
     )
     req_required = _json_list(requirement.required_modules_json)
     req_forbidden = _json_list(requirement.forbidden_modules_json)
+    pattern_signals, case_signals = _feedback_signals(db)
     for pattern in patterns:
         score = 20.0
         reasons = ["人工确认排版模式"]
@@ -802,6 +881,10 @@ def match_business_requirement(
         if overlap:
             score += round(overlap * 20, 2)
             reasons.append("需求语义与适用说明相关")
+        fb_bonus, fb_reason = _feedback_bonus(pattern_signals.get(pattern.id))
+        if fb_bonus:
+            score += fb_bonus
+            reasons.append(fb_reason)
         sources = _json_list(pattern.source_case_ids)
         related_case_ids.update(int(case_id) for case_id in sources)
         extra_risks = []
@@ -885,6 +968,10 @@ def match_business_requirement(
         if overlap:
             score += round(overlap * 15, 2)
             reasons.append("案例内容与需求相关")
+        fb_bonus, fb_reason = _feedback_bonus(case_signals.get(case.id))
+        if fb_bonus:
+            score += fb_bonus
+            reasons.append(fb_reason)
         extra_risks = []
         if score < 35:
             extra_risks.append("综合匹配度较低，建议仅作结构参考")

@@ -273,6 +273,7 @@ class PhaseOneFlowTest(unittest.TestCase):
             case["id"],
         )
         top_pattern = matched.json()["pattern_matches"][0]
+        baseline_pattern_score = top_pattern["score"]
         for field in ("reusable_modules", "adaptation_suggestions", "risks"):
             self.assertIn(field, top_pattern)
             self.assertIsInstance(top_pattern[field], list)
@@ -389,6 +390,17 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(
             [item["action"] for item in feedback_history.json()],
             ["selected", "adjustment_requested", "adjusted_confirmed"],
+        )
+        # 反馈回流：被采纳并落地的方向来源模式，其检索得分应上升并带可解释理由。
+        rematched = self.client.post(
+            f"/api/business-requirements/{requirement.json()['id']}/match"
+        )
+        self.assertEqual(rematched.status_code, 200, rematched.text)
+        reranked_top = rematched.json()["pattern_matches"][0]
+        self.assertEqual(reranked_top["pattern"]["id"], verified_pattern.json()["id"])
+        self.assertGreater(reranked_top["score"], baseline_pattern_score)
+        self.assertTrue(
+            any(reason.startswith("历史反馈") for reason in reranked_top["reasons"])
         )
         with SessionLocal() as db:
             self.assertEqual(
