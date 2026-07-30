@@ -1,5 +1,13 @@
 # 当前开发阶段
 
+## Task 4.1 阶段结论
+
+冻结式检索验收工具已经完成收口，包括数据集版本、Ground Truth 工作台、不可逆冻结、事务导入、加权指标、真实数据准备度和 `not_ready / failed / passed` 三态门禁。
+
+当前结论是“可以开始准备真实业务验收”，不是“真实业务验收已经通过”。真实数据必须满足 50 个 verified 公司案例、5 个 verified 模式、10 条 confirmed 真实需求及 7/3 calibration/holdout 划分。calibration 只用于校准；holdout 不得反复查看并用于调权。全部门禁通过后才能进入多案例排版方向阶段。
+
+`ENABLE_LAYOUT_DIRECTIONS=false` 为默认设置。当前不训练偏好模型、不生成最终设计图，legacy 数据与接口含义保持不变。
+
 ## 当前产品定位
 
 AI业务排版知识库与意向方向生成系统。

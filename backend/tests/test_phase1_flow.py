@@ -26,7 +26,7 @@ os.environ["LLM_MODEL"] = ""
 from fastapi.testclient import TestClient  # noqa: E402
 from pydantic import ValidationError  # noqa: E402
 
-from app import crud, models  # noqa: E402
+from app import config, crud, models  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas import LayoutBlueprintInput  # noqa: E402
@@ -61,6 +61,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         cls.client.__exit__(None, None, None)
         _tmp.cleanup()
 
+    @patch.object(config, "ENABLE_LAYOUT_DIRECTIONS", True)
     def test_ingest_analyze_search_and_selectable_results(self) -> None:
         first = sample_image("#F5EFE6", "#DFAE92")
         response = self.client.post(
@@ -276,9 +277,10 @@ class PhaseOneFlowTest(unittest.TestCase):
             "需求指定参考案例",
             matched.json()["case_matches"][0]["reasons"],
         )
-        directions = self.client.post(
-            f"/api/business-requirements/{requirement.json()['id']}/directions/generate"
-        )
+        with patch.object(config, "ENABLE_LAYOUT_DIRECTIONS", True):
+            directions = self.client.post(
+                f"/api/business-requirements/{requirement.json()['id']}/directions/generate"
+            )
         self.assertEqual(directions.status_code, 200, directions.text)
         self.assertEqual(len(directions.json()["directions"]), 3)
         self.assertEqual(

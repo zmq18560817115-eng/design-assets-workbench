@@ -10,7 +10,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.database import SessionLocal, close_db, init_db  # noqa: E402
-from app.layout_search import evaluation, list_ground_truth  # noqa: E402
+from app.acceptance_pack import export_pack  # noqa: E402
 
 
 def main() -> int:
@@ -21,12 +21,7 @@ def main() -> int:
     init_db()
     db = SessionLocal()
     try:
-        payload = {
-            "format": "layout-search-acceptance-v1",
-            "dataset_version": args.dataset_version,
-            "ground_truth": list_ground_truth(db, args.dataset_version),
-            "evaluation": evaluation(db, args.dataset_version),
-        }
+        payload = export_pack(db, args.dataset_version)
         args.output.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2, default=str),
             encoding="utf-8",

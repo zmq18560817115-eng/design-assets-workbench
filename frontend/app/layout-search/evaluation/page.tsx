@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui";
 import { api, LayoutSearchEvaluation } from "@/lib/api";
 
@@ -53,6 +54,7 @@ export default function EvaluationPage() {
           <p className="mt-2 text-sm text-gray-500">Ground Truth 必须先定义并冻结，之后才能运行验收检索。</p>
         </div>
         <div className="flex gap-2">
+          <Link className="rounded-xl border border-line px-4 py-2 text-sm" href="/layout-search/evaluation/datasets">数据集工作台</Link>
           <input className="rounded-xl border border-line px-3 py-2 text-sm" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="数据集版本" />
           <button className="rounded-xl border border-line px-4 py-2 text-sm" onClick={() => api.layoutSearchEvaluation(version).then(setReport)}>查询</button>
           <button className="rounded-xl bg-ink px-4 py-2 text-sm text-white" onClick={run}>重新运行</button>
@@ -69,6 +71,17 @@ export default function EvaluationPage() {
           <div>版本：{report?.dataset_version || "—"}</div><div>标注：{String(report?.dataset.total ?? 0)}</div>
           <div>校准集：{String(report?.dataset.calibration ?? 0)}</div><div>留出集：{String(report?.dataset.holdout ?? 0)}</div>
         </div>
+      </Card>
+      <Card>
+        <h2 className="text-lg font-semibold">真实业务验收准备度</h2>
+        <div className="mt-4 grid gap-3 text-sm md:grid-cols-4">
+          <span>公司真实案例 {report?.readiness?.company_case_count ?? 0}</span>
+          <span>verified 蓝图案例 {report?.readiness?.verified_blueprint_case_count ?? 0}</span>
+          <span>verified 模式 {report?.readiness?.verified_pattern_count ?? 0}</span>
+          <span>confirmed 需求 {report?.readiness?.confirmed_requirement_count ?? 0}</span>
+        </div>
+        <p className="mt-4 text-sm font-medium">{report?.readiness?.can_enter_task_5 ? "允许进入 Task 5" : "尚不允许进入 Task 5"}</p>
+        <p className="mt-2 text-xs text-gray-500">阻塞项：{report?.readiness?.blocking_reasons.join("、") || "等待选择真实数据集"}</p>
       </Card>
       <div className="grid gap-4 md:grid-cols-3">
         {Object.entries(metrics).filter(([key]) => labels[key]).map(([key, value]) => (

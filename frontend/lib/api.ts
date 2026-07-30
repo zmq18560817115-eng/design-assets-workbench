@@ -241,7 +241,7 @@ export interface LayoutSearchMetricBlock {
 }
 
 export interface LayoutSearchEvaluation {
-  status: "passed" | "not_ready";
+  status: "passed" | "failed" | "not_ready";
   dataset_version: string | null;
   message: string;
   dataset: Record<string, number | boolean>;
@@ -249,6 +249,32 @@ export interface LayoutSearchEvaluation {
   calibration: LayoutSearchMetricBlock;
   holdout: LayoutSearchMetricBlock;
   gates: Record<string, boolean>;
+  readiness?: {
+    company_case_count: number;
+    verified_blueprint_case_count: number;
+    verified_blueprint_coverage: number;
+    verified_pattern_count: number;
+    confirmed_requirement_count: number;
+    ground_truth_coverage: number;
+    blocking_reasons: string[];
+    can_enter_task_5: boolean;
+  };
+}
+
+export interface LayoutSearchDataset {
+  id: number;
+  dataset_version: string;
+  name: string;
+  description: string;
+  dataset_kind: "real" | "fixture";
+  created_by: string;
+  frozen_at: string | null;
+  last_run_at: string | null;
+  created_at: string;
+  requirement_count: number;
+  annotation_count: number;
+  calibration_requirement_count: number;
+  holdout_requirement_count: number;
 }
 
 export interface LayoutPatternCreate {
@@ -668,6 +694,22 @@ export const api = {
     fetch(`/api/layout-search/ground-truth${datasetVersion ? `?dataset_version=${encodeURIComponent(datasetVersion)}` : ""}`, { cache: "no-store" }).then((r) =>
       j<LayoutSearchGroundTruth[]>(r)
     ),
+  layoutSearchDatasets: () =>
+    fetch("/api/layout-search/datasets", { cache: "no-store" }).then((r) =>
+      j<LayoutSearchDataset[]>(r)
+    ),
+  layoutSearchDataset: (version: string) =>
+    fetch(`/api/layout-search/datasets/${encodeURIComponent(version)}`, { cache: "no-store" }).then((r) =>
+      j<LayoutSearchDataset & { ground_truth: LayoutSearchGroundTruth[]; evaluation: LayoutSearchEvaluation }>(r)
+    ),
+  createLayoutSearchDataset: (payload: {
+    dataset_version: string; name: string; description: string;
+    dataset_kind: "real" | "fixture"; created_by: string;
+  }) =>
+    fetch("/api/layout-search/datasets", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutSearchDataset>(r)),
   createLayoutSearchGroundTruth: (payload: Omit<LayoutSearchGroundTruth, "id" | "frozen_at" | "created_at">) =>
     fetch("/api/layout-search/ground-truth", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -683,6 +725,13 @@ export const api = {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dataset_version, dataset_split }),
     }).then((r) => j<LayoutSearchEvaluation>(r)),
+  importLayoutSearchEvaluation: (file: File, execute = false) => {
+    const body = new FormData();
+    body.append("file", file);
+    return fetch(`/api/layout-search/evaluation/import?execute=${execute}`, {
+      method: "POST", body,
+    }).then((r) => j<{ dry_run: boolean; dataset_version: string; annotation_count: number; valid: boolean }>(r));
+  },
   generateLayoutDirections: (requirementId: number) =>
     fetch(`/api/business-requirements/${requirementId}/directions/generate`, {
       method: "POST",

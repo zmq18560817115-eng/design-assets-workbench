@@ -23,9 +23,11 @@ from app.database import SessionLocal
 from app.layout_patterns import discover_candidates, structure_similarity
 from app.layout_search import (
     SCORING_VERSION,
+    acceptance_status,
     evaluation,
     normalized_module_counts,
 )
+from app.acceptance_pack import export_pack, import_pack
 from app.business_taxonomy import normalize_business_value, values_match
 from app.main import app
 
@@ -545,3 +547,173 @@ class LayoutSearchTest(unittest.TestCase):
         meta = result["search_summary"]["reference_analysis"]
         self.assertIn("image_sha256", meta)
         self.assertEqual(meta["analyzer_version"], "reference-layout-v2")
+
+    def test_44_partially_relevant_uses_half_weight(self):
+        row = evaluation(
+            self.db, "fixture-predefined-v1"
+        )["overall"]["requirements"][0]
+        metric = row["precision_denominators"]["case_useful_precision_at_10"]
+        result = self.search(0)
+        labels = {
+            truth.result_id: truth.expected_relevance
+            for truth in self.db.query(models.LayoutSearchGroundTruth).filter(
+                models.LayoutSearchGroundTruth.dataset_version
+                == "fixture-predefined-v1",
+                models.LayoutSearchGroundTruth.requirement_id
+                == self.requirement_ids[0],
+                models.LayoutSearchGroundTruth.result_type == "case",
+            )
+        }
+        expected = sum(
+            1 if labels.get(item["id"]) == "relevant"
+            else .5 if labels.get(item["id"]) == "partially_relevant" else 0
+            for item in result["cases"][:10]
+        )
+        self.assertEqual(metric["weighted_relevance_sum"], expected)
+        self.assertEqual(metric["effective_denominator"], 10)
+
+    def test_45_fixture_never_passes_real_acceptance(self):
+        report = evaluation(self.db, "fixture-predefined-v1")
+        self.assertEqual(report["status"], "not_ready")
+        self.assertFalse(report["gates"]["real_dataset"])
+
+    def test_46_requirement_count_gates_are_explicit(self):
+        report = evaluation(self.db, "fixture-predefined-v1")
+        self.assertFalse(report["gates"]["minimum_total_requirements"])
+        self.assertFalse(report["gates"]["minimum_calibration_requirements"])
+        self.assertFalse(report["gates"]["minimum_holdout_requirements"])
+
+    def test_47_complete_data_with_bad_metrics_is_failed(self):
+        self.assertEqual(
+            acceptance_status({"data": True}, {"precision": False}), "failed"
+        )
+
+    def test_48_incomplete_data_is_not_ready(self):
+        self.assertEqual(
+            acceptance_status({"data": False}, {"precision": True}), "not_ready"
+        )
+
+    def test_49_export_import_round_trip(self):
+        payload = export_pack(self.db, "fixture-predefined-v1")
+        original = payload["ground_truth"]
+        payload["dataset_version"] = "fixture-roundtrip-v2"
+        payload["dataset"]["dataset_version"] = "fixture-roundtrip-v2"
+        payload["dataset"]["name"] = "Round trip"
+        for row in payload["ground_truth"]:
+            row["dataset_version"] = "fixture-roundtrip-v2"
+        result = import_pack(self.db, payload, execute=True)
+        self.assertFalse(result["dry_run"])
+        imported = export_pack(self.db, "fixture-roundtrip-v2")["ground_truth"]
+        comparable = lambda rows: sorted(
+            (row["requirement_id"], row["result_type"], row["result_id"],
+             row["expected_relevance"], row["dataset_split"],
+             row["reviewer"], row["reason"])
+            for row in rows
+        )
+        self.assertEqual(comparable(original), comparable(imported))
+
+    def test_50_import_parses_frozen_at_string(self):
+        payload = export_pack(self.db, "fixture-predefined-v1")
+        payload["dataset_version"] = "fixture-time-v2"
+        payload["dataset"]["dataset_version"] = "fixture-time-v2"
+        for row in payload["ground_truth"]:
+            row["dataset_version"] = "fixture-time-v2"
+        import_pack(self.db, payload, execute=True)
+        row = self.db.query(models.LayoutSearchGroundTruth).filter(
+            models.LayoutSearchGroundTruth.dataset_version == "fixture-time-v2"
+        ).first()
+        self.assertIsInstance(row.frozen_at, __import__("datetime").datetime)
+
+    def test_51_invalid_time_rolls_back_everything(self):
+        payload = export_pack(self.db, "fixture-predefined-v1")
+        payload["dataset_version"] = "fixture-invalid-time-v2"
+        payload["dataset"]["dataset_version"] = "fixture-invalid-time-v2"
+        payload["dataset"]["created_at"] = "not-a-time"
+        for row in payload["ground_truth"]:
+            row["dataset_version"] = "fixture-invalid-time-v2"
+        with self.assertRaises(ValueError):
+            import_pack(self.db, payload, execute=True)
+        self.assertIsNone(self.db.query(models.LayoutSearchDataset).filter(
+            models.LayoutSearchDataset.dataset_version
+            == "fixture-invalid-time-v2"
+        ).first())
+
+    def test_52_import_dry_run_writes_nothing(self):
+        payload = export_pack(self.db, "fixture-predefined-v1")
+        payload["dataset_version"] = "fixture-dry-run-v2"
+        payload["dataset"]["dataset_version"] = "fixture-dry-run-v2"
+        for row in payload["ground_truth"]:
+            row["dataset_version"] = "fixture-dry-run-v2"
+        import_pack(self.db, payload, execute=False)
+        self.assertIsNone(self.db.query(models.LayoutSearchDataset).filter(
+            models.LayoutSearchDataset.dataset_version == "fixture-dry-run-v2"
+        ).first())
+
+    def test_53_cross_split_freeze_is_rejected(self):
+        version = "cross-split-v1"
+        self.db.add(models.LayoutSearchDataset(
+            dataset_version=version, name=version, dataset_kind="real",
+            created_by="tester",
+        ))
+        self.db.add_all([
+            models.LayoutSearchGroundTruth(
+                requirement_id=self.requirement_ids[0], result_type="case",
+                result_id=self.case_ids[0][0], expected_relevance="relevant",
+                reviewer="tester", reason="case reason", dataset_version=version,
+                dataset_split="calibration",
+            ),
+            models.LayoutSearchGroundTruth(
+                requirement_id=self.requirement_ids[0], result_type="pattern",
+                result_id=self.pattern_ids[0], expected_relevance="relevant",
+                reviewer="tester", reason="pattern reason", dataset_version=version,
+                dataset_split="holdout",
+            ),
+        ])
+        self.db.commit()
+        response = self.client.post(
+            "/api/layout-search/ground-truth/freeze",
+            json={"dataset_version": version},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("多个 split", response.text)
+
+    def test_54_unconfirmed_requirement_cannot_freeze(self):
+        requirement = models.BusinessRequirement(title="draft", status="draft")
+        self.db.add(requirement)
+        self.db.flush()
+        version = "draft-requirement-v1"
+        self.db.add(models.LayoutSearchDataset(
+            dataset_version=version, name=version, dataset_kind="real",
+            created_by="tester",
+        ))
+        self.db.add_all([
+            models.LayoutSearchGroundTruth(
+                requirement_id=requirement.id, result_type="case",
+                result_id=self.case_ids[0][0], expected_relevance="relevant",
+                reviewer="tester", reason="case", dataset_version=version,
+                dataset_split="calibration",
+            ),
+            models.LayoutSearchGroundTruth(
+                requirement_id=requirement.id, result_type="pattern",
+                result_id=self.pattern_ids[0], expected_relevance="relevant",
+                reviewer="tester", reason="pattern", dataset_version=version,
+                dataset_split="calibration",
+            ),
+        ])
+        self.db.commit()
+        response = self.client.post(
+            "/api/layout-search/ground-truth/freeze",
+            json={"dataset_version": version},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("confirmed", response.text)
+
+    def test_55_frozen_dataset_rejects_new_label(self):
+        response = self.client.post("/api/layout-search/ground-truth", json={
+            "requirement_id": self.requirement_ids[0], "result_type": "case",
+            "result_id": self.case_ids[0][1], "expected_relevance": "relevant",
+            "reviewer": "tester", "reason": "late",
+            "dataset_version": "fixture-predefined-v1",
+            "dataset_split": "calibration",
+        })
+        self.assertEqual(response.status_code, 400)

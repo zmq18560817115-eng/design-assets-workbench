@@ -731,6 +731,46 @@ def _ground_truth_dict(row: models.LayoutSearchGroundTruth) -> dict[str, Any]:
     )}
 
 
+def _dataset_dict(db: Session, row: models.LayoutSearchDataset) -> dict[str, Any]:
+    truth = db.query(models.LayoutSearchGroundTruth).filter(
+        models.LayoutSearchGroundTruth.dataset_version == row.dataset_version
+    ).all()
+    requirement_ids = {item.requirement_id for item in truth}
+    return {
+        "id": row.id, "dataset_version": row.dataset_version, "name": row.name,
+        "description": row.description, "dataset_kind": row.dataset_kind,
+        "created_by": row.created_by, "frozen_at": row.frozen_at,
+        "last_run_at": row.last_run_at, "created_at": row.created_at,
+        "requirement_count": len(requirement_ids), "annotation_count": len(truth),
+        "calibration_requirement_count": len({
+            item.requirement_id for item in truth
+            if item.dataset_split == "calibration"
+        }),
+        "holdout_requirement_count": len({
+            item.requirement_id for item in truth if item.dataset_split == "holdout"
+        }),
+    }
+
+
+def create_dataset(db: Session, **values: Any):
+    values["dataset_version"] = values["dataset_version"].strip()
+    if db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == values["dataset_version"]
+    ).first():
+        raise ValueError("数据集版本已存在")
+    row = models.LayoutSearchDataset(**values)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _dataset_dict(db, row)
+
+
+def list_datasets(db: Session):
+    return [_dataset_dict(db, row) for row in db.query(
+        models.LayoutSearchDataset
+    ).order_by(models.LayoutSearchDataset.created_at.desc()).all()]
+
+
 def list_ground_truth(db: Session, dataset_version: str | None = None):
     query = db.query(models.LayoutSearchGroundTruth)
     if dataset_version:
@@ -751,7 +791,12 @@ def create_ground_truth(db: Session, **values: Any):
     target = models.LayoutPattern if values["result_type"] == "pattern" else models.Case
     if not db.get(target, values["result_id"]):
         raise ValueError("Ground Truth 引用的结果不存在")
-    if db.query(models.LayoutSearchGroundTruth).filter(
+    dataset = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == values["dataset_version"]
+    ).first()
+    if not dataset:
+        raise ValueError("数据集版本不存在，请先创建数据集")
+    if dataset.frozen_at or db.query(models.LayoutSearchGroundTruth).filter(
         models.LayoutSearchGroundTruth.dataset_version == values["dataset_version"],
         models.LayoutSearchGroundTruth.frozen_at.isnot(None),
     ).first():
@@ -773,14 +818,51 @@ def freeze_ground_truth(db: Session, dataset_version: str):
     ).all()
     if not rows:
         raise ValueError("该数据集版本没有 Ground Truth")
+    dataset = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == dataset_version
+    ).first()
+    if not dataset:
+        dataset = models.LayoutSearchDataset(
+            dataset_version=dataset_version, name=dataset_version,
+            description="兼容旧数据集", dataset_kind="fixture",
+            created_by="legacy-migration",
+        )
+        db.add(dataset)
+        db.flush()
     if all(row.frozen_at for row in rows):
         return {"dataset_version": dataset_version, "frozen_at": rows[0].frozen_at,
                 "count": len(rows)}
     if any(row.frozen_at for row in rows):
         raise ValueError("数据集冻结状态不一致，请创建新版本")
+    errors = []
+    split_by_requirement: dict[int, set[str]] = {}
+    types_by_requirement: dict[int, set[str]] = {}
+    for row in rows:
+        split_by_requirement.setdefault(row.requirement_id, set()).add(
+            row.dataset_split
+        )
+        types_by_requirement.setdefault(row.requirement_id, set()).add(
+            row.result_type
+        )
+        requirement = db.get(models.BusinessRequirement, row.requirement_id)
+        if not requirement or requirement.status != "confirmed":
+            errors.append(f"需求 #{row.requirement_id} 不是 confirmed")
+        if not row.reviewer.strip():
+            errors.append(f"标注 #{row.id} reviewer 为空")
+        if not row.reason.strip():
+            errors.append(f"标注 #{row.id} reason 为空")
+    for requirement_id, splits in split_by_requirement.items():
+        if len(splits) != 1:
+            errors.append(f"需求 #{requirement_id} 同时属于多个 split")
+        if types_by_requirement.get(requirement_id) != {"case", "pattern"}:
+            errors.append(f"需求 #{requirement_id} 必须同时包含案例和模式标注")
+    if errors:
+        db.rollback()
+        raise ValueError("冻结校验失败：" + "；".join(sorted(set(errors))))
     now = dt.datetime.utcnow()
     for row in rows:
         row.frozen_at = now
+    dataset.frozen_at = now
     db.commit()
     return {"dataset_version": dataset_version, "frozen_at": now, "count": len(rows)}
 
@@ -805,6 +887,12 @@ def run_acceptance(
             pattern_limit=10, case_limit=20, include_unverified=False,
             reanalyze_reference=False,
         )
+    dataset = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == dataset_version
+    ).first()
+    if dataset:
+        dataset.last_run_at = dt.datetime.utcnow()
+        db.commit()
     return evaluation(db, dataset_version)
 
 
@@ -826,9 +914,21 @@ def _metric_block(db: Session, truth_rows):
         cases, patterns = snapshot.get("cases", []), snapshot.get("patterns", [])
 
         def precision(results, mapping, limit, useful=False):
-            accepted = {"relevant", "partially_relevant"} if useful else {"relevant"}
-            return round(sum(mapping.get(item["id"]) in accepted
-                             for item in results[:limit]) / limit, 4)
+            selected = results[:limit]
+            weights = {
+                "relevant": 1.0,
+                "partially_relevant": 0.5 if useful else 0.0,
+                "irrelevant": 0.0,
+            }
+            score = sum(weights.get(mapping.get(item["id"]), 0.0)
+                        for item in selected)
+            return {
+                "value": round(score / limit, 4),
+                "requested_k": limit,
+                "returned_count": len(selected),
+                "effective_denominator": limit,
+                "weighted_relevance_sum": score,
+            }
 
         relevant_cases = {key for key, value in labels["case"].items()
                           if value == "relevant"}
@@ -844,6 +944,10 @@ def _metric_block(db: Session, truth_rows):
         traceable = sum(bool(item.get("source_case_ids")
                              or item.get("source_blueprint_ids"))
                         for item in all_results)
+        case_direct = precision(cases, labels["case"], 5)
+        case_useful = precision(cases, labels["case"], 10, True)
+        pattern_direct = precision(patterns, labels["pattern"], 3)
+        pattern_useful = precision(patterns, labels["pattern"], 5, True)
         details.append({
             "requirement_id": requirement_id,
             "dataset_split": truth[0].dataset_split,
@@ -853,15 +957,19 @@ def _metric_block(db: Session, truth_rows):
             "ground_truth_count": len(truth),
             "ground_truth_coverage": round(known / len(all_results), 4)
             if all_results else 0.0,
-            "case_direct_precision_at_5": precision(cases, labels["case"], 5),
-            "case_useful_precision_at_10": precision(cases, labels["case"], 10, True),
+            "case_direct_precision_at_5": case_direct["value"],
+            "case_useful_precision_at_10": case_useful["value"],
             "case_recall_at_10": round(
                 len(relevant_cases & returned_cases) / len(relevant_cases), 4
             ) if relevant_cases else 0.0,
-            "pattern_direct_precision_at_3": precision(patterns, labels["pattern"], 3),
-            "pattern_useful_precision_at_5": precision(
-                patterns, labels["pattern"], 5, True
-            ),
+            "pattern_direct_precision_at_3": pattern_direct["value"],
+            "pattern_useful_precision_at_5": pattern_useful["value"],
+            "precision_denominators": {
+                "case_direct_precision_at_5": case_direct,
+                "case_useful_precision_at_10": case_useful,
+                "pattern_direct_precision_at_3": pattern_direct,
+                "pattern_useful_precision_at_5": pattern_useful,
+            },
             "forbidden_module_violation_count": violations,
             "traceability_rate": round(traceable / len(all_results), 4)
             if all_results else 0.0,
@@ -901,6 +1009,14 @@ def _metric_block(db: Session, truth_rows):
     return {"metrics": metrics, "requirements": details}
 
 
+def acceptance_status(
+    preparation_gates: dict[str, bool], metric_gates: dict[str, bool],
+) -> str:
+    if not all(preparation_gates.values()):
+        return "not_ready"
+    return "passed" if all(metric_gates.values()) else "failed"
+
+
 def evaluation(db: Session, dataset_version: str | None = None):
     if not dataset_version:
         latest = db.query(models.LayoutSearchGroundTruth.dataset_version).order_by(
@@ -926,12 +1042,41 @@ def evaluation(db: Session, dataset_version: str | None = None):
     )
     overall = _metric_block(db, rows)
     hm = holdout["metrics"]
+    dataset_row = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == dataset_version
+    ).first()
+    requirement_ids = {row.requirement_id for row in rows}
+    calibration_ids = {
+        row.requirement_id for row in rows if row.dataset_split == "calibration"
+    }
+    holdout_ids = {
+        row.requirement_id for row in rows if row.dataset_split == "holdout"
+    }
+    verified_company_case_ids = {
+        case_id for (case_id,) in db.query(models.LayoutBlueprint.case_id).join(
+            models.Case, models.Case.id == models.LayoutBlueprint.case_id
+        ).join(models.Image, models.Image.id == models.Case.image_id).filter(
+            models.LayoutBlueprint.review_status == "verified",
+            models.Image.source_type.in_(("company_published", "company_finished_asset")),
+        ).distinct().all()
+    }
+    company_case_count = db.query(models.Case).join(
+        models.Image, models.Image.id == models.Case.image_id
+    ).filter(models.Image.source_type.in_(
+        ("company_published", "company_finished_asset")
+    )).count()
+    verified_pattern_count = db.query(models.LayoutPattern).filter(
+        models.LayoutPattern.review_status == "verified"
+    ).count()
+    confirmed_requirement_count = db.query(models.BusinessRequirement).filter(
+        models.BusinessRequirement.status == "confirmed"
+    ).count()
     enough = bool(holdout["requirements"]) and all(
         row["search_run_id"] and row["returned_case_count"] >= 10
         and row["returned_pattern_count"] >= 3
         for row in holdout["requirements"]
     )
-    gates = {
+    metric_gates = {
         "case_direct_precision_at_5": hm["case_direct_precision_at_5"] >= .60,
         "case_useful_precision_at_10": hm["case_useful_precision_at_10"] >= .60,
         "pattern_direct_precision_at_3": hm["pattern_direct_precision_at_3"] >= .67,
@@ -940,16 +1085,50 @@ def evaluation(db: Session, dataset_version: str | None = None):
         "traceability_rate": hm["traceability_rate"] == 1.0,
         "minimum_results_per_requirement": enough,
     }
-    ready = all(row.frozen_at for row in rows) and all(gates.values())
+    preparation_gates = {
+        "real_dataset": bool(dataset_row and dataset_row.dataset_kind == "real"),
+        "dataset_frozen": bool(
+            dataset_row and dataset_row.frozen_at and all(row.frozen_at for row in rows)
+        ),
+        "evaluation_has_run": bool(
+            dataset_row and dataset_row.last_run_at
+            and all(item["search_run_id"] for item in overall["requirements"])
+        ),
+        "minimum_total_requirements": len(requirement_ids) >= 10,
+        "minimum_calibration_requirements": len(calibration_ids) >= 7,
+        "minimum_holdout_requirements": len(holdout_ids) >= 3,
+        "minimum_verified_company_cases": len(verified_company_case_ids) >= 50,
+        "minimum_verified_patterns": verified_pattern_count >= 5,
+    }
+    status = acceptance_status(preparation_gates, metric_gates)
+    passed = status == "passed"
+    gates = {**preparation_gates, **metric_gates}
+    blockers = [key for key, value in gates.items() if not value]
     return {
-        "status": "passed" if ready else "not_ready",
+        "status": status,
         "dataset_version": dataset_version,
-        "message": "真实业务验收门禁通过" if ready else "尚未完成真实业务验收",
+        "message": "真实业务验收门禁通过" if passed else "尚未完成真实业务验收",
         "dataset": {
             "total": len(rows),
-            "calibration": sum(row.dataset_split == "calibration" for row in rows),
-            "holdout": sum(row.dataset_split == "holdout" for row in rows),
+            "requirement_count": len(requirement_ids),
+            "annotation_count": len(rows),
+            "calibration": len(calibration_ids),
+            "holdout": len(holdout_ids),
             "frozen": all(row.frozen_at for row in rows),
+            "dataset_kind": dataset_row.dataset_kind if dataset_row else "unknown",
+            "last_run_at": dataset_row.last_run_at if dataset_row else None,
+        },
+        "readiness": {
+            "company_case_count": company_case_count,
+            "verified_blueprint_case_count": len(verified_company_case_ids),
+            "verified_blueprint_coverage": round(
+                len(verified_company_case_ids) / company_case_count, 4
+            ) if company_case_count else 0.0,
+            "verified_pattern_count": verified_pattern_count,
+            "confirmed_requirement_count": confirmed_requirement_count,
+            "ground_truth_coverage": overall["metrics"]["ground_truth_coverage"],
+            "blocking_reasons": blockers,
+            "can_enter_task_5": passed,
         },
         "overall": overall, "calibration": calibration,
         "holdout": holdout, "gates": gates,

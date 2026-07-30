@@ -17,7 +17,7 @@ def main() -> int:
     args = parser.parse_args()
     if not args.execute:
         print(
-            "预览：创建 layout_search_ground_truth；补充模式业务适用字段和"
+            "预览：创建 layout_search_ground_truth、layout_search_datasets；补充模式业务适用字段和"
             "参考图哈希、分析器版本、审核字段。添加 --execute 执行。"
         )
         return 0

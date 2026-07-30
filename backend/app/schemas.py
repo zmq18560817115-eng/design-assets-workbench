@@ -394,6 +394,14 @@ class LayoutSearchEvaluationRunInput(BaseModel):
     dataset_split: Literal["calibration", "holdout"] | None = None
 
 
+class LayoutSearchDatasetCreate(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=180)
+    description: str = ""
+    dataset_kind: Literal["real", "fixture"] = "real"
+    created_by: str = Field(min_length=1, max_length=120)
+
+
 class BusinessRequirementCreate(BaseModel):
     title: str = Field(min_length=1, max_length=180)
     request_text: str = ""

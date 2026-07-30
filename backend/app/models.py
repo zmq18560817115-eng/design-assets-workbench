@@ -400,6 +400,22 @@ class LayoutSearchGroundTruth(Base):
     created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
 
 
+class LayoutSearchDataset(Base):
+    """Acceptance dataset metadata; labels remain in the immutable GT table."""
+
+    __tablename__ = "layout_search_datasets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dataset_version = Column(String, nullable=False, unique=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, default="")
+    dataset_kind = Column(String, default="real", nullable=False, index=True)
+    created_by = Column(String, nullable=False)
+    frozen_at = Column(DateTime, nullable=True, index=True)
+    last_run_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
 class LayoutDirection(Base):
     """One generated low-fidelity direction tied to evidence and a brief."""
 

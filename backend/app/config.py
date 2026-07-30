@@ -92,3 +92,8 @@ try:
     BATCH_CONCURRENCY = max(1, int(os.getenv("BATCH_CONCURRENCY", "3")))
 except ValueError:
     BATCH_CONCURRENCY = 3
+
+# Task 5 capability remains off until a real acceptance dataset passes every gate.
+ENABLE_LAYOUT_DIRECTIONS = os.getenv(
+    "ENABLE_LAYOUT_DIRECTIONS", "false"
+).lower() in {"1", "true", "yes"}

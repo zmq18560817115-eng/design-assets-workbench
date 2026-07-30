@@ -1,5 +1,19 @@
 # 设计灵感资产库
 
+## Task 4.1：冻结式检索验收
+
+Task 4 的验收工具建设已完成：可以创建真实验收数据集、预先标注并冻结 Ground Truth、分别运行 calibration/holdout、查看准备度和三态验收结果，以及事务式导入导出完整验收包。
+
+这不表示真实业务验收已经通过。进入 Task 5 前仍须由设计团队提供至少 50 个带 verified LayoutBlueprint 的公司真实案例、至少 5 个 verified LayoutPattern，以及 10 条 confirmed 真实需求（calibration 至少 7 条、holdout 至少 3 条）。calibration 仅用于规则校准；holdout 不得反复用于调权。
+
+`ENABLE_LAYOUT_DIRECTIONS` 默认为 `false`。旧方向接口为 legacy 兼容能力，只有显式开启才可调用；真实验收通过前不属于正式主线能力。系统当前不训练偏好模型，也不生成最终设计图。
+
+工作台：
+
+- `/layout-search/evaluation`
+- `/layout-search/evaluation/datasets`
+- `/layout-search/evaluation/datasets/{version}`
+
 产品定位：**AI业务排版知识库与意向方向生成系统**。
 
 当前正式业务主线：

@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    batch, concept, config, crud, imagehash, layout_patterns, layout_search,
+    acceptance_pack, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
     llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
@@ -56,6 +56,7 @@ from .schemas import (
     LayoutSearchGroundTruthCreate,
     LayoutSearchGroundTruthFreeze,
     LayoutSearchEvaluationRunInput,
+    LayoutSearchDatasetCreate,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -898,6 +899,37 @@ def get_layout_search_ground_truth(
     return layout_search.list_ground_truth(db, dataset_version)
 
 
+@app.get("/api/layout-search/datasets")
+def get_layout_search_datasets(db: Session = Depends(get_db)):
+    return layout_search.list_datasets(db)
+
+
+@app.post("/api/layout-search/datasets")
+def create_layout_search_dataset(
+    payload: LayoutSearchDatasetCreate, db: Session = Depends(get_db),
+):
+    try:
+        return layout_search.create_dataset(db, **payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/layout-search/datasets/{dataset_version}")
+def get_layout_search_dataset(
+    dataset_version: str, db: Session = Depends(get_db),
+):
+    dataset = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == dataset_version
+    ).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="数据集版本不存在")
+    return {
+        **layout_search._dataset_dict(db, dataset),
+        "ground_truth": layout_search.list_ground_truth(db, dataset_version),
+        "evaluation": layout_search.evaluation(db, dataset_version),
+    }
+
+
 @app.post("/api/layout-search/ground-truth")
 def create_layout_search_ground_truth(
     payload: LayoutSearchGroundTruthCreate, db: Session = Depends(get_db),
@@ -956,7 +988,26 @@ def run_layout_search_evaluation(
 def export_layout_search_evaluation(
     dataset_version: str | None = None, db: Session = Depends(get_db),
 ):
-    return layout_search.evaluation(db, dataset_version)
+    if not dataset_version:
+        raise HTTPException(status_code=400, detail="必须指定 dataset_version")
+    try:
+        return acceptance_pack.export_pack(db, dataset_version)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/layout-search/evaluation/import")
+async def import_layout_search_evaluation(
+    file: UploadFile = File(...), execute: bool = False,
+    db: Session = Depends(get_db),
+):
+    try:
+        payload = json.loads((await file.read()).decode("utf-8"))
+        return acceptance_pack.import_pack(db, payload, execute=execute)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="验收 JSON 无法解析") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get(
@@ -989,6 +1040,11 @@ def generate_requirement_directions(
     requirement_id: int,
     db: Session = Depends(get_db),
 ):
+    if not config.ENABLE_LAYOUT_DIRECTIONS:
+        raise HTTPException(
+            status_code=403,
+            detail="多案例排版方向尚未启用；真实业务验收通过后才能进入 Task 5",
+        )
     requirement = db.get(models.BusinessRequirement, requirement_id)
     if not requirement:
         raise HTTPException(status_code=404, detail="业务需求不存在")
