@@ -936,7 +936,11 @@ def match_business_requirement(
     pattern_limit: int = 6,
     case_limit: int = 12,
 ) -> dict:
-    """Explainable structured retrieval without company preference weighting."""
+    """Explainable structured retrieval.
+
+    No company preference profile is used; ranking does fold in historical
+    direction feedback (adopt / land / reject) as a bounded, explainable bonus.
+    """
     patterns = (
         db.query(models.LayoutPattern)
         .filter(models.LayoutPattern.review_status == "verified")

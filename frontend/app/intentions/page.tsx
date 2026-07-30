@@ -210,7 +210,8 @@ export default function IntentionsPage() {
           </div>
           <h1 className="mt-2 text-3xl font-bold">业务排版意向</h1>
           <p className="mt-2 text-sm leading-6 text-gray-500">
-            输入真实业务约束，系统只依据人工确认骨架和排版模式进行可解释匹配，不使用公司偏好评分。
+            输入真实业务约束，系统依据人工确认骨架和排版模式进行可解释匹配；不使用公司偏好画像，
+            但会结合历史使用反馈（采纳 / 落地 / 淘汰）做有界、可解释的排序加成。
           </p>
         </div>
 
