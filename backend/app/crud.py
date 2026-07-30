@@ -147,13 +147,13 @@ def _detected_layout_modules(
                 )
             continue
         module_type = (
-            "title"
+            "main_title"
             if index == 0
             else "cta"
             if index == len(row_bands) - 1 and height <= 0.12
             else "product_image"
             if index == largest_index
-            else "supporting_text"
+            else "body_text"
         )
         modules.append(
             {
@@ -166,9 +166,9 @@ def _detected_layout_modules(
                 "priority": len(modules) + 1,
                 "alignment": alignment or "center",
                 "description": {
-                    "title": "检测到的顶部标题框",
+                    "main_title": "检测到的顶部标题框",
                     "product_image": "检测到的主视觉框",
-                    "supporting_text": "检测到的辅助信息框",
+                    "body_text": "检测到的辅助信息框",
                     "cta": "检测到的底部引导框",
                 }[module_type],
             }
@@ -212,21 +212,21 @@ def build_initial_layout_blueprint(
     )
     templates = {
         "portrait": [
-            ("title", 0.08, 0.05, 0.84, 0.12, "主标题区域"),
+            ("main_title", 0.08, 0.05, 0.84, 0.12, "主标题区域"),
             ("product_image", 0.12, 0.22, 0.76, 0.44, "产品或内容主视觉"),
-            ("supporting_text", 0.10, 0.70, 0.80, 0.12, "辅助信息区域"),
+            ("body_text", 0.10, 0.70, 0.80, 0.12, "辅助信息区域"),
             ("cta", 0.30, 0.87, 0.40, 0.07, "行动引导区域"),
         ],
         "landscape": [
-            ("title", 0.06, 0.08, 0.40, 0.16, "主标题区域"),
-            ("supporting_text", 0.06, 0.34, 0.40, 0.24, "辅助信息区域"),
+            ("main_title", 0.06, 0.08, 0.40, 0.16, "主标题区域"),
+            ("body_text", 0.06, 0.34, 0.40, 0.24, "辅助信息区域"),
             ("product_image", 0.52, 0.12, 0.42, 0.62, "产品或内容主视觉"),
             ("cta", 0.06, 0.72, 0.28, 0.12, "行动引导区域"),
         ],
         "square": [
-            ("title", 0.08, 0.06, 0.84, 0.14, "主标题区域"),
+            ("main_title", 0.08, 0.06, 0.84, 0.14, "主标题区域"),
             ("product_image", 0.15, 0.24, 0.70, 0.46, "产品或内容主视觉"),
-            ("supporting_text", 0.10, 0.74, 0.80, 0.10, "辅助信息区域"),
+            ("body_text", 0.10, 0.74, 0.80, 0.10, "辅助信息区域"),
             ("cta", 0.32, 0.88, 0.36, 0.06, "行动引导区域"),
         ],
     }
@@ -862,7 +862,7 @@ def _direction_modules(base_modules: list[dict], strategy: str) -> list[dict]:
                     1 - module["x"],
                 )
                 module["description"] = "强化后的产品主视觉"
-            elif module.get("type") == "supporting_text":
+            elif module.get("type") == "body_text":
                 module["height"] = min(
                     module["height"] + 0.04,
                     1 - module["y"],
@@ -873,7 +873,7 @@ def _direction_modules(base_modules: list[dict], strategy: str) -> list[dict]:
         (
             index
             for index, module in enumerate(modules)
-            if module.get("type") == "supporting_text"
+            if module.get("type") == "body_text"
         ),
         None,
     )
