@@ -812,6 +812,33 @@ def create_ground_truth(db: Session, **values: Any):
     return _ground_truth_dict(row)
 
 
+def update_ground_truth(
+    db: Session, row: models.LayoutSearchGroundTruth, **values: Any,
+):
+    dataset = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == row.dataset_version
+    ).first()
+    if row.frozen_at or (dataset and dataset.frozen_at):
+        raise ValueError("数据集已冻结，Ground Truth 不可修改")
+    for key, value in values.items():
+        setattr(row, key, value.strip() if isinstance(value, str) else value)
+    db.commit()
+    db.refresh(row)
+    return _ground_truth_dict(row)
+
+
+def delete_ground_truth(
+    db: Session, row: models.LayoutSearchGroundTruth,
+):
+    dataset = db.query(models.LayoutSearchDataset).filter(
+        models.LayoutSearchDataset.dataset_version == row.dataset_version
+    ).first()
+    if row.frozen_at or (dataset and dataset.frozen_at):
+        raise ValueError("数据集已冻结，Ground Truth 不可删除")
+    db.delete(row)
+    db.commit()
+
+
 def freeze_ground_truth(db: Session, dataset_version: str):
     rows = db.query(models.LayoutSearchGroundTruth).filter(
         models.LayoutSearchGroundTruth.dataset_version == dataset_version
@@ -957,6 +984,8 @@ def _metric_block(db: Session, truth_rows):
             "requirement_id": requirement_id,
             "dataset_split": truth[0].dataset_split,
             "search_run_id": run.id if run else None,
+            "scoring_version": run.scoring_version if run else None,
+            "run_created_at": run.created_at if run else None,
             "returned_case_count": len(cases),
             "returned_pattern_count": len(patterns),
             "ground_truth_count": len(truth),

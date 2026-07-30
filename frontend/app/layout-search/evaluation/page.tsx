@@ -33,10 +33,14 @@ export default function EvaluationPage() {
       setMessage(error instanceof Error ? error.message : "运行失败");
     }
   }
-  function exportJson() {
-    if (!report) return;
+  async function exportJson() {
+    if (!report?.dataset_version) return;
+    const response = await fetch(
+      `/api/layout-search/evaluation/export?dataset_version=${encodeURIComponent(report.dataset_version)}`
+    );
+    const payload = await response.json();
     const url = URL.createObjectURL(new Blob(
-      [JSON.stringify(report, null, 2)], { type: "application/json" }
+      [JSON.stringify(payload, null, 2)], { type: "application/json" }
     ));
     const link = document.createElement("a");
     link.href = url;
@@ -44,7 +48,6 @@ export default function EvaluationPage() {
     link.click();
     URL.revokeObjectURL(url);
   }
-  const metrics = report?.holdout.metrics || {};
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -83,10 +86,16 @@ export default function EvaluationPage() {
         <p className="mt-4 text-sm font-medium">{report?.readiness?.can_enter_task_5 ? "允许进入 Task 5" : "尚不允许进入 Task 5"}</p>
         <p className="mt-2 text-xs text-gray-500">阻塞项：{report?.readiness?.blocking_reasons.join("、") || "等待选择真实数据集"}</p>
       </Card>
-      <div className="grid gap-4 md:grid-cols-3">
-        {Object.entries(metrics).filter(([key]) => labels[key]).map(([key, value]) => (
-          <Card key={key}><div className="text-sm text-gray-500">{labels[key]}</div><div className="mt-2 text-2xl font-semibold">{value <= 1 ? `${(value * 100).toFixed(1)}%` : value}</div></Card>
-        ))}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {(["calibration", "holdout"] as const).map((split) => <Card key={split}>
+          <h2 className="text-lg font-semibold">{split === "calibration" ? "Calibration 校准集" : "Holdout 留出集"}</h2>
+          <p className="mt-1 text-xs text-gray-500">{split === "calibration" ? "仅用于校准规则，不代表最终验收。" : "只用于独立验收，不得反复用于调权。"}</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {Object.entries(report?.[split].metrics || {}).filter(([key]) => labels[key]).map(([key, value]) => (
+              <div key={key} className="rounded-xl bg-gray-50 p-3"><div className="text-xs text-gray-500">{labels[key]}</div><div className="mt-1 text-lg font-semibold">{value <= 1 ? `${(value * 100).toFixed(1)}%` : value}</div></div>
+            ))}
+          </div>
+        </Card>)}
       </div>
       <Card>
         <h2 className="text-lg font-semibold">留出集门禁</h2>
@@ -100,10 +109,11 @@ export default function EvaluationPage() {
         <h2 className="text-lg font-semibold">逐需求结果</h2>
         <div className="mt-4 space-y-2 text-sm">
           {(report?.overall.requirements || []).map((row) => (
-            <div key={String(row.requirement_id)} className="grid gap-2 rounded-xl border border-line px-4 py-3 md:grid-cols-6">
-              <span>需求 #{String(row.requirement_id)}</span><span>{String(row.dataset_split)}</span>
+            <div key={String(row.requirement_id)} className="grid gap-2 rounded-xl border border-line px-4 py-3 md:grid-cols-8">
+              <Link href={`/requirements/${String(row.requirement_id)}`} className="text-accent">需求 #{String(row.requirement_id)}</Link><span>{String(row.dataset_split)}</span>
               <span>案例 {String(row.returned_case_count)}</span><span>模式 {String(row.returned_pattern_count)}</span>
               <span>P@5 {Number(row.case_direct_precision_at_5 || 0).toFixed(2)}</span><span>{String(row.average_search_elapsed_ms)}ms</span>
+              <span>{String(row.scoring_version || "未运行")}</span><span>{row.run_created_at ? new Date(String(row.run_created_at)).toLocaleString() : "无运行时间"}</span>
             </div>
           ))}
         </div>

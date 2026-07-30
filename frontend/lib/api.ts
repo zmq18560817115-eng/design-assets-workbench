@@ -715,6 +715,18 @@ export const api = {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then((r) => j<LayoutSearchGroundTruth>(r)),
+  updateLayoutSearchGroundTruth: (
+    id: number,
+    payload: Pick<LayoutSearchGroundTruth, "expected_relevance" | "reviewer" | "reason" | "dataset_split">
+  ) =>
+    fetch(`/api/layout-search/ground-truth/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutSearchGroundTruth>(r)),
+  deleteLayoutSearchGroundTruth: (id: number) =>
+    fetch(`/api/layout-search/ground-truth/${id}`, {
+      method: "DELETE",
+    }).then((r) => j<{ deleted: boolean; id: number }>(r)),
   freezeLayoutSearchGroundTruth: (dataset_version: string) =>
     fetch("/api/layout-search/ground-truth/freeze", {
       method: "POST", headers: { "Content-Type": "application/json" },

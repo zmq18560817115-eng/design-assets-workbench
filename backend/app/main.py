@@ -55,6 +55,7 @@ from .schemas import (
     LayoutSearchFeedbackCreate,
     LayoutSearchGroundTruthCreate,
     LayoutSearchGroundTruthFreeze,
+    LayoutSearchGroundTruthUpdate,
     LayoutSearchEvaluationRunInput,
     LayoutSearchDatasetCreate,
     LayoutDirectionOut,
@@ -946,6 +947,34 @@ def freeze_layout_search_ground_truth(
 ):
     try:
         return layout_search.freeze_ground_truth(db, payload.dataset_version)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.patch("/api/layout-search/ground-truth/{ground_truth_id}")
+def update_layout_search_ground_truth(
+    ground_truth_id: int, payload: LayoutSearchGroundTruthUpdate,
+    db: Session = Depends(get_db),
+):
+    row = db.get(models.LayoutSearchGroundTruth, ground_truth_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Ground Truth 不存在")
+    try:
+        return layout_search.update_ground_truth(db, row, **payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/api/layout-search/ground-truth/{ground_truth_id}")
+def delete_layout_search_ground_truth(
+    ground_truth_id: int, db: Session = Depends(get_db),
+):
+    row = db.get(models.LayoutSearchGroundTruth, ground_truth_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Ground Truth 不存在")
+    try:
+        layout_search.delete_ground_truth(db, row)
+        return {"deleted": True, "id": ground_truth_id}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

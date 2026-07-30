@@ -49,12 +49,19 @@ def export_pack(db: Session, dataset_version: str) -> dict[str, Any]:
     metadata = layout_search._dataset_dict(db, dataset)
     for key in ("created_at", "frozen_at", "last_run_at"):
         metadata[key] = utc_text(metadata[key])
+    evaluation = layout_search.evaluation(db, dataset_version)
+    scoring_versions = sorted({
+        str(row["scoring_version"])
+        for row in evaluation["overall"]["requirements"]
+        if row.get("scoring_version")
+    })
     return {
         "format": "layout-search-acceptance-v1",
         "dataset_version": dataset_version,
         "dataset": metadata,
         "ground_truth": truth,
-        "evaluation": layout_search.evaluation(db, dataset_version),
+        "evaluation": evaluation,
+        "scoring_versions": scoring_versions,
     }
 
 

@@ -2,6 +2,12 @@
 
 ## Task 4.1：冻结式检索验收
 
+Task 4.1B 已提供设计负责人可直接操作的数据集工作台：未冻结标注可新增、编辑和删除，可查看需求业务条件、案例原图与蓝图、模式证据，冻结后全部只读。完整验收包不包含原图或 API 密钥。
+
+当前正式主线：
+
+`素材上传 → AI拆解 → 蓝图人工确认 → 排版模式沉淀 → 真实需求 → 冻结Ground Truth → 校准集调试 → 留出集验收 → 通过后进入多案例排版方向`
+
 Task 4 的验收工具建设已完成：可以创建真实验收数据集、预先标注并冻结 Ground Truth、分别运行 calibration/holdout、查看准备度和三态验收结果，以及事务式导入导出完整验收包。
 
 这不表示真实业务验收已经通过。进入 Task 5 前仍须由设计团队提供至少 50 个带 verified LayoutBlueprint 的公司真实案例、至少 5 个 verified LayoutPattern，以及 10 条 confirmed 真实需求（calibration 至少 7 条、holdout 至少 3 条）。calibration 仅用于规则校准；holdout 不得反复用于调权。

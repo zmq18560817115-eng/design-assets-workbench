@@ -12,6 +12,7 @@ export default function DatasetListPage() {
   const [creator, setCreator] = useState("");
   const [message, setMessage] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [validatedFileName, setValidatedFileName] = useState("");
   const load = () => api.layoutSearchDatasets().then(setItems).catch((e) => setMessage(e.message));
   useEffect(() => { load(); }, []);
 
@@ -30,6 +31,7 @@ export default function DatasetListPage() {
     if (execute && !window.confirm("确认导入已通过 dry-run 的冻结验收包？该版本导入后不可修改。")) return;
     try {
       const result = await api.importLayoutSearchEvaluation(pendingFile, execute);
+      if (!execute) setValidatedFileName(pendingFile.name);
       setMessage(`${result.dry_run ? "dry-run 校验通过" : "导入完成"}：${result.dataset_version}，${result.annotation_count} 条标注`);
       if (execute) await load();
     } catch (error) { setMessage(error instanceof Error ? error.message : "导入失败"); }
@@ -50,9 +52,9 @@ export default function DatasetListPage() {
       <h2 className="font-semibold">导入完整验收 JSON</h2>
       <p className="mt-1 text-xs text-gray-500">默认只做 dry-run；校验时间、枚举、ID、冻结状态和版本冲突，不写数据库。</p>
       <div className="mt-4 flex flex-wrap gap-3">
-        <input type="file" accept=".json,application/json" onChange={(e) => setPendingFile(e.target.files?.[0] || null)} />
+        <input type="file" accept=".json,application/json" onChange={(e) => { setPendingFile(e.target.files?.[0] || null); setValidatedFileName(""); }} />
         <button className="rounded-xl border border-line px-4 py-2 text-sm" onClick={() => inspectImport(false)}>dry-run 校验</button>
-        <button className="rounded-xl bg-amber-600 px-4 py-2 text-sm text-white" onClick={() => inspectImport(true)}>确认导入</button>
+        <button disabled={!pendingFile || validatedFileName !== pendingFile.name} className="rounded-xl bg-amber-600 px-4 py-2 text-sm text-white disabled:opacity-40" onClick={() => inspectImport(true)}>确认导入</button>
       </div>
     </Card>
     <div className="grid gap-4">

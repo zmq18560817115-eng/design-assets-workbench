@@ -795,3 +795,75 @@ class LayoutSearchTest(unittest.TestCase):
             "dataset_split": "calibration",
         })
         self.assertEqual(response.status_code, 400)
+
+    def test_56_unfrozen_ground_truth_can_be_updated(self):
+        version = "editable-v1"
+        self.db.add(models.LayoutSearchDataset(
+            dataset_version=version, name=version, dataset_kind="real",
+            created_by="tester",
+        ))
+        row = models.LayoutSearchGroundTruth(
+            requirement_id=self.requirement_ids[0], result_type="case",
+            result_id=self.case_ids[0][0], expected_relevance="relevant",
+            reviewer="before", reason="before", dataset_version=version,
+            dataset_split="calibration",
+        )
+        self.db.add(row)
+        self.db.commit()
+        response = self.client.patch(
+            f"/api/layout-search/ground-truth/{row.id}",
+            json={
+                "expected_relevance": "partially_relevant",
+                "reviewer": "after", "reason": "updated reason",
+                "dataset_split": "holdout",
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["reviewer"], "after")
+        self.assertEqual(
+            response.json()["expected_relevance"], "partially_relevant"
+        )
+
+    def test_57_unfrozen_ground_truth_can_be_deleted(self):
+        version = "deletable-v1"
+        self.db.add(models.LayoutSearchDataset(
+            dataset_version=version, name=version, dataset_kind="real",
+            created_by="tester",
+        ))
+        row = models.LayoutSearchGroundTruth(
+            requirement_id=self.requirement_ids[0], result_type="pattern",
+            result_id=self.pattern_ids[0], expected_relevance="irrelevant",
+            reviewer="tester", reason="delete me", dataset_version=version,
+            dataset_split="calibration",
+        )
+        self.db.add(row)
+        self.db.commit()
+        row_id = row.id
+        response = self.client.delete(
+            f"/api/layout-search/ground-truth/{row_id}"
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.db.expire_all()
+        self.assertIsNone(self.db.get(models.LayoutSearchGroundTruth, row_id))
+
+    def test_58_frozen_ground_truth_cannot_update_or_delete(self):
+        row = self.db.query(models.LayoutSearchGroundTruth).filter(
+            models.LayoutSearchGroundTruth.dataset_version
+            == "fixture-predefined-v1"
+        ).first()
+        payload = {
+            "expected_relevance": row.expected_relevance,
+            "reviewer": row.reviewer, "reason": row.reason,
+            "dataset_split": row.dataset_split,
+        }
+        self.assertEqual(self.client.patch(
+            f"/api/layout-search/ground-truth/{row.id}", json=payload
+        ).status_code, 400)
+        self.assertEqual(self.client.delete(
+            f"/api/layout-search/ground-truth/{row.id}"
+        ).status_code, 400)
+
+    def test_59_export_contains_scoring_versions(self):
+        payload = export_pack(self.db, "fixture-predefined-v1")
+        self.assertIn("scoring_versions", payload)
+        self.assertIn(SCORING_VERSION, payload["scoring_versions"])

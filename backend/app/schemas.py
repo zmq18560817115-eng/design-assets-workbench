@@ -389,6 +389,15 @@ class LayoutSearchGroundTruthFreeze(BaseModel):
     dataset_version: str = Field(min_length=1, max_length=80)
 
 
+class LayoutSearchGroundTruthUpdate(BaseModel):
+    expected_relevance: Literal[
+        "relevant", "partially_relevant", "irrelevant"
+    ]
+    reviewer: str = Field(min_length=1, max_length=120)
+    reason: str = Field(min_length=1)
+    dataset_split: Literal["calibration", "holdout"]
+
+
 class LayoutSearchEvaluationRunInput(BaseModel):
     dataset_version: str = Field(min_length=1, max_length=80)
     dataset_split: Literal["calibration", "holdout"] | None = None
