@@ -234,3 +234,40 @@ def _auto_migrate():
                             f"{col_type} DEFAULT '{default}'"
                         )
                     )
+    if "layout_patterns" in tables:
+        pattern_cols = {
+            c["name"] for c in inspector.get_columns("layout_patterns")
+        }
+        pattern_fields = {
+            "pattern_code": ("TEXT", ""),
+            "layout_signature": ("TEXT", ""),
+            "module_structure_json": ("TEXT", "[]"),
+            "average_positions_json": ("TEXT", "[]"),
+            "required_modules_json": ("TEXT", "[]"),
+            "optional_modules_json": ("TEXT", "[]"),
+            "suitable_scenes_json": ("TEXT", "[]"),
+            "unsuitable_scenes_json": ("TEXT", "[]"),
+            "evidence_case_ids_json": ("TEXT", "[]"),
+            "evidence_blueprint_ids_json": ("TEXT", "[]"),
+            "evidence_count": ("INTEGER", "0"),
+            "confidence_level": ("TEXT", "candidate"),
+            "discovery_method": ("TEXT", ""),
+            "reviewer": ("TEXT", ""),
+        }
+        for col, (col_type, default) in pattern_fields.items():
+            if col not in pattern_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE layout_patterns ADD COLUMN {col} "
+                            f"{col_type} DEFAULT '{default}'"
+                        )
+                    )
+        if "generated_at" not in pattern_cols:
+            with engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "ALTER TABLE layout_patterns "
+                        "ADD COLUMN generated_at DATETIME"
+                    )
+                )

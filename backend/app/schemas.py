@@ -305,6 +305,7 @@ class LayoutPatternUpdate(LayoutPatternCreate):
 class LayoutPatternOut(BaseModel):
     id: int
     name: str
+    pattern_code: str = ""
     description: str
     canvas_ratio: str
     orientation: Literal["portrait", "landscape", "square"]
@@ -313,11 +314,24 @@ class LayoutPatternOut(BaseModel):
     margins: LayoutMargins
     alignment: str
     reading_flow: str
+    layout_signature: str = ""
     focal_region: NormalizedRegion | None
     information_density: str
     text_image_ratio: float
     module_count: int
     modules_json: list[LayoutModule]
+    module_structure_json: list[LayoutModule] = Field(default_factory=list)
+    average_positions_json: list[LayoutModule] = Field(default_factory=list)
+    required_modules_json: list[str] = Field(default_factory=list)
+    optional_modules_json: list[str] = Field(default_factory=list)
+    suitable_scenes_json: list[str] = Field(default_factory=list)
+    unsuitable_scenes_json: list[str] = Field(default_factory=list)
+    evidence_case_ids_json: list[int] = Field(default_factory=list)
+    evidence_blueprint_ids_json: list[int] = Field(default_factory=list)
+    evidence_count: int = 0
+    confidence_level: Literal["candidate", "medium", "high"] = "candidate"
+    discovery_method: str = ""
+    generated_at: dt.datetime | None = None
     source_blueprint_ids: list[int]
     source_case_ids: list[int]
     industry_tags: list[str]
@@ -326,12 +340,28 @@ class LayoutPatternOut(BaseModel):
     business_goal_tags: list[str]
     usage_notes: str
     version: int
-    review_status: Literal["human_edited", "verified"]
+    review_status: Literal["draft", "human_edited", "verified", "disabled"]
+    reviewer: str = ""
     model_name: str
     prompt_version: str
     editor: str
     created_at: dt.datetime
     updated_at: dt.datetime
+
+
+class LayoutPatternRebuildInput(BaseModel):
+    dry_run: bool = True
+    similarity_threshold: float = Field(default=0.72, ge=0.5, le=1.0)
+    minimum_evidence: int = Field(default=3, ge=3, le=100)
+
+
+class LayoutPatternPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = None
+    module_structure_json: list[LayoutModule] | None = None
+    suitable_scenes_json: list[str] | None = None
+    unsuitable_scenes_json: list[str] | None = None
+    reviewer: str = ""
 
 
 class BusinessRequirementCreate(BaseModel):

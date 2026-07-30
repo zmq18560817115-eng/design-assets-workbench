@@ -11,7 +11,6 @@ export function Nav() {
     { href: "/cases", label: "素材库" },
     { href: "/requirements", label: "业务需求" },
     { href: "/patterns", label: "排版模式" },
-    { href: "/intentions", label: "排版意向" },
   ];
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur-xl">

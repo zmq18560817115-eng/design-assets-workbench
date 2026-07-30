@@ -168,6 +168,11 @@ export default function IntentionsPage() {
 
   return (
     <div className="space-y-8">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+        <strong>实验性功能：</strong>
+        场景匹配、三个排版方向和方向反馈尚未通过真实业务准确率验收，
+        不属于当前正式业务主线。当前正式流程停在排版模式候选发现与人工审核。
+      </div>
       <section className="rounded-[28px] border border-line bg-white p-6 shadow-[0_18px_60px_rgba(45,45,80,0.06)] md:p-8">
         <div className="max-w-3xl">
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">

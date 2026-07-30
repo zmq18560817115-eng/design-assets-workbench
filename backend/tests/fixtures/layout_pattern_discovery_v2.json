@@ -1,0 +1,12 @@
+{
+  "case_count": 15,
+  "blueprint_status": "verified",
+  "structures": [
+    {"name": "单产品核心卖点", "count": 3, "canvas_ratio": "3:4", "density": "low", "modules": ["main_title", "product_image"]},
+    {"name": "多卖点功能说明", "count": 3, "canvas_ratio": "3:4", "density": "medium", "modules": ["main_title", "product_image", "selling_point"]},
+    {"name": "多模块信息卡片", "count": 3, "canvas_ratio": "1:1", "density": "high", "modules": ["main_title", "feature_list", "cta"]},
+    {"name": "左文右产品", "count": 3, "canvas_ratio": "16:9", "density": "medium", "modules": ["main_title", "body_text", "product_image"]},
+    {"name": "产品参数对比", "count": 3, "canvas_ratio": "3:4", "density": "high", "modules": ["main_title", "parameter_table", "product_image"]}
+  ],
+  "expected_candidate_count": 5
+}

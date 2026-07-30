@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from . import batch, concept, config, crud, imagehash, llm, models, overlay, vlm
+from . import batch, concept, config, crud, imagehash, layout_patterns, llm, models, overlay, vlm
 from .asset_categories import category_focus, category_label, normalize_category
 from . import platform as plat
 from . import search as multimodal_search
@@ -46,6 +46,8 @@ from .schemas import (
     LayoutPatternCreate,
     LayoutPatternOut,
     LayoutPatternUpdate,
+    LayoutPatternPatch,
+    LayoutPatternRebuildInput,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -498,12 +500,15 @@ def verify_case_layout_blueprint_v2(
 @app.get("/api/layout-patterns", response_model=list[LayoutPatternOut])
 def list_layout_patterns(
     orientation: str = "",
+    canvas_ratio: str = "",
+    information_density: str = "",
+    confidence_level: str = "",
     scene: str = "",
     channel: str = "",
     review_status: str = "",
     db: Session = Depends(get_db),
 ):
-    return [
+    items = [
         crud.serialize_layout_pattern(item)
         for item in crud.list_layout_patterns(
             db,
@@ -513,6 +518,13 @@ def list_layout_patterns(
             review_status=review_status,
         )
     ]
+    if canvas_ratio:
+        items = [item for item in items if item["canvas_ratio"] == canvas_ratio]
+    if information_density:
+        items = [item for item in items if item["information_density"] == information_density]
+    if confidence_level:
+        items = [item for item in items if item["confidence_level"] == confidence_level]
+    return items
 
 
 @app.post("/api/layout-patterns", response_model=LayoutPatternOut)
@@ -527,6 +539,22 @@ def create_layout_pattern(
     return crud.serialize_layout_pattern(pattern)
 
 
+@app.post("/api/layout-patterns/rebuild")
+def rebuild_layout_patterns(
+    payload: LayoutPatternRebuildInput,
+    db: Session = Depends(get_db),
+):
+    try:
+        return layout_patterns.rebuild(
+            db,
+            dry_run=payload.dry_run,
+            similarity_threshold=payload.similarity_threshold,
+            minimum_evidence=payload.minimum_evidence,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/api/layout-patterns/{pattern_id}", response_model=LayoutPatternOut)
 def get_layout_pattern(
     pattern_id: int,
@@ -535,6 +563,30 @@ def get_layout_pattern(
     pattern = db.get(models.LayoutPattern, pattern_id)
     if not pattern:
         raise HTTPException(status_code=404, detail="排版模式不存在")
+    return crud.serialize_layout_pattern(pattern)
+
+
+@app.patch("/api/layout-patterns/{pattern_id}", response_model=LayoutPatternOut)
+def patch_layout_pattern(
+    pattern_id: int,
+    payload: LayoutPatternPatch,
+    db: Session = Depends(get_db),
+):
+    pattern = db.get(models.LayoutPattern, pattern_id)
+    if not pattern:
+        raise HTTPException(status_code=404, detail="排版模式不存在")
+    if pattern.review_status == "disabled":
+        raise HTTPException(status_code=409, detail="已停用模式不能编辑")
+    values = payload.model_dump(exclude_none=True)
+    for key in ("module_structure_json", "suitable_scenes_json", "unsuitable_scenes_json"):
+        if key in values:
+            setattr(pattern, key, json.dumps(values.pop(key), ensure_ascii=False))
+    for key, value in values.items():
+        setattr(pattern, key, value)
+    if pattern.discovery_method == layout_patterns.DISCOVERY_METHOD:
+        pattern.discovery_method = "manual-edited"
+    db.commit()
+    db.refresh(pattern)
     return crud.serialize_layout_pattern(pattern)
 
 
@@ -568,6 +620,17 @@ def verify_layout_pattern(
     current = db.get(models.LayoutPattern, pattern_id)
     if not current:
         raise HTTPException(status_code=404, detail="排版模式不存在")
+    if current.review_status == "disabled":
+        raise HTTPException(status_code=409, detail="已停用模式不能确认")
+    if current.review_status == "verified":
+        raise HTTPException(status_code=409, detail="模式已经确认")
+    if current.pattern_code:
+        current.review_status = "verified"
+        current.reviewer = payload.editor
+        current.editor = payload.editor
+        db.commit()
+        db.refresh(current)
+        return crud.serialize_layout_pattern(current)
     data = crud.serialize_layout_pattern(current)
     verified_payload = LayoutPatternUpdate.model_validate(
         {
@@ -588,6 +651,46 @@ def verify_layout_pattern(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return crud.serialize_layout_pattern(verified)
+
+
+@app.post("/api/layout-patterns/{pattern_id}/disable", response_model=LayoutPatternOut)
+def disable_layout_pattern(
+    pattern_id: int,
+    payload: LayoutBlueprintVerifyInput,
+    db: Session = Depends(get_db),
+):
+    pattern = db.get(models.LayoutPattern, pattern_id)
+    if not pattern:
+        raise HTTPException(status_code=404, detail="排版模式不存在")
+    if pattern.review_status == "disabled":
+        raise HTTPException(status_code=409, detail="模式已经停用")
+    pattern.review_status = "disabled"
+    pattern.reviewer = payload.editor
+    db.commit()
+    db.refresh(pattern)
+    return crud.serialize_layout_pattern(pattern)
+
+
+@app.get("/api/layout-patterns/{pattern_id}/evidence")
+def get_layout_pattern_evidence(
+    pattern_id: int,
+    db: Session = Depends(get_db),
+):
+    pattern = db.get(models.LayoutPattern, pattern_id)
+    if not pattern:
+        raise HTTPException(status_code=404, detail="排版模式不存在")
+    report = layout_patterns.evidence_report(db, pattern)
+    return {
+        "cases": [crud.serialize_case(item) for item in report["cases"]],
+        "blueprints": [
+            crud.serialize_layout_blueprint(item)
+            for item in report["blueprints"]
+        ],
+        "similarities": report["similarities"],
+        "participating_modules": report["participating_modules"],
+        "excluded_modules": report["excluded_modules"],
+        "evidence_count": report["evidence_count"],
+    }
 
 
 @app.get(

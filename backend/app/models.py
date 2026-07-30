@@ -194,6 +194,7 @@ class LayoutPattern(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
+    pattern_code = Column(String, default="", index=True)
     description = Column(Text, default="")
     canvas_ratio = Column(String, default="1:1", index=True)
     orientation = Column(String, default="square", index=True)
@@ -202,11 +203,24 @@ class LayoutPattern(Base):
     margins = Column(Text, default="{}")
     alignment = Column(String, default="", index=True)
     reading_flow = Column(String, default="")
+    layout_signature = Column(String, default="", index=True)
     focal_region = Column(Text, default="")
     information_density = Column(String, default="", index=True)
     text_image_ratio = Column(Float, default=0.5)
     module_count = Column(Integer, default=0)
     modules_json = Column(Text, default="[]")
+    module_structure_json = Column(Text, default="[]")
+    average_positions_json = Column(Text, default="[]")
+    required_modules_json = Column(Text, default="[]")
+    optional_modules_json = Column(Text, default="[]")
+    suitable_scenes_json = Column(Text, default="[]")
+    unsuitable_scenes_json = Column(Text, default="[]")
+    evidence_case_ids_json = Column(Text, default="[]")
+    evidence_blueprint_ids_json = Column(Text, default="[]")
+    evidence_count = Column(Integer, default=0)
+    confidence_level = Column(String, default="candidate", index=True)
+    discovery_method = Column(String, default="", index=True)
+    generated_at = Column(DateTime, nullable=True)
     source_blueprint_ids = Column(Text, default="[]")
     source_case_ids = Column(Text, default="[]")
     industry_tags = Column(Text, default="[]")
@@ -216,6 +230,7 @@ class LayoutPattern(Base):
     usage_notes = Column(Text, default="")
     version = Column(Integer, default=1, nullable=False)
     review_status = Column(String, default="human_edited", index=True)
+    reviewer = Column(String, default="")
     model_name = Column(String, default="")
     prompt_version = Column(String, default="layout-pattern-v1")
     editor = Column(String, default="")
@@ -355,6 +370,9 @@ class Project(Base):
     preference_events = relationship("PreferenceEvent", back_populates="project")
 
 
+# Legacy compatibility models below (project review, preference, training,
+# company profile and service run) remain for historical data. They are not
+# inputs to LayoutPattern discovery or the current formal product workflow.
 class CaseReview(Base):
     """Append-only human decisions and corrected analysis snapshots."""
 
@@ -417,6 +435,7 @@ class CategorySuggestionJob(Base):
 
 
 class PreferenceEvent(Base):
+    """Legacy preference evidence; never read by LayoutPattern discovery."""
     """Explicit business preference signals used for weighted style profiles."""
 
     __tablename__ = "preference_events"
@@ -435,6 +454,7 @@ class PreferenceEvent(Base):
 
 
 class ServiceRun(Base):
+    """Legacy service-run history; excluded from the formal pattern pipeline."""
     """A persisted recommendation output and its eventual business outcome."""
 
     __tablename__ = "service_runs"

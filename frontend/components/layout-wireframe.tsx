@@ -1,6 +1,11 @@
 "use client";
 
-import { LayoutBlueprintInput } from "@/lib/api";
+import {
+  LayoutBlueprintInput,
+  LayoutModule,
+  LayoutPattern,
+  NormalizedRegion,
+} from "@/lib/api";
 
 const moduleLabels: Record<string, string> = {
   main_title: "主标题",
@@ -38,7 +43,14 @@ export function LayoutWireframe({
   accent = "red",
   className = "",
 }: {
-  blueprint: LayoutBlueprintInput;
+  blueprint:
+    | LayoutBlueprintInput
+    | LayoutPattern
+    | {
+        canvas_ratio: string;
+        focal_region?: NormalizedRegion | null;
+        modules_json: LayoutModule[];
+      };
   showLabels?: boolean;
   showFocalRegion?: boolean;
   accent?: "red" | "black";

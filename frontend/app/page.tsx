@@ -24,12 +24,6 @@ const workflow = [
     description: "人工校正并确认骨架，沉淀为可复用排版模式。",
     href: "/patterns",
   },
-  {
-    number: "04",
-    title: "业务意向",
-    description: "输入真实需求，匹配案例并形成三个排版意向方向。",
-    href: "/intentions",
-  },
 ];
 
 export default function Home() {
@@ -53,7 +47,7 @@ export default function Home() {
           </h1>
           <p className="mt-6 max-w-2xl text-sm leading-7 text-gray-500 md:text-base">
             系统只做排版知识沉淀：保留原始素材，用框体标记标题、主视觉和信息区域，
-            经人工校正后形成模式，再为真实业务需求组合三个低保真排版方向。
+            经人工校正和确认后自动发现相似结构，由设计负责人审核并沉淀为可追溯的排版模式。
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -68,12 +62,6 @@ export default function Home() {
             >
               批量上传素材
             </Link>
-            <Link
-              href="/intentions"
-              className="rounded-xl border border-line bg-white px-6 py-3 text-sm font-medium transition hover:border-accent"
-            >
-              创建排版意向
-            </Link>
           </div>
         </div>
       </section>
@@ -85,7 +73,7 @@ export default function Home() {
           </div>
           <h2 className="mt-2 text-2xl font-semibold">当前业务主线</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           {workflow.map((item) => (
             <Link
               key={item.number}

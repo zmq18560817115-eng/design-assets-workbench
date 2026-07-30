@@ -146,10 +146,24 @@ export interface LayoutBlueprint extends LayoutBlueprintInput {
   updated_at: string;
 }
 
-export interface LayoutPattern extends LayoutBlueprintInput {
+export interface LayoutPattern extends Omit<LayoutBlueprintInput, "review_status"> {
   id: number;
   name: string;
+  pattern_code: string;
   description: string;
+  layout_signature: string;
+  module_structure_json: LayoutModule[];
+  average_positions_json: LayoutModule[];
+  required_modules_json: string[];
+  optional_modules_json: string[];
+  suitable_scenes_json: string[];
+  unsuitable_scenes_json: string[];
+  evidence_case_ids_json: number[];
+  evidence_blueprint_ids_json: number[];
+  evidence_count: number;
+  confidence_level: "candidate" | "medium" | "high";
+  discovery_method: string;
+  generated_at: string | null;
   source_blueprint_ids: number[];
   source_case_ids: number[];
   industry_tags: string[];
@@ -158,9 +172,45 @@ export interface LayoutPattern extends LayoutBlueprintInput {
   business_goal_tags: string[];
   usage_notes: string;
   version: number;
-  review_status: "human_edited" | "verified";
+  review_status: "draft" | "human_edited" | "verified" | "disabled";
+  reviewer: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface LayoutPatternCandidate {
+  pattern_code: string;
+  name: string;
+  description: string;
+  canvas_ratio: string;
+  orientation: "portrait" | "landscape" | "square";
+  information_density: string;
+  reading_flow: string;
+  average_positions_json: LayoutModule[];
+  required_modules_json: string[];
+  optional_modules_json: string[];
+  evidence_case_ids_json: number[];
+  evidence_blueprint_ids_json: number[];
+  evidence_count: number;
+  confidence_level: "candidate" | "medium" | "high";
+  mean_similarity: number;
+  similarities: {
+    case_id: number;
+    blueprint_id: number;
+    similarity: Record<string, number>;
+  }[];
+  grouping_basis: Record<string, unknown>;
+  participating_modules: string[];
+  excluded_modules: string[];
+}
+
+export interface LayoutPatternEvidence {
+  cases: CaseOut[];
+  blueprints: LayoutBlueprint[];
+  similarities: LayoutPatternCandidate["similarities"];
+  participating_modules: string[];
+  excluded_modules: string[];
+  evidence_count: number;
 }
 
 export interface LayoutPatternCreate {
@@ -378,6 +428,9 @@ export const api = {
     scene?: string;
     channel?: string;
     review_status?: string;
+    canvas_ratio?: string;
+    information_density?: string;
+    confidence_level?: string;
   }) => {
     const params = new URLSearchParams();
     Object.entries(filters || {}).forEach(([key, value]) => {
@@ -395,6 +448,50 @@ export const api = {
     }).then((r) => j<LayoutPattern>(r)),
   verifyLayoutPattern: (patternId: number, editor: string) =>
     fetch(`/api/layout-patterns/${patternId}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ editor }),
+    }).then((r) => j<LayoutPattern>(r)),
+  layoutPattern: (patternId: number | string) =>
+    fetch(`/api/layout-patterns/${patternId}`, { cache: "no-store" }).then((r) =>
+      j<LayoutPattern>(r)
+    ),
+  rebuildLayoutPatterns: (
+    dryRun: boolean,
+    similarityThreshold = 0.72,
+    minimumEvidence = 3
+  ) =>
+    fetch("/api/layout-patterns/rebuild", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dry_run: dryRun,
+        similarity_threshold: similarityThreshold,
+        minimum_evidence: minimumEvidence,
+      }),
+    }).then((r) => j<{
+      dry_run: boolean;
+      candidate_count: number;
+      written: number;
+      updated: number;
+      skipped: number;
+      candidates: LayoutPatternCandidate[];
+    }>(r)),
+  layoutPatternEvidence: (patternId: number | string) =>
+    fetch(`/api/layout-patterns/${patternId}/evidence`, {
+      cache: "no-store",
+    }).then((r) => j<LayoutPatternEvidence>(r)),
+  updateLayoutPattern: (patternId: number, payload: {
+    name?: string; description?: string; suitable_scenes_json?: string[];
+    unsuitable_scenes_json?: string[]; reviewer?: string;
+  }) =>
+    fetch(`/api/layout-patterns/${patternId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutPattern>(r)),
+  disableLayoutPattern: (patternId: number, editor: string) =>
+    fetch(`/api/layout-patterns/${patternId}/disable`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ editor }),
