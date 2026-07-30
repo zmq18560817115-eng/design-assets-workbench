@@ -26,8 +26,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    acceptance_pack, batch, compliance, concept, config, crud, imagehash, layout_patterns,
-    layout_search, llm, models, overlay, vlm,
+    acceptance_pack, batch, compliance, conformance, concept, config, crud, imagehash,
+    layout_patterns, layout_search, llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
 from . import platform as plat
@@ -831,10 +831,12 @@ async def evaluate_work_compliance(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    """L1 合规判定：上传一张作品，对照该业务需求做客观合规评判。
+    """作品评判：上传一张作品，对照业务需求与公司已确认模式做客观评判。
 
-    对作品跑 AI 拆解得到蓝图，再和需求的必需/禁止模块、画布、方向、信息密度
-    逐条比对，输出合规报告。作品不落库、不建 Case。
+    对作品跑一次 AI 拆解得到蓝图，输出两层评判：
+    - compliance(L1)：必需/禁止模块、画布、方向、信息密度是否符合需求；
+    - structure(L2)：排版结构与公司已确认排版模式的符合度/偏离度。
+    作品不落库、不建 Case。
     """
     requirement = db.get(models.BusinessRequirement, requirement_id)
     if not requirement:
@@ -860,8 +862,18 @@ async def evaluate_work_compliance(
     finally:
         dest.unlink(missing_ok=True)
 
-    report = compliance.evaluate_compliance(work, requirement)
-    return {"requirement_id": requirement_id, **report}
+    compliance_report = compliance.evaluate_compliance(work, requirement)
+    verified_patterns = (
+        db.query(models.LayoutPattern)
+        .filter(models.LayoutPattern.review_status == "verified")
+        .all()
+    )
+    structure_report = conformance.evaluate_conformance(work, verified_patterns)
+    return {
+        "requirement_id": requirement_id,
+        "compliance": compliance_report,
+        "structure": structure_report,
+    }
 
 
 @app.post("/api/business-requirements/{requirement_id}/layout-search")
