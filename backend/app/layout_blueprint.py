@@ -6,11 +6,13 @@ import json
 import re
 from typing import Any
 
-MODULE_TYPES = {
+# 规范模块类型的唯一来源（有序，供 VLM 提示词枚举与校验共用）。
+MODULE_TYPE_ORDER = (
     "main_title", "subtitle", "body_text", "product_image", "person_image",
     "scene_image", "selling_point", "feature_list", "parameter_table", "price",
     "logo", "cta", "footnote", "decoration", "background", "other",
-}
+)
+MODULE_TYPES = set(MODULE_TYPE_ORDER)
 OVERLAY_TYPES = {"decoration", "background"}
 
 
