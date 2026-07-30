@@ -227,6 +227,12 @@ class LayoutPattern(Base):
     scene_tags = Column(Text, default="[]")
     channel_tags = Column(Text, default="[]")
     business_goal_tags = Column(Text, default="[]")
+    product_category_tags_json = Column(Text, default="[]")
+    content_purpose_tags_json = Column(Text, default="[]")
+    campaign_stage_tags_json = Column(Text, default="[]")
+    business_context_json = Column(Text, default="{}")
+    business_context_review_status = Column(String, default="suggested", index=True)
+    business_context_reviewer = Column(String, default="")
     usage_notes = Column(Text, default="")
     version = Column(Integer, default=1, nullable=False)
     review_status = Column(String, default="human_edited", index=True)
@@ -300,6 +306,11 @@ class RequirementReferenceAnalysis(Base):
     prompt_version = Column(String, default="requirement-reference-layout-v1")
     generation_mode = Column(String, default="heuristic_fallback", index=True)
     failure_reason = Column(Text, default="")
+    image_sha256 = Column(String, default="", index=True)
+    analyzer_version = Column(String, default="reference-layout-v2", index=True)
+    analysis_status = Column(String, default="completed", index=True)
+    verified_by = Column(String, default="")
+    verified_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
     updated_at = Column(
         DateTime,
@@ -357,6 +368,35 @@ class LayoutSearchFeedback(Base):
     relevance = Column(String, nullable=False, index=True)
     reviewer = Column(String, nullable=False, index=True)
     notes = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
+class LayoutSearchGroundTruth(Base):
+    """Frozen pre-retrieval relevance label for acceptance evaluation."""
+
+    __tablename__ = "layout_search_ground_truth"
+    __table_args__ = (
+        UniqueConstraint(
+            "requirement_id", "result_type", "result_id", "dataset_version",
+            name="uq_layout_search_ground_truth_version",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    result_type = Column(String, nullable=False, index=True)
+    result_id = Column(Integer, nullable=False, index=True)
+    expected_relevance = Column(String, nullable=False, index=True)
+    reviewer = Column(String, nullable=False)
+    reason = Column(Text, default="")
+    dataset_version = Column(String, nullable=False, index=True)
+    dataset_split = Column(String, nullable=False, index=True)
+    frozen_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
 
 

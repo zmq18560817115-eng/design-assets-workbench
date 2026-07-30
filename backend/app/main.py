@@ -53,6 +53,9 @@ from .schemas import (
     LayoutPatternRebuildInput,
     LayoutSearchInput,
     LayoutSearchFeedbackCreate,
+    LayoutSearchGroundTruthCreate,
+    LayoutSearchGroundTruthFreeze,
+    LayoutSearchEvaluationRunInput,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -583,13 +586,19 @@ def patch_layout_pattern(
     if pattern.review_status == "disabled":
         raise HTTPException(status_code=409, detail="已停用模式不能编辑")
     values = payload.model_dump(exclude_none=True)
-    for key in ("module_structure_json", "suitable_scenes_json", "unsuitable_scenes_json"):
+    for key in (
+        "module_structure_json", "suitable_scenes_json",
+        "unsuitable_scenes_json", "product_category_tags_json",
+        "content_purpose_tags_json", "campaign_stage_tags_json",
+    ):
         if key in values:
             setattr(pattern, key, json.dumps(values.pop(key), ensure_ascii=False))
     for key, value in values.items():
         setattr(pattern, key, value)
     if pattern.discovery_method == layout_patterns.DISCOVERY_METHOD:
         pattern.discovery_method = "manual-edited"
+    if pattern.business_context_review_status == "verified":
+        pattern.business_context_reviewer = payload.reviewer
     db.commit()
     db.refresh(pattern)
     return crud.serialize_layout_pattern(pattern)
@@ -882,9 +891,72 @@ def create_layout_search_feedback(
     }
 
 
+@app.get("/api/layout-search/ground-truth")
+def get_layout_search_ground_truth(
+    dataset_version: str | None = None, db: Session = Depends(get_db),
+):
+    return layout_search.list_ground_truth(db, dataset_version)
+
+
+@app.post("/api/layout-search/ground-truth")
+def create_layout_search_ground_truth(
+    payload: LayoutSearchGroundTruthCreate, db: Session = Depends(get_db),
+):
+    try:
+        return layout_search.create_ground_truth(db, **payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/layout-search/ground-truth/freeze")
+def freeze_layout_search_ground_truth(
+    payload: LayoutSearchGroundTruthFreeze, db: Session = Depends(get_db),
+):
+    try:
+        return layout_search.freeze_ground_truth(db, payload.dataset_version)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/api/layout-search/evaluation")
-def get_layout_search_evaluation(db: Session = Depends(get_db)):
-    return layout_search.evaluation(db)
+def get_layout_search_evaluation(
+    dataset_version: str | None = None, db: Session = Depends(get_db),
+):
+    return layout_search.evaluation(db, dataset_version)
+
+
+@app.get("/api/layout-search/evaluation/requirements/{requirement_id}")
+def get_requirement_layout_search_evaluation(
+    requirement_id: int, dataset_version: str | None = None,
+    db: Session = Depends(get_db),
+):
+    report = layout_search.evaluation(db, dataset_version)
+    rows = [
+        row for row in report["overall"]["requirements"]
+        if row["requirement_id"] == requirement_id
+    ]
+    if not rows:
+        raise HTTPException(status_code=404, detail="该需求没有验收数据")
+    return {**report, "overall": {**report["overall"], "requirements": rows}}
+
+
+@app.post("/api/layout-search/evaluation/run")
+def run_layout_search_evaluation(
+    payload: LayoutSearchEvaluationRunInput, db: Session = Depends(get_db),
+):
+    try:
+        return layout_search.run_acceptance(
+            db, payload.dataset_version, payload.dataset_split
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/layout-search/evaluation/export")
+def export_layout_search_evaluation(
+    dataset_version: str | None = None, db: Session = Depends(get_db),
+):
+    return layout_search.evaluation(db, dataset_version)
 
 
 @app.get(

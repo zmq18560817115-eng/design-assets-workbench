@@ -63,6 +63,33 @@ export default function PatternDetailPage() {
       <Card><h2 className="font-semibold">标准模块</h2><div className="mt-3"><div className="text-xs text-gray-400">必需模块（≥80%）</div><div className="mt-2 flex flex-wrap gap-2">{item.required_modules_json.map(value=><Tag key={value}>{value}</Tag>)}</div></div><div className="mt-4"><div className="text-xs text-gray-400">可选模块（30%～79%）</div><div className="mt-2 flex flex-wrap gap-2">{item.optional_modules_json.map(value=><Tag key={value}>{value}</Tag>)}</div></div></Card>
       <Card><h2 className="font-semibold">模式证据</h2><div className="mt-3 flex flex-wrap gap-2"><Tag>不同案例 {item.evidence_count}</Tag><Tag>{item.confidence_level}</Tag><Tag>蓝图 {item.evidence_blueprint_ids_json.length}</Tag></div><p className="mt-3 text-xs text-gray-500">生成时间：{item.generated_at ? new Date(item.generated_at).toLocaleString() : "旧模式无自动生成时间"}</p></Card>
     </div>
+    <Card className="mt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">业务适用知识</h2>
+          <p className="mt-1 text-xs text-gray-500">由证据案例聚合生成；人工确认后重建不会覆盖，证据变化会标记 stale。</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tag>{item.business_context_review_status}</Tag>
+          {item.business_context_review_status !== "verified" && <button className="rounded-xl bg-emerald-600 px-4 py-2 text-sm text-white" onClick={async () => {
+            try {
+              setItem(await api.updateLayoutPattern(item.id, {
+                business_context_review_status: "verified",
+                reviewer: "设计负责人",
+              }));
+              setMessage("业务适用知识已人工确认。");
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : "确认失败");
+            }
+          }}>确认业务适用性</button>}
+        </div>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div><div className="text-xs text-gray-400">产品类别</div><div className="mt-2 flex flex-wrap gap-2">{item.product_category_tags_json.map(value => <Tag key={value}>{value}</Tag>)}</div></div>
+        <div><div className="text-xs text-gray-400">内容目的</div><div className="mt-2 flex flex-wrap gap-2">{item.content_purpose_tags_json.map(value => <Tag key={value}>{value}</Tag>)}</div></div>
+        <div><div className="text-xs text-gray-400">活动阶段</div><div className="mt-2 flex flex-wrap gap-2">{item.campaign_stage_tags_json.map(value => <Tag key={value}>{value}</Tag>)}</div></div>
+      </div>
+    </Card>
 
     <Card className="mt-6"><h2 className="font-semibold">来源案例与相似度</h2><div className="mt-4 grid gap-3">{evidence?.similarities.map(row=><div key={row.blueprint_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-3 text-sm"><div><Link href={`/cases/${row.case_id}`} className="font-medium text-accent">案例 #{row.case_id}</Link><span className="ml-3 text-xs text-gray-400">蓝图 #{row.blueprint_id}</span></div><div className="flex gap-3 text-xs"><span>总相似度 {(row.similarity.total*100).toFixed(1)}%</span><span>模块 {(row.similarity.module_types*100).toFixed(0)}%</span><span>位置 {(row.similarity.position_size*100).toFixed(0)}%</span></div></div>)}</div></Card>
 

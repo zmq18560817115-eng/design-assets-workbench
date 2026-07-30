@@ -170,6 +170,12 @@ export interface LayoutPattern extends Omit<LayoutBlueprintInput, "review_status
   scene_tags: string[];
   channel_tags: string[];
   business_goal_tags: string[];
+  product_category_tags_json: string[];
+  content_purpose_tags_json: string[];
+  campaign_stage_tags_json: string[];
+  business_context_json: Record<string, unknown>;
+  business_context_review_status: "suggested" | "verified" | "stale";
+  business_context_reviewer: string;
   usage_notes: string;
   version: number;
   review_status: "draft" | "human_edited" | "verified" | "disabled";
@@ -213,6 +219,36 @@ export interface LayoutPatternEvidence {
   participating_modules: string[];
   excluded_modules: string[];
   evidence_count: number;
+}
+
+export interface LayoutSearchGroundTruth {
+  id: number;
+  requirement_id: number;
+  result_type: "pattern" | "case";
+  result_id: number;
+  expected_relevance: "relevant" | "partially_relevant" | "irrelevant";
+  reviewer: string;
+  reason: string;
+  dataset_version: string;
+  dataset_split: "calibration" | "holdout";
+  frozen_at: string | null;
+  created_at: string;
+}
+
+export interface LayoutSearchMetricBlock {
+  metrics: Record<string, number>;
+  requirements: Array<Record<string, number | string | null | object>>;
+}
+
+export interface LayoutSearchEvaluation {
+  status: "passed" | "not_ready";
+  dataset_version: string | null;
+  message: string;
+  dataset: Record<string, number | boolean>;
+  overall: LayoutSearchMetricBlock;
+  calibration: LayoutSearchMetricBlock;
+  holdout: LayoutSearchMetricBlock;
+  gates: Record<string, boolean>;
 }
 
 export interface LayoutPatternCreate {
@@ -535,6 +571,10 @@ export const api = {
   updateLayoutPattern: (patternId: number, payload: {
     name?: string; description?: string; suitable_scenes_json?: string[];
     unsuitable_scenes_json?: string[]; reviewer?: string;
+    product_category_tags_json?: string[];
+    content_purpose_tags_json?: string[];
+    campaign_stage_tags_json?: string[];
+    business_context_review_status?: "suggested" | "verified" | "stale";
   }) =>
     fetch(`/api/layout-patterns/${patternId}`, {
       method: "PATCH",
@@ -620,19 +660,29 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then((r) => j<{ id: number }>(r)),
-  layoutSearchEvaluation: () =>
-    fetch("/api/layout-search/evaluation", { cache: "no-store" }).then((r) =>
-      j<{
-        evaluated_requirement_count: number;
-        evaluated_result_count: number;
-        top5_relevant_count: number;
-        top10_relevant_count: number;
-        precision_at_5: number;
-        precision_at_10: number;
-        forbidden_module_violation_count: number;
-        average_search_elapsed_ms: number;
-      }>(r)
+  layoutSearchEvaluation: (datasetVersion = "") =>
+    fetch(`/api/layout-search/evaluation${datasetVersion ? `?dataset_version=${encodeURIComponent(datasetVersion)}` : ""}`, { cache: "no-store" }).then((r) =>
+      j<LayoutSearchEvaluation>(r)
     ),
+  layoutSearchGroundTruth: (datasetVersion = "") =>
+    fetch(`/api/layout-search/ground-truth${datasetVersion ? `?dataset_version=${encodeURIComponent(datasetVersion)}` : ""}`, { cache: "no-store" }).then((r) =>
+      j<LayoutSearchGroundTruth[]>(r)
+    ),
+  createLayoutSearchGroundTruth: (payload: Omit<LayoutSearchGroundTruth, "id" | "frozen_at" | "created_at">) =>
+    fetch("/api/layout-search/ground-truth", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<LayoutSearchGroundTruth>(r)),
+  freezeLayoutSearchGroundTruth: (dataset_version: string) =>
+    fetch("/api/layout-search/ground-truth/freeze", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataset_version }),
+    }).then((r) => j<{ dataset_version: string; count: number; frozen_at: string }>(r)),
+  runLayoutSearchEvaluation: (dataset_version: string, dataset_split?: "calibration" | "holdout") =>
+    fetch("/api/layout-search/evaluation/run", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataset_version, dataset_split }),
+    }).then((r) => j<LayoutSearchEvaluation>(r)),
   generateLayoutDirections: (requirementId: number) =>
     fetch(`/api/business-requirements/${requirementId}/directions/generate`, {
       method: "POST",

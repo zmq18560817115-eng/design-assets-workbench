@@ -253,6 +253,12 @@ def _auto_migrate():
             "confidence_level": ("TEXT", "candidate"),
             "discovery_method": ("TEXT", ""),
             "reviewer": ("TEXT", ""),
+            "product_category_tags_json": ("TEXT", "[]"),
+            "content_purpose_tags_json": ("TEXT", "[]"),
+            "campaign_stage_tags_json": ("TEXT", "[]"),
+            "business_context_json": ("TEXT", "{}"),
+            "business_context_review_status": ("TEXT", "suggested"),
+            "business_context_reviewer": ("TEXT", ""),
         }
         for col, (col_type, default) in pattern_fields.items():
             if col not in pattern_cols:
@@ -271,3 +277,28 @@ def _auto_migrate():
                         "ADD COLUMN generated_at DATETIME"
                     )
                 )
+    if "requirement_reference_analyses" in tables:
+        ref_cols = {
+            c["name"] for c in inspector.get_columns(
+                "requirement_reference_analyses"
+            )
+        }
+        ref_fields = {
+            "image_sha256": ("TEXT", ""),
+            "analyzer_version": ("TEXT", "reference-layout-v2"),
+            "analysis_status": ("TEXT", "completed"),
+            "verified_by": ("TEXT", ""),
+        }
+        for col, (col_type, default) in ref_fields.items():
+            if col not in ref_cols:
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        f"ALTER TABLE requirement_reference_analyses "
+                        f"ADD COLUMN {col} {col_type} DEFAULT '{default}'"
+                    ))
+        if "verified_at" not in ref_cols:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE requirement_reference_analyses "
+                    "ADD COLUMN verified_at DATETIME"
+                ))

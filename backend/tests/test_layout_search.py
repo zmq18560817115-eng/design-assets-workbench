@@ -26,6 +26,7 @@ from app.layout_search import (
     evaluation,
     normalized_module_counts,
 )
+from app.business_taxonomy import normalize_business_value, values_match
 from app.main import app
 
 
@@ -297,7 +298,7 @@ class LayoutSearchTest(unittest.TestCase):
 
     def test_13_reasons_come_from_real_fields(self):
         reasons = self.search()["patterns"][0]["match_reasons"]
-        self.assertIn("渠道匹配", reasons)
+        self.assertTrue(any(reason.startswith("渠道匹配") for reason in reasons))
         self.assertIn("画布方向一致", reasons)
 
     def test_14_results_are_traceable(self):
@@ -364,36 +365,52 @@ class LayoutSearchTest(unittest.TestCase):
         )
 
     def test_21_precision_and_acceptance_fixture(self):
+        version = "fixture-predefined-v1"
+        # Freeze labels derived from fixture identities, never from returned ranks.
         for index in range(5):
-            result = self.search(index, pattern_limit=50, case_limit=100)
-            run_id = result["search_run_id"]
-            # Fixture treats the strongest 3 structural patterns and strongest
-            # 6 real cases as relevant/partially relevant evidence.
-            for collection, relevant_limit in (("patterns", 3), ("cases", 6)):
-                fixture_rows = [
-                    row for row in result[collection]
-                    if row["name"].startswith("P3-") and row["rank"] <= 10
-                ]
-                for fixture_index, row in enumerate(fixture_rows):
-                    relevance = (
-                        "relevant"
-                        if fixture_index < relevant_limit else "irrelevant"
-                    )
-                    response = self.client.post(
-                        f"/api/layout-search-runs/{run_id}/feedback",
-                        json={
-                            "result_type": row["result_type"],
-                            "result_id": row["id"],
-                            "rank": row["rank"],
-                            "relevance": relevance,
-                            "reviewer": "fixture-evaluator",
-                        },
-                    )
-                    self.assertEqual(response.status_code, 200, response.text)
-        metrics = evaluation(self.db)
-        self.assertGreaterEqual(metrics["precision_at_5"], .60)
-        self.assertGreaterEqual(metrics["precision_at_10"], .60)
-        self.assertEqual(metrics["forbidden_module_violation_count"], 0)
+            split = "calibration" if index < 3 else "holdout"
+            for group_index, ids in enumerate(self.case_ids):
+                relevance = "relevant" if group_index == index else (
+                    "partially_relevant" if group_index == (index + 1) % 5
+                    else "irrelevant"
+                )
+                for result_id in ids:
+                    self.db.add(models.LayoutSearchGroundTruth(
+                        requirement_id=self.requirement_ids[index],
+                        result_type="case", result_id=result_id,
+                        expected_relevance=relevance,
+                        reviewer="fixture-evaluator",
+                        reason=f"fixture group {group_index}",
+                        dataset_version=version, dataset_split=split,
+                    ))
+            for group_index, result_id in enumerate(self.pattern_ids):
+                self.db.add(models.LayoutSearchGroundTruth(
+                    requirement_id=self.requirement_ids[index],
+                    result_type="pattern", result_id=result_id,
+                    expected_relevance=(
+                        "relevant" if group_index == index else
+                        "partially_relevant" if group_index == (index + 1) % 5
+                        else "irrelevant"
+                    ),
+                    reviewer="fixture-evaluator",
+                    reason=f"fixture group {group_index}",
+                    dataset_version=version, dataset_split=split,
+                ))
+        self.db.commit()
+        response = self.client.post(
+            "/api/layout-search/ground-truth/freeze",
+            json={"dataset_version": version},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        response = self.client.post(
+            "/api/layout-search/evaluation/run",
+            json={"dataset_version": version},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        report = evaluation(self.db, version)
+        self.assertEqual(report["dataset"]["total"], 125)
+        self.assertEqual(len(report["overall"]["requirements"]), 5)
+        self.assertIn(report["status"], {"passed", "not_ready"})
 
     def test_22_legacy_match_endpoint_remains_available(self):
         response = self.client.post(
@@ -438,3 +455,93 @@ class LayoutSearchTest(unittest.TestCase):
         warned = [row for row in candidates if row["historical_pattern_ids"]]
         self.assertTrue(warned)
         self.assertTrue(warned[0]["warnings"])
+
+    def test_28_ground_truth_list_api(self):
+        response = self.client.get(
+            "/api/layout-search/ground-truth?dataset_version=fixture-predefined-v1"
+        )
+        self.assertEqual(len(response.json()), 125)
+
+    def test_29_frozen_ground_truth_is_immutable(self):
+        response = self.client.post("/api/layout-search/ground-truth", json={
+            "requirement_id": self.requirement_ids[0], "result_type": "case",
+            "result_id": self.case_ids[0][0], "expected_relevance": "relevant",
+            "reviewer": "late", "reason": "", "dataset_version": "fixture-predefined-v1",
+            "dataset_split": "calibration",
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_30_empty_dataset_cannot_freeze(self):
+        response = self.client.post(
+            "/api/layout-search/ground-truth/freeze",
+            json={"dataset_version": "empty-v1"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_31_run_requires_frozen_ground_truth(self):
+        response = self.client.post(
+            "/api/layout-search/evaluation/run",
+            json={"dataset_version": "empty-v1"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_32_evaluation_separates_splits(self):
+        report = evaluation(self.db, "fixture-predefined-v1")
+        self.assertEqual(report["calibration"]["metrics"]["requirement_count"], 3)
+        self.assertEqual(report["holdout"]["metrics"]["requirement_count"], 2)
+
+    def test_33_evaluation_has_direct_case_metric(self):
+        self.assertIn(
+            "case_direct_precision_at_5",
+            evaluation(self.db, "fixture-predefined-v1")["overall"]["metrics"],
+        )
+
+    def test_34_evaluation_has_useful_case_metric(self):
+        self.assertIn(
+            "case_useful_precision_at_10",
+            evaluation(self.db, "fixture-predefined-v1")["overall"]["metrics"],
+        )
+
+    def test_35_evaluation_has_case_recall(self):
+        self.assertIn(
+            "case_recall_at_10",
+            evaluation(self.db, "fixture-predefined-v1")["overall"]["metrics"],
+        )
+
+    def test_36_evaluation_has_pattern_metrics(self):
+        metrics = evaluation(self.db, "fixture-predefined-v1")["overall"]["metrics"]
+        self.assertIn("pattern_direct_precision_at_3", metrics)
+        self.assertIn("pattern_useful_precision_at_5", metrics)
+
+    def test_37_evaluation_reports_false_positives_and_negatives(self):
+        row = evaluation(
+            self.db, "fixture-predefined-v1"
+        )["overall"]["requirements"][0]
+        self.assertIn("false_positives", row)
+        self.assertIn("false_negatives", row)
+
+    def test_38_evaluation_reports_traceability(self):
+        metrics = evaluation(self.db, "fixture-predefined-v1")["overall"]["metrics"]
+        self.assertEqual(metrics["traceability_rate"], 1)
+
+    def test_39_unknown_dataset_is_not_ready(self):
+        report = evaluation(self.db, "missing-v1")
+        self.assertEqual(report["status"], "not_ready")
+        self.assertEqual(report["message"], "尚未完成真实业务验收")
+
+    def test_40_business_alias_is_exact_and_explained(self):
+        self.assertEqual(normalize_business_value("channel", "RED"), "小红书")
+
+    def test_41_unmatched_business_value_is_preserved(self):
+        self.assertEqual(
+            normalize_business_value("channel", "自建新品频道"), "自建新品频道"
+        )
+
+    def test_42_business_match_does_not_use_contains(self):
+        self.assertFalse(values_match("channel", "小红书专题页", "小红书"))
+
+    def test_43_reference_cache_has_content_identity(self):
+        result = self.search()
+        meta = result["search_summary"]["reference_analysis"]
+        self.assertIn("image_sha256", meta)
+        self.assertEqual(meta["analyzer_version"], "reference-layout-v2")

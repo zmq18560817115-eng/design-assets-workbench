@@ -2,6 +2,19 @@
   "case_count": 20,
   "pattern_count": 5,
   "requirement_count": 5,
+  "dataset_version": "fixture-predefined-v1",
+  "ground_truth_policy": {
+    "defined_before_search": true,
+    "identity_field": "fixture_key",
+    "case_relevance": "same group relevant; next group partially_relevant; all others irrelevant",
+    "pattern_relevance": "same group relevant; next group partially_relevant; all others irrelevant",
+    "forbidden_cases": [],
+    "negative_cases": ["all non-adjacent fixture groups"],
+    "dataset_splits": {
+      "calibration": ["social", "parameter", "launch"],
+      "holdout": ["banner", "education"]
+    }
+  },
   "groups": [
     {"key": "social", "product_category": "奶瓶", "channel": "小红书", "purpose": "卖点说明", "canvas_ratio": "3:4", "orientation": "portrait", "density": "medium", "modules": ["main_title", "product_image", "selling_point", "cta"]},
     {"key": "parameter", "product_category": "吸奶器", "channel": "产品海报", "purpose": "参数对比", "canvas_ratio": "3:4", "orientation": "portrait", "density": "high", "modules": ["main_title", "product_image", "parameter_table", "cta"]},

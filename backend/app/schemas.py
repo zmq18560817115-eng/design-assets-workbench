@@ -338,6 +338,12 @@ class LayoutPatternOut(BaseModel):
     scene_tags: list[str]
     channel_tags: list[str]
     business_goal_tags: list[str]
+    product_category_tags_json: list[str] = Field(default_factory=list)
+    content_purpose_tags_json: list[str] = Field(default_factory=list)
+    campaign_stage_tags_json: list[str] = Field(default_factory=list)
+    business_context_json: dict = Field(default_factory=dict)
+    business_context_review_status: Literal["suggested", "verified", "stale"] = "suggested"
+    business_context_reviewer: str = ""
     usage_notes: str
     version: int
     review_status: Literal["draft", "human_edited", "verified", "disabled"]
@@ -361,7 +367,31 @@ class LayoutPatternPatch(BaseModel):
     module_structure_json: list[LayoutModule] | None = None
     suitable_scenes_json: list[str] | None = None
     unsuitable_scenes_json: list[str] | None = None
+    product_category_tags_json: list[str] | None = None
+    content_purpose_tags_json: list[str] | None = None
+    campaign_stage_tags_json: list[str] | None = None
+    business_context_review_status: Literal["suggested", "verified", "stale"] | None = None
     reviewer: str = ""
+
+
+class LayoutSearchGroundTruthCreate(BaseModel):
+    requirement_id: int = Field(ge=1)
+    result_type: Literal["pattern", "case"]
+    result_id: int = Field(ge=1)
+    expected_relevance: Literal["relevant", "partially_relevant", "irrelevant"]
+    reviewer: str = Field(min_length=1, max_length=120)
+    reason: str = ""
+    dataset_version: str = Field(min_length=1, max_length=80)
+    dataset_split: Literal["calibration", "holdout"]
+
+
+class LayoutSearchGroundTruthFreeze(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+
+
+class LayoutSearchEvaluationRunInput(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    dataset_split: Literal["calibration", "holdout"] | None = None
 
 
 class BusinessRequirementCreate(BaseModel):

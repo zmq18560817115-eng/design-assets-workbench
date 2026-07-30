@@ -15,6 +15,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from . import models
+from .business_taxonomy import normalize_business_value
 from .layout_blueprint import validate_canvas_ratio, validate_modules
 
 DEFAULT_SIMILARITY_THRESHOLD = 0.72
@@ -259,6 +260,25 @@ def _confidence(evidence_count: int) -> str:
     return "candidate"
 
 
+def aggregate_business_context(cases: list[models.Case]) -> dict[str, Any]:
+    fields = {
+        "product_categories": ("product_category", "product_category"),
+        "channels": ("channel", "channel"),
+        "content_purposes": ("content_type", "content_purpose"),
+        "campaign_stages": ("campaign_stage", "campaign_stage"),
+        "business_goals": ("business_goal", "business_goal"),
+    }
+    result: dict[str, dict[str, int]] = {}
+    for output_key, (attribute, taxonomy_field) in fields.items():
+        counts = Counter(
+            normalize_business_value(taxonomy_field, getattr(case, attribute, "") or "")
+            for case in cases
+            if (getattr(case, attribute, "") or "").strip()
+        )
+        result[output_key] = dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+    return result
+
+
 def _name(modules: set[str], orientation: str) -> str:
     if "parameter_table" in modules and "product_image" in modules:
         return "上产品下参数型"
@@ -306,6 +326,10 @@ def discover_candidates(
             case_ids = sorted(unique_cases)
             blueprint_ids = [item.id for item in sorted(group, key=lambda value: value.case_id)]
             module_types = {item["type"] for item in averages}
+            evidence_cases = [
+                item.case for item in group if item.case is not None
+            ]
+            business_context = aggregate_business_context(evidence_cases)
             historical_ids = [
                 pattern.id
                 for pattern in db.query(models.LayoutPattern).filter(
@@ -337,6 +361,18 @@ def discover_candidates(
                 "optional_modules_json": optional,
                 "suitable_scenes_json": [],
                 "unsuitable_scenes_json": [],
+                "product_category_tags_json": list(
+                    business_context["product_categories"]
+                ),
+                "content_purpose_tags_json": list(
+                    business_context["content_purposes"]
+                ),
+                "campaign_stage_tags_json": list(
+                    business_context["campaign_stages"]
+                ),
+                "business_context_json": business_context,
+                "business_context_review_status": "suggested",
+                "business_context_reviewer": "",
                 "evidence_case_ids_json": case_ids,
                 "evidence_blueprint_ids_json": blueprint_ids,
                 "evidence_count": len(case_ids),
@@ -407,8 +443,25 @@ def rebuild(
                     if key not in {
                         "grouping_basis", "mean_similarity", "similarities",
                         "participating_modules", "excluded_modules",
+                        "historical_pattern_ids", "warnings",
                     }
                 }
+                evidence_changed = set(_loads(
+                    current.evidence_case_ids_json or current.source_case_ids, []
+                )) != set(data["evidence_case_ids_json"])
+                if (
+                    current.business_context_review_status == "verified"
+                    and current.id is not None
+                ):
+                    for protected in {
+                        "product_category_tags_json",
+                        "content_purpose_tags_json",
+                        "campaign_stage_tags_json",
+                        "business_context_json",
+                        "business_context_review_status",
+                        "business_context_reviewer",
+                    }:
+                        persisted_fields.pop(protected, None)
                 for key, value in persisted_fields.items():
                     setattr(
                         current,
@@ -423,6 +476,8 @@ def rebuild(
                 current.model_name = "explainable-rule-engine"
                 current.prompt_version = "layout-pattern-rules-v2"
                 current.generated_at = dt.datetime.utcnow()
+                if evidence_changed and current.business_context_review_status == "verified":
+                    current.business_context_review_status = "stale"
             db.commit()
         except Exception:
             db.rollback()
