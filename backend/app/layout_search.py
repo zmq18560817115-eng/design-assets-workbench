@@ -837,6 +837,11 @@ def freeze_ground_truth(db: Session, dataset_version: str):
     errors = []
     split_by_requirement: dict[int, set[str]] = {}
     types_by_requirement: dict[int, set[str]] = {}
+    dataset_splits = {row.dataset_split for row in rows}
+    if "calibration" not in dataset_splits:
+        errors.append("数据集缺少 calibration")
+    if "holdout" not in dataset_splits:
+        errors.append("数据集缺少 holdout")
     for row in rows:
         split_by_requirement.setdefault(row.requirement_id, set()).add(
             row.dataset_split

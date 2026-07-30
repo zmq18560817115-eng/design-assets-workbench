@@ -17,9 +17,11 @@ os.environ["LLM_MODEL"] = ""
 
 from PIL import Image
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from app import config, models
-from app.database import SessionLocal
+from app.database import Base, SessionLocal
 from app.layout_patterns import discover_candidates, structure_similarity
 from app.layout_search import (
     SCORING_VERSION,
@@ -593,24 +595,59 @@ class LayoutSearchTest(unittest.TestCase):
             acceptance_status({"data": False}, {"precision": True}), "not_ready"
         )
 
+    def test_48a_all_gates_passed_is_passed(self):
+        self.assertEqual(
+            acceptance_status(
+                {"company_cases": True, "requirements": True},
+                {"precision": True, "traceability": True},
+            ),
+            "passed",
+        )
+
     def test_49_export_import_round_trip(self):
         payload = export_pack(self.db, "fixture-predefined-v1")
         original = payload["ground_truth"]
-        payload["dataset_version"] = "fixture-roundtrip-v2"
-        payload["dataset"]["dataset_version"] = "fixture-roundtrip-v2"
-        payload["dataset"]["name"] = "Round trip"
-        for row in payload["ground_truth"]:
-            row["dataset_version"] = "fixture-roundtrip-v2"
-        result = import_pack(self.db, payload, execute=True)
-        self.assertFalse(result["dry_run"])
-        imported = export_pack(self.db, "fixture-roundtrip-v2")["ground_truth"]
-        comparable = lambda rows: sorted(
-            (row["requirement_id"], row["result_type"], row["result_id"],
-             row["expected_relevance"], row["dataset_split"],
-             row["reviewer"], row["reason"])
-            for row in rows
-        )
-        self.assertEqual(comparable(original), comparable(imported))
+        with tempfile.TemporaryDirectory(prefix="acceptance-roundtrip-") as folder:
+            engine = create_engine(f"sqlite:///{Path(folder) / 'fresh.db'}")
+            Base.metadata.create_all(engine)
+            FreshSession = sessionmaker(bind=engine)
+            fresh = FreshSession()
+            try:
+                requirement_ids = {row["requirement_id"] for row in original}
+                case_ids = {
+                    row["result_id"] for row in original
+                    if row["result_type"] == "case"
+                }
+                pattern_ids = {
+                    row["result_id"] for row in original
+                    if row["result_type"] == "pattern"
+                }
+                fresh.add_all(models.BusinessRequirement(
+                    id=item_id, title=f"Requirement {item_id}",
+                    status="confirmed",
+                ) for item_id in requirement_ids)
+                fresh.add_all(models.Case(
+                    id=item_id, name=f"Case {item_id}",
+                ) for item_id in case_ids)
+                fresh.add_all(models.LayoutPattern(
+                    id=item_id, name=f"Pattern {item_id}",
+                ) for item_id in pattern_ids)
+                fresh.commit()
+                result = import_pack(fresh, payload, execute=True)
+                self.assertFalse(result["dry_run"])
+                imported = export_pack(
+                    fresh, "fixture-predefined-v1"
+                )["ground_truth"]
+                comparable = lambda rows: sorted(
+                    (row["requirement_id"], row["result_type"], row["result_id"],
+                     row["expected_relevance"], row["dataset_split"],
+                     row["reviewer"], row["reason"])
+                    for row in rows
+                )
+                self.assertEqual(comparable(original), comparable(imported))
+            finally:
+                fresh.close()
+                engine.dispose()
 
     def test_50_import_parses_frozen_at_string(self):
         payload = export_pack(self.db, "fixture-predefined-v1")
@@ -623,6 +660,19 @@ class LayoutSearchTest(unittest.TestCase):
             models.LayoutSearchGroundTruth.dataset_version == "fixture-time-v2"
         ).first()
         self.assertIsInstance(row.frozen_at, __import__("datetime").datetime)
+
+    def test_50a_import_accepts_legacy_naive_iso_time(self):
+        payload = export_pack(self.db, "fixture-predefined-v1")
+        payload["dataset_version"] = "fixture-legacy-time-v2"
+        payload["dataset"]["dataset_version"] = "fixture-legacy-time-v2"
+        for field in ("created_at", "frozen_at"):
+            payload["dataset"][field] = payload["dataset"][field].removesuffix("Z")
+        for row in payload["ground_truth"]:
+            row["dataset_version"] = "fixture-legacy-time-v2"
+            row["created_at"] = row["created_at"].removesuffix("Z")
+            row["frozen_at"] = row["frozen_at"].removesuffix("Z")
+        result = import_pack(self.db, payload, execute=True)
+        self.assertFalse(result["dry_run"])
 
     def test_51_invalid_time_rolls_back_everything(self):
         payload = export_pack(self.db, "fixture-predefined-v1")
@@ -676,6 +726,34 @@ class LayoutSearchTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("多个 split", response.text)
+
+    def test_53a_freeze_requires_both_dataset_splits(self):
+        version = "missing-holdout-v1"
+        self.db.add(models.LayoutSearchDataset(
+            dataset_version=version, name=version, dataset_kind="real",
+            created_by="tester",
+        ))
+        self.db.add_all([
+            models.LayoutSearchGroundTruth(
+                requirement_id=self.requirement_ids[0], result_type="case",
+                result_id=self.case_ids[0][0], expected_relevance="relevant",
+                reviewer="tester", reason="case", dataset_version=version,
+                dataset_split="calibration",
+            ),
+            models.LayoutSearchGroundTruth(
+                requirement_id=self.requirement_ids[0], result_type="pattern",
+                result_id=self.pattern_ids[0], expected_relevance="relevant",
+                reviewer="tester", reason="pattern", dataset_version=version,
+                dataset_split="calibration",
+            ),
+        ])
+        self.db.commit()
+        response = self.client.post(
+            "/api/layout-search/ground-truth/freeze",
+            json={"dataset_version": version},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("holdout", response.text)
 
     def test_54_unconfirmed_requirement_cannot_freeze(self):
         requirement = models.BusinessRequirement(title="draft", status="draft")

@@ -21,8 +21,10 @@ def parse_utc_datetime(value: Any, field: str) -> dt.datetime:
         parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError as exc:
         raise ValueError(f"{field} 不是合法 ISO 8601 时间：{value}") from exc
+    # Older exporter versions emitted naive ISO text. Interpret that legacy
+    # representation as UTC, while normalizing all aware values to UTC.
     if parsed.tzinfo is None:
-        raise ValueError(f"{field} 必须包含时区，例如 Z 或 +08:00")
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
     return parsed.astimezone(dt.timezone.utc).replace(tzinfo=None)
 
 
