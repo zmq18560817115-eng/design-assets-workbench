@@ -13,6 +13,17 @@ MODULE_TYPES = {
 }
 OVERLAY_TYPES = {"decoration", "background"}
 
+# 模块类型的中文标签，用于检索结果里的可复用模块/适配建议/风险等可读输出。
+MODULE_LABELS = {
+    "main_title": "主标题", "subtitle": "副标题", "body_text": "正文",
+    "product_image": "产品主图", "person_image": "人物图", "scene_image": "场景图",
+    "selling_point": "卖点", "feature_list": "功能清单", "parameter_table": "参数表",
+    "price": "价格", "logo": "Logo", "cta": "行动引导", "footnote": "脚注",
+    "decoration": "装饰", "background": "背景", "other": "其他",
+}
+ORIENTATION_LABELS = {"portrait": "竖版", "landscape": "横版", "square": "方形"}
+DENSITY_LABELS = {"low": "低", "medium": "中", "high": "高"}
+
 
 def validate_canvas_ratio(value: str) -> str:
     value = (value or "").strip()

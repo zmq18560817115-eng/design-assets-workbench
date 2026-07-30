@@ -12,7 +12,12 @@ from sqlalchemy.orm import Session
 
 from . import config, llm, models
 from .vision_provider import analyze_layout_regions
-from .layout_blueprint import validate_modules
+from .layout_blueprint import (
+    validate_modules,
+    MODULE_LABELS,
+    ORIENTATION_LABELS,
+    DENSITY_LABELS,
+)
 from .schemas import (
     AnalysisResult,
     CaseReviewInput,
@@ -647,6 +652,81 @@ def update_business_requirement(
     return requirement
 
 
+def _module_types(modules: list[dict]) -> list[str]:
+    """有序去重的模块类型列表。"""
+    ordered: list[str] = []
+    for module in modules:
+        module_type = module.get("type")
+        if module_type and module_type not in ordered:
+            ordered.append(module_type)
+    return ordered
+
+
+def _module_labels(types: list[str]) -> list[str]:
+    return [MODULE_LABELS.get(item, item) for item in types]
+
+
+def _match_advice(
+    modules: list[dict],
+    *,
+    src_orientation: str,
+    src_canvas: str,
+    src_density: str,
+    req_required: list[str],
+    req_forbidden: list[str],
+    req_orientation: str,
+    req_canvas: str,
+    req_density: str,
+    extra_risks: list[str] | None = None,
+) -> tuple[list[str], list[str], list[str]]:
+    """把一个参考(模式或案例骨架)对当前需求的可复用模块、适配建议和风险，
+    用可解释的规则计算出来，与检索评分保持同一套结构化字段风格。"""
+    src_types = _module_types(modules)
+    src_type_set = set(src_types)
+
+    # 可复用模块：优先命中需求的必需模块；否则回退到结构性关键模块。
+    reusable_types = [item for item in src_types if item in set(req_required)]
+    if not reusable_types:
+        salient = ("main_title", "product_image", "selling_point", "cta", "price")
+        reusable_types = [
+            item for item in src_types if item in salient
+        ] or src_types[:4]
+    reusable_modules = _module_labels(reusable_types)
+
+    missing = [item for item in req_required if item not in src_type_set]
+    orientation_mismatch = bool(
+        req_orientation and src_orientation and req_orientation != src_orientation
+    )
+
+    adaptation: list[str] = []
+    if orientation_mismatch:
+        adaptation.append(
+            f"版式方向从「{ORIENTATION_LABELS.get(src_orientation, src_orientation)}」"
+            f"适配为「{ORIENTATION_LABELS.get(req_orientation, req_orientation)}」"
+        )
+    if req_canvas and src_canvas and req_canvas != src_canvas:
+        adaptation.append(f"画布比例由 {src_canvas} 调整到 {req_canvas}，重排模块间距")
+    if missing:
+        adaptation.append(f"补齐需求必需模块：{'、'.join(_module_labels(missing))}")
+    if req_density and src_density and req_density != src_density:
+        adaptation.append(
+            f"信息密度由「{DENSITY_LABELS.get(src_density, src_density)}」"
+            f"调整到「{DENSITY_LABELS.get(req_density, req_density)}」"
+        )
+
+    risks: list[str] = list(extra_risks or [])
+    present_forbidden = [item for item in req_forbidden if item in src_type_set]
+    if present_forbidden:
+        risks.append(
+            f"含需求禁止模块：{'、'.join(_module_labels(present_forbidden))}，套用前需移除"
+        )
+    if missing:
+        risks.append(f"缺少必需模块：{'、'.join(_module_labels(missing))}")
+    if orientation_mismatch:
+        risks.append("版式方向不一致，直接套用会破坏构图节奏")
+    return reusable_modules, adaptation, risks
+
+
 def _text_overlap(left: str, right: str) -> float:
     tokens_left = set(re.findall(r"[\w\u4e00-\u9fff]{2,}", (left or "").lower()))
     tokens_right = set(re.findall(r"[\w\u4e00-\u9fff]{2,}", (right or "").lower()))
@@ -678,6 +758,8 @@ def match_business_requirement(
             requirement.campaign_stage,
         ]
     )
+    req_required = _json_list(requirement.required_modules_json)
+    req_forbidden = _json_list(requirement.forbidden_modules_json)
     for pattern in patterns:
         score = 20.0
         reasons = ["人工确认排版模式"]
@@ -722,11 +804,31 @@ def match_business_requirement(
             reasons.append("需求语义与适用说明相关")
         sources = _json_list(pattern.source_case_ids)
         related_case_ids.update(int(case_id) for case_id in sources)
+        extra_risks = []
+        if len(sources) < 2:
+            extra_risks.append("模式来源案例较少，代表性有限")
+        if score < 40:
+            extra_risks.append("综合匹配度较低，建议仅作结构参考")
+        reusable_modules, adaptation, risks = _match_advice(
+            _json_list(pattern.modules_json),
+            src_orientation=pattern.orientation,
+            src_canvas=pattern.canvas_ratio,
+            src_density=pattern.information_density,
+            req_required=req_required,
+            req_forbidden=req_forbidden,
+            req_orientation=requirement.orientation,
+            req_canvas=requirement.canvas_ratio,
+            req_density=requirement.information_density,
+            extra_risks=extra_risks,
+        )
         pattern_matches.append(
             {
                 "pattern": serialize_layout_pattern(pattern),
                 "score": round(score, 2),
                 "reasons": reasons,
+                "reusable_modules": reusable_modules,
+                "adaptation_suggestions": adaptation,
+                "risks": risks,
             }
         )
     pattern_matches.sort(
@@ -783,6 +885,21 @@ def match_business_requirement(
         if overlap:
             score += round(overlap * 15, 2)
             reasons.append("案例内容与需求相关")
+        extra_risks = []
+        if score < 35:
+            extra_risks.append("综合匹配度较低，建议仅作结构参考")
+        reusable_modules, adaptation, risks = _match_advice(
+            _json_list(blueprint.modules_json),
+            src_orientation=blueprint.orientation,
+            src_canvas=blueprint.canvas_ratio,
+            src_density=blueprint.information_density,
+            req_required=req_required,
+            req_forbidden=req_forbidden,
+            req_orientation=requirement.orientation,
+            req_canvas=requirement.canvas_ratio,
+            req_density=requirement.information_density,
+            extra_risks=extra_risks,
+        )
         case_matches.append(
             {
                 "case_id": case.id,
@@ -790,6 +907,9 @@ def match_business_requirement(
                 "blueprint_id": blueprint.id,
                 "score": round(score, 2),
                 "reasons": reasons,
+                "reusable_modules": reusable_modules,
+                "adaptation_suggestions": adaptation,
+                "risks": risks,
             }
         )
     case_matches.sort(key=lambda item: (-item["score"], item["case_id"]))
@@ -1120,6 +1240,9 @@ def create_layout_direction_feedback(
             if adjusted_modules
             else ""
         ),
+        used_module_ids=json.dumps(payload.used_module_ids, ensure_ascii=False),
+        outcome=payload.outcome,
+        change_reason=payload.change_reason,
     )
     direction.status = {
         "selected": "selected",
@@ -1148,6 +1271,9 @@ def serialize_layout_direction_feedback(
             if feedback.adjusted_modules_json
             else None
         ),
+        "used_module_ids": _json_list(feedback.used_module_ids),
+        "outcome": feedback.outcome or "",
+        "change_reason": feedback.change_reason or "",
         "created_at": feedback.created_at,
     }
 

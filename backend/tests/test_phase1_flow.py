@@ -272,6 +272,11 @@ class PhaseOneFlowTest(unittest.TestCase):
             matched.json()["case_matches"][0]["case_id"],
             case["id"],
         )
+        top_pattern = matched.json()["pattern_matches"][0]
+        for field in ("reusable_modules", "adaptation_suggestions", "risks"):
+            self.assertIn(field, top_pattern)
+            self.assertIsInstance(top_pattern[field], list)
+        self.assertIn("reusable_modules", matched.json()["case_matches"][0])
         self.assertIn(
             "需求指定参考案例",
             matched.json()["case_matches"][0]["reasons"],
@@ -303,18 +308,28 @@ class PhaseOneFlowTest(unittest.TestCase):
         first_direction = directions.json()["directions"][0]
         with SessionLocal() as db:
             preference_count_before = db.query(models.PreferenceEvent).count()
+        used_ids = [module["id"] for module in first_direction["modules_json"]]
         selected_feedback = self.client.post(
             f"/api/layout-directions/{first_direction['id']}/feedback",
             json={
                 "action": "selected",
                 "actor": "业务设计师",
                 "notes": "信息层级最符合当前上线节奏",
+                "used_module_ids": used_ids,
+                "outcome": "landed",
+                "change_reason": "主视觉更贴合上新主张",
             },
         )
         self.assertEqual(
             selected_feedback.status_code,
             200,
             selected_feedback.text,
+        )
+        self.assertEqual(selected_feedback.json()["used_module_ids"], used_ids)
+        self.assertEqual(selected_feedback.json()["outcome"], "landed")
+        self.assertEqual(
+            selected_feedback.json()["change_reason"],
+            "主视觉更贴合上新主张",
         )
         adjustment_feedback = self.client.post(
             f"/api/layout-directions/{first_direction['id']}/feedback",

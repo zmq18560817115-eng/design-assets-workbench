@@ -406,6 +406,9 @@ class LayoutPatternMatchOut(BaseModel):
     pattern: LayoutPatternOut
     score: float
     reasons: list[str]
+    reusable_modules: list[str] = Field(default_factory=list)
+    adaptation_suggestions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
 
 
 class CaseLayoutMatchOut(BaseModel):
@@ -414,6 +417,9 @@ class CaseLayoutMatchOut(BaseModel):
     blueprint_id: int
     score: float
     reasons: list[str]
+    reusable_modules: list[str] = Field(default_factory=list)
+    adaptation_suggestions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
 
 
 class BusinessRequirementMatchOut(BaseModel):
@@ -475,6 +481,9 @@ class LayoutDirectionFeedbackCreate(BaseModel):
     actor: str = Field(min_length=1, max_length=120)
     notes: str = ""
     adjusted_modules_json: list[LayoutModule] | None = None
+    used_module_ids: list[str] = Field(default_factory=list)
+    outcome: Literal["", "landed", "not_landed", "iterating"] = ""
+    change_reason: str = ""
 
     @model_validator(mode="after")
     def adjusted_snapshot_required(self):
@@ -486,6 +495,7 @@ class LayoutDirectionFeedbackCreate(BaseModel):
             module_ids = [item.id for item in self.adjusted_modules_json]
             if len(module_ids) != len(set(module_ids)):
                 raise ValueError("adjusted layout module ids must be unique")
+        self.used_module_ids = list(dict.fromkeys(self.used_module_ids))
         return self
 
 

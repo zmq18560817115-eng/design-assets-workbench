@@ -333,6 +333,10 @@ class LayoutDirectionFeedback(Base):
     actor = Column(String, nullable=False, index=True)
     notes = Column(Text, default="")
     adjusted_modules_json = Column(Text, default="")
+    # 阶段四反馈学习的结构化留痕：实际使用的模块 id、最终落地结果、修改原因。
+    used_module_ids = Column(Text, default="[]")
+    outcome = Column(String, default="", index=True)
+    change_reason = Column(Text, default="")
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 

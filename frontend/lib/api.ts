@@ -213,6 +213,9 @@ export interface BusinessRequirementMatch {
     pattern: LayoutPattern;
     score: number;
     reasons: string[];
+    reusable_modules: string[];
+    adaptation_suggestions: string[];
+    risks: string[];
   }[];
   case_matches: {
     case_id: number;
@@ -220,6 +223,9 @@ export interface BusinessRequirementMatch {
     blueprint_id: number;
     score: number;
     reasons: string[];
+    reusable_modules: string[];
+    adaptation_suggestions: string[];
+    risks: string[];
   }[];
 }
 
@@ -258,6 +264,9 @@ export interface LayoutDirectionFeedback {
   actor: string;
   notes: string;
   adjusted_modules_json: LayoutModule[] | null;
+  used_module_ids: string[];
+  outcome: "" | "landed" | "not_landed" | "iterating";
+  change_reason: string;
   created_at: string;
 }
 
@@ -446,6 +455,9 @@ export const api = {
       actor: string;
       notes: string;
       adjusted_modules_json?: LayoutModule[];
+      used_module_ids?: string[];
+      outcome?: LayoutDirectionFeedback["outcome"];
+      change_reason?: string;
     }
   ) =>
     fetch(`/api/layout-directions/${directionId}/feedback`, {

@@ -7,6 +7,7 @@ import {
   BusinessRequirementCreate,
   BusinessRequirementMatch,
   LayoutDirection,
+  LayoutDirectionFeedback,
   LayoutDirectionSet,
   LayoutModule,
 } from "@/lib/api";
@@ -47,6 +48,9 @@ export default function IntentionsPage() {
   const [directions, setDirections] = useState<LayoutDirectionSet | null>(null);
   const [feedbackActor, setFeedbackActor] = useState("");
   const [feedbackNotes, setFeedbackNotes] = useState("");
+  const [feedbackOutcome, setFeedbackOutcome] =
+    useState<LayoutDirectionFeedback["outcome"]>("");
+  const [feedbackChangeReason, setFeedbackChangeReason] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [editingDirectionId, setEditingDirectionId] = useState<number | null>(null);
   const [directionDrafts, setDirectionDrafts] = useState<
@@ -139,6 +143,10 @@ export default function IntentionsPage() {
     setError("");
     setFeedbackMessage("");
     try {
+      const carriedModules =
+        action === "adjusted_confirmed"
+          ? directionDrafts[direction.id]
+          : direction.modules_json;
       await api.addLayoutDirectionFeedback(direction.id, {
         action,
         actor: feedbackActor.trim(),
@@ -147,6 +155,12 @@ export default function IntentionsPage() {
           action === "adjusted_confirmed"
             ? directionDrafts[direction.id]
             : undefined,
+        used_module_ids:
+          action === "selected" || action === "adjusted_confirmed"
+            ? carriedModules.map((module) => module.id)
+            : [],
+        outcome: feedbackOutcome,
+        change_reason: feedbackChangeReason,
       });
       const label = {
         selected: "已选择",
@@ -329,6 +343,11 @@ export default function IntentionsPage() {
                       <Tag key={reason}>{reason}</Tag>
                     ))}
                   </div>
+                  <MatchAdvice
+                    reusable={match.reusable_modules}
+                    adaptation={match.adaptation_suggestions}
+                    risks={match.risks}
+                  />
                 </Card>
               ))}
             </div>
@@ -493,6 +512,29 @@ export default function IntentionsPage() {
                   placeholder="选择或调整原因"
                   className="rounded-xl border border-line px-4 py-3 text-sm"
                 />
+                <select
+                  value={feedbackOutcome}
+                  onChange={(event) =>
+                    setFeedbackOutcome(
+                      event.target.value as LayoutDirectionFeedback["outcome"]
+                    )
+                  }
+                  className="rounded-xl border border-line px-4 py-3 text-sm"
+                >
+                  <option value="">最终结果（可选）</option>
+                  <option value="landed">已落地</option>
+                  <option value="iterating">迭代中</option>
+                  <option value="not_landed">未落地</option>
+                </select>
+                <input
+                  value={feedbackChangeReason}
+                  onChange={(event) => setFeedbackChangeReason(event.target.value)}
+                  placeholder="修改原因（为什么调整）"
+                  className="rounded-xl border border-line px-4 py-3 text-sm"
+                />
+                <p className="text-xs text-gray-400 md:col-span-2">
+                  选择或确认调整时，系统会记录该方向实际带入使用的模块，用于后续检索排序优化。
+                </p>
                 {feedbackMessage && (
                   <p className="text-sm text-emerald-600 md:col-span-2">
                     {feedbackMessage}
@@ -521,12 +563,68 @@ export default function IntentionsPage() {
                         {match.score.toFixed(0)}
                       </span>
                     </div>
+                    <MatchAdvice
+                      reusable={match.reusable_modules}
+                      adaptation={match.adaptation_suggestions}
+                      risks={match.risks}
+                    />
                   </Card>
                 </Link>
               ))}
             </div>
           </section>
         </>
+      )}
+    </div>
+  );
+}
+
+function MatchAdvice({
+  reusable,
+  adaptation,
+  risks,
+}: {
+  reusable: string[];
+  adaptation: string[];
+  risks: string[];
+}) {
+  if (!reusable.length && !adaptation.length && !risks.length) return null;
+  return (
+    <div className="mt-3 space-y-2">
+      {reusable.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-gray-400">可复用模块</div>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {reusable.map((item) => (
+              <span
+                key={item}
+                className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {adaptation.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-gray-400">适配建议</div>
+          <ul className="mt-1 space-y-1 text-xs text-gray-500">
+            {adaptation.map((item) => (
+              <li key={item}>· {item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {risks.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-amber-500">风险提示</div>
+          <ul className="mt-1 space-y-1 text-xs text-amber-600">
+            {risks.map((item) => (
+              <li key={item}>⚠ {item}</li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

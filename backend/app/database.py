@@ -231,3 +231,21 @@ def _auto_migrate():
                             f"{col_type} DEFAULT '{default}'"
                         )
                     )
+    if "layout_direction_feedback" in tables:
+        feedback_cols = {
+            c["name"] for c in inspector.get_columns("layout_direction_feedback")
+        }
+        feedback_fields = {
+            "used_module_ids": ("TEXT", "[]"),
+            "outcome": ("TEXT", ""),
+            "change_reason": ("TEXT", ""),
+        }
+        for col, (col_type, default) in feedback_fields.items():
+            if col not in feedback_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE layout_direction_feedback ADD COLUMN {col} "
+                            f"{col_type} DEFAULT '{default}'"
+                        )
+                    )
