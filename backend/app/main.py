@@ -26,8 +26,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    acceptance_pack, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
-    llm, models, overlay, vlm,
+    acceptance_pack, batch, compliance, concept, config, crud, imagehash, layout_patterns,
+    layout_search, llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
 from . import platform as plat
@@ -823,6 +823,45 @@ def match_business_requirement(
     if not requirement:
         raise HTTPException(status_code=404, detail="业务需求不存在")
     return crud.match_business_requirement(db, requirement)
+
+
+@app.post("/api/business-requirements/{requirement_id}/evaluate")
+async def evaluate_work_compliance(
+    requirement_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """L1 合规判定：上传一张作品，对照该业务需求做客观合规评判。
+
+    对作品跑 AI 拆解得到蓝图，再和需求的必需/禁止模块、画布、方向、信息密度
+    逐条比对，输出合规报告。作品不落库、不建 Case。
+    """
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(status_code=400, detail="请上传图片作品")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="空文件")
+
+    ext = Path(file.filename or "").suffix or ".png"
+    stored_name = f"evaluate-{uuid.uuid4().hex}{ext}"
+    dest = config.UPLOAD_DIR / stored_name
+    dest.write_bytes(data)
+    try:
+        result = run_pipeline(str(dest))
+        transient_image = models.Image(
+            url=f"/uploads/{stored_name}", filename=file.filename or stored_name
+        )
+        work = crud.build_initial_layout_blueprint(transient_image, result).model_dump()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"作品拆解失败：{exc}") from exc
+    finally:
+        dest.unlink(missing_ok=True)
+
+    report = compliance.evaluate_compliance(work, requirement)
+    return {"requirement_id": requirement_id, **report}
 
 
 @app.post("/api/business-requirements/{requirement_id}/layout-search")
