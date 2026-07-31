@@ -710,3 +710,26 @@ class DisinfectionAnnotationVersion(Base):
     source = Column(String, default="parser")
     editor = Column(String, default="")
     created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class DisinfectionDecompositionRun(Base):
+    """Trace one few-shot-assisted attempt on an unannotated company image."""
+
+    __tablename__ = "disinfection_decomposition_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    blueprint_id = Column(
+        Integer, ForeignKey("layout_blueprints.id", ondelete="SET NULL"), nullable=True
+    )
+    status = Column(String, default="review_required", index=True)
+    evidence_annotation_ids_json = Column(Text, default="[]")
+    initial_ai_blueprint_json = Column(Text, default="{}")
+    final_blueprint_json = Column(Text, default="{}")
+    failure_reasons_json = Column(Text, default="[]")
+    model_name = Column(String, default="")
+    prompt_version = Column(String, default="disinfection-layout-few-shot-v1")
+    generation_mode = Column(String, default="model")
+    manual_edit_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)

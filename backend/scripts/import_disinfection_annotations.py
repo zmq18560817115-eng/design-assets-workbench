@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app import models  # noqa: E402
 from app.database import SessionLocal, init_db  # noqa: E402
-from app.disinfection_annotations import scan_directory  # noqa: E402
+from app.disinfection_annotations import scan_directory, write_annotation_files  # noqa: E402
 
 
 def main() -> int:
@@ -21,6 +21,10 @@ def main() -> int:
     parser.add_argument(
         "--report",
         default=str(ROOT / "backend/evaluation/disinfection_cabinet_layout_report.json"),
+    )
+    parser.add_argument(
+        "--annotations-dir",
+        default=str(ROOT / "backend/evaluation/disinfection_cabinet_annotations"),
     )
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -31,8 +35,16 @@ def main() -> int:
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    summary = {key: report[key] for key in ("total", "formats", "sizes", "orientations", "region_totals", "pairing")}
+    annotation_count = write_annotation_files(report, Path(args.annotations_dir))
+    summary = {
+        key: report[key]
+        for key in (
+            "total", "formats", "sizes", "orientations", "region_totals",
+            "box_detection_success", "pairing", "ambiguous_items",
+        )
+    }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    print(f"annotation_json_files={annotation_count}")
     if not args.execute:
         print("DRY RUN: database unchanged; model not called; files not copied")
         return 0
@@ -55,6 +67,24 @@ def main() -> int:
                 .first()
             )
             if record:
+                next_regions = json.dumps(item["regions"], ensure_ascii=False)
+                next_warnings = json.dumps(item["warnings"], ensure_ascii=False)
+                if (
+                    record.status == "pending_review"
+                    and record.regions_json == next_regions
+                    and record.warnings_json == next_warnings
+                ):
+                    continue
+                if record.status == "pending_review" and record.annotation_version == 1:
+                    record.regions_json = next_regions
+                    record.warnings_json = next_warnings
+                    record.annotation_version += 1
+                    db.add(models.DisinfectionAnnotationVersion(
+                        annotation_id=record.id,
+                        version=record.annotation_version,
+                        payload_json=json.dumps(item, ensure_ascii=False),
+                        source="color_box_parser_v1",
+                    ))
                 continue
             record = models.DisinfectionAnnotation(
                 batch_id=batch_id,

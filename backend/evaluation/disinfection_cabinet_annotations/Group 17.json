@@ -1,0 +1,98 @@
+{
+  "image_path": "Group 17.png",
+  "product_category": "消毒柜",
+  "source_type": "company_published",
+  "annotation_source": "human_color_box_v1",
+  "annotation_status": "pending_review",
+  "canvas_width": 923,
+  "canvas_height": 1214,
+  "canvas_ratio": "923:1214",
+  "orientation": "portrait",
+  "regions": [
+    {
+      "id": "region-1",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.145179,
+      "y": 0.017298,
+      "width": 0.720477,
+      "height": 0.104613,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-2",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.16143,
+      "y": 0.025535,
+      "width": 0.685807,
+      "height": 0.088138,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-3",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.0,
+      "y": 0.150741,
+      "width": 0.998917,
+      "height": 0.827842,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-4",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.520043,
+      "y": 0.261944,
+      "width": 0.452871,
+      "height": 0.578254,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-5",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.016251,
+      "y": 0.275947,
+      "width": 0.452871,
+      "height": 0.578254,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-6",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.059588,
+      "y": 0.855025,
+      "width": 0.290358,
+      "height": 0.088138,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-7",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.611051,
+      "y": 0.855025,
+      "width": 0.290358,
+      "height": 0.088138,
+      "confidence": 1.0
+    }
+  ],
+  "detection_warnings": [
+    "unannotated_original_not_found",
+    "heavy_overlap:region-1:region-2:0.80"
+  ],
+  "annotation_version": 1,
+  "created_at": "2026-07-31T03:47:59.746096+00:00",
+  "reviewer": "",
+  "history": [
+    {
+      "version": 1,
+      "source": "color_box_parser_v1",
+      "status": "pending_review",
+      "created_at": "2026-07-31T03:47:59.746096+00:00"
+    }
+  ]
+}

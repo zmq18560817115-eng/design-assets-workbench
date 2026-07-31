@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import json
-import hashlib
 import tempfile
 import uuid
 import datetime as dt
@@ -11,6 +10,7 @@ import mimetypes
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from PIL import Image as PILImage
 
 from fastapi import (
     BackgroundTasks,
@@ -30,11 +30,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    acceptance_pack, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
+    acceptance_pack, batch, concept, config, crud, imagehash, layout_blueprint, layout_patterns, layout_search,
     disinfection_annotations, llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
-from .business_contract import normalize_new_source_type
+from .business_contract import normalize_new_source_type, normalize_page_role
 from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
@@ -102,6 +102,7 @@ def _annotation_dict(row: models.DisinfectionAnnotation) -> dict:
         "id": row.id,
         "batch_id": row.batch_id,
         "filename": Path(row.annotated_image_path).name,
+        "original_image_path": row.original_image_path,
         "image_url": f"/api/disinfection-annotations/{row.id}/image",
         "source_type": row.source_type,
         "product_category": row.product_category,
@@ -135,7 +136,23 @@ def list_disinfection_annotations(
         .group_by(models.DisinfectionAnnotation.status)
         .all()
     )
-    return {"items": [_annotation_dict(row) for row in rows], "counts": counts, "total": len(rows)}
+    batch = (
+        db.query(models.DisinfectionAnnotationBatch)
+        .order_by(models.DisinfectionAnnotationBatch.created_at.desc())
+        .first()
+    )
+    return {
+        "items": [_annotation_dict(row) for row in rows],
+        "counts": counts,
+        "total": len(rows),
+        "batch": {
+            "id": batch.id,
+            "source_root": batch.source_root,
+            "status": batch.status,
+            "total": batch.total,
+            "scan_report": json.loads(batch.scan_report_json or "{}"),
+        } if batch else None,
+    }
 
 
 @app.get("/api/disinfection-annotations/{annotation_id}/image")
@@ -176,7 +193,15 @@ def update_disinfection_annotation(
     snapshot = _annotation_dict(row)
     row.annotation_version += 1
     row.regions_json = json.dumps(regions, ensure_ascii=False)
-    for field in ("project_key", "page_role", "sequence_index", "reviewer"):
+    if "page_role" in payload:
+        try:
+            payload["page_role"] = normalize_page_role(str(payload["page_role"]))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+    for field in (
+        "project_key", "page_role", "sequence_index", "reviewer",
+        "original_image_path",
+    ):
         if field in payload:
             setattr(row, field, payload[field])
     if row.status == "verified":
@@ -208,12 +233,14 @@ def verify_disinfection_annotation(
         raise HTTPException(422, "reviewer is required")
     if row.source_type != "company_published":
         raise HTTPException(422, "only company_published evidence can be verified")
+    if not (row.project_key or "").strip():
+        raise HTTPException(
+            422,
+            "project_key is required before verification to prevent calibration/holdout leakage",
+        )
     row.reviewer = reviewer
     row.status = "verified"
     row.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-    # Deterministic project-level split. Holdout is never selected as few-shot.
-    split_key = row.project_key or f"unassigned:{row.id}"
-    row.dataset_split = "holdout" if int(hashlib.sha256(split_key.encode()).hexdigest()[:8], 16) % 5 == 0 else "calibration"
     row.annotation_version += 1
     db.add(models.DisinfectionAnnotationVersion(
         annotation_id=row.id,
@@ -222,6 +249,19 @@ def verify_disinfection_annotation(
         source="verify",
         editor=reviewer,
     ))
+    db.flush()
+    verified_rows = (
+        db.query(models.DisinfectionAnnotation)
+        .filter(
+            models.DisinfectionAnnotation.status == "verified",
+            models.DisinfectionAnnotation.source_type == "company_published",
+        )
+        .all()
+    )
+    for verified_row in verified_rows:
+        verified_row.dataset_split = disinfection_annotations.assign_dataset_splits(
+            verified_rows
+        )[verified_row.id]
     db.commit()
     db.refresh(row)
     return _annotation_dict(row)
@@ -231,9 +271,7 @@ def verify_disinfection_annotation(
 def disinfection_annotation_summary(db: Session = Depends(get_db)) -> dict:
     rows = db.query(models.DisinfectionAnnotation).all()
     verified = [row for row in rows if row.status == "verified" and row.source_type == "company_published"]
-    region_counts: Counter[str] = Counter()
-    for row in verified:
-        region_counts.update(region["type"] for region in json.loads(row.regions_json or "[]"))
+    statistics = disinfection_annotations.verified_statistics(rows)
     return {
         "status": "ready" if len(verified) >= 5 and any(row.dataset_split == "holdout" for row in verified) else "not_ready",
         "total": len(rows),
@@ -241,8 +279,276 @@ def disinfection_annotation_summary(db: Session = Depends(get_db)) -> dict:
         "verified": len(verified),
         "calibration": sum(row.dataset_split == "calibration" for row in verified),
         "holdout": sum(row.dataset_split == "holdout" for row in verified),
-        "verified_region_counts": dict(region_counts),
+        "statistics": statistics,
         "message": "Only human-verified company_published annotations are counted as learning evidence.",
+    }
+
+
+def _decomposition_run_dict(row: models.DisinfectionDecompositionRun) -> dict:
+    return {
+        "id": row.id,
+        "case_id": row.case_id,
+        "blueprint_id": row.blueprint_id,
+        "status": row.status,
+        "evidence_annotation_ids": json.loads(row.evidence_annotation_ids_json or "[]"),
+        "initial_ai_blueprint": json.loads(row.initial_ai_blueprint_json or "{}"),
+        "final_blueprint": json.loads(row.final_blueprint_json or "{}"),
+        "failure_reasons": json.loads(row.failure_reasons_json or "[]"),
+        "model_name": row.model_name,
+        "prompt_version": row.prompt_version,
+        "generation_mode": row.generation_mode,
+        "manual_edit_count": row.manual_edit_count,
+        "created_at": row.created_at,
+    }
+
+
+@app.get("/api/disinfection-decomposition-runs")
+def list_disinfection_decomposition_runs(db: Session = Depends(get_db)) -> dict:
+    rows = (
+        db.query(models.DisinfectionDecompositionRun)
+        .order_by(models.DisinfectionDecompositionRun.id.desc())
+        .all()
+    )
+    return {
+        "items": [_decomposition_run_dict(row) for row in rows],
+        "counts": dict(Counter(row.status for row in rows)),
+    }
+
+
+@app.post("/api/disinfection-decomposition-runs/{run_id}/finalize")
+def finalize_disinfection_decomposition_run(
+    run_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+) -> dict:
+    run = db.get(models.DisinfectionDecompositionRun, run_id)
+    if not run:
+        raise HTTPException(404, "decomposition run not found")
+    blueprint_id = int(payload.get("blueprint_id") or run.blueprint_id or 0)
+    blueprint = crud.get_layout_blueprint(db, blueprint_id)
+    if not blueprint or blueprint.case_id != run.case_id:
+        raise HTTPException(422, "final blueprint must belong to the run case")
+    if blueprint.review_status != "verified":
+        raise HTTPException(422, "final blueprint must be human verified")
+    run.final_blueprint_json = json.dumps(
+        crud.serialize_layout_blueprint(blueprint), ensure_ascii=False, default=str
+    )
+    run.manual_edit_count = max(
+        0,
+        blueprint.version
+        - int(json.loads(run.initial_ai_blueprint_json or "{}").get("version", blueprint.version)),
+    )
+    run.status = "verified"
+    db.commit()
+    db.refresh(run)
+    return _decomposition_run_dict(run)
+
+
+@app.get("/api/disinfection-annotations/few-shots")
+def list_disinfection_few_shots(
+    orientation: str = "portrait",
+    page_role: str = "",
+    db: Session = Depends(get_db),
+) -> dict:
+    rows = db.query(models.DisinfectionAnnotation).all()
+    selected = disinfection_annotations.select_few_shot_annotations(
+        rows, orientation=orientation, page_role=page_role
+    )
+    return {
+        "items": [_annotation_dict(row) for row in selected],
+        "evidence_annotation_ids": [row.id for row in selected],
+        "policy": "company_published + human verified + calibration only",
+    }
+
+
+@app.post("/api/cases/{case_id}/disinfection-auto-decompose")
+def auto_decompose_disinfection_case(
+    case_id: int,
+    db: Session = Depends(get_db),
+) -> dict:
+    case = db.get(models.Case, case_id)
+    if not case or not case.image:
+        raise HTTPException(404, "case or original image not found")
+    if case.product_category != "消毒柜":
+        raise HTTPException(422, "case product_category must be 消毒柜")
+    image_path = (config.UPLOAD_DIR / Path(case.image.url).name).resolve()
+    if not image_path.is_file():
+        raise HTTPException(404, "unannotated original image file not found")
+    rows = db.query(models.DisinfectionAnnotation).all()
+    with PILImage.open(image_path) as source:
+        image_width, image_height = source.size
+    orientation = (
+        "portrait" if image_height > image_width
+        else "landscape" if image_width > image_height
+        else "square"
+    )
+    few_shots = disinfection_annotations.select_few_shot_annotations(
+        rows,
+        orientation=orientation,
+        page_role=case.page_role,
+    )
+    run = models.DisinfectionDecompositionRun(
+        case_id=case.id,
+        evidence_annotation_ids_json=json.dumps([row.id for row in few_shots]),
+        model_name=config.VISION_MODEL or "",
+        generation_mode="model",
+    )
+    db.add(run)
+    db.flush()
+    if len(few_shots) < 3:
+        run.status = "review_required"
+        run.failure_reasons_json = json.dumps(
+            ["not_ready: at least 3 verified calibration annotations are required"],
+            ensure_ascii=False,
+        )
+        db.commit()
+        db.refresh(run)
+        return _decomposition_run_dict(run)
+    if not config.vlm_enabled():
+        run.status = "review_required"
+        run.failure_reasons_json = json.dumps(
+            ["vision_model_unavailable; no fallback blueprint generated"],
+            ensure_ascii=False,
+        )
+        db.commit()
+        db.refresh(run)
+        return _decomposition_run_dict(run)
+    evidence = [
+        {
+            "annotation_id": row.id,
+            "canvas_ratio": disinfection_annotations.canvas_ratio(
+                row.canvas_width, row.canvas_height
+            ),
+            "orientation": row.orientation,
+            "page_role": row.page_role,
+            "regions": json.loads(row.regions_json or "[]"),
+        }
+        for row in few_shots
+    ]
+    try:
+        result = run_pipeline(
+            str(image_path),
+            asset_category="layout",
+            strict_vlm=True,
+            layout_few_shots=evidence,
+        )
+        modules = result.layout.blueprint_modules or []
+        if not modules:
+            raise ValueError("model returned no blueprint modules")
+        layout_blueprint.validate_modules(modules, len(modules))
+        if not any(module["type"] == "product_image" for module in modules):
+            raise ValueError("model did not identify product_image")
+        payload = crud.build_initial_layout_blueprint(case.image, result)
+        blueprint = crud.create_layout_blueprint(db, case.id, payload)
+        snapshot = crud.serialize_layout_blueprint(blueprint)
+        low_confidence = [
+            module["id"] for module in modules
+            if float(module.get("confidence", 1)) < 0.55
+        ]
+        run.blueprint_id = blueprint.id
+        run.initial_ai_blueprint_json = json.dumps(snapshot, ensure_ascii=False, default=str)
+        run.status = "review_required" if low_confidence else "ai_generated"
+        run.failure_reasons_json = json.dumps(
+            [f"low_confidence_modules:{','.join(low_confidence)}"] if low_confidence else [],
+            ensure_ascii=False,
+        )
+    except Exception as exc:  # noqa: BLE001
+        run.status = "review_required"
+        run.failure_reasons_json = json.dumps(
+            [f"model_failure:{type(exc).__name__}:{exc}"], ensure_ascii=False
+        )
+        run.blueprint_id = None
+        run.initial_ai_blueprint_json = "{}"
+    db.commit()
+    db.refresh(run)
+    return _decomposition_run_dict(run)
+
+
+@app.get("/api/disinfection-annotations/evaluation")
+def evaluate_disinfection_holdout(db: Session = Depends(get_db)) -> dict:
+    annotations = (
+        db.query(models.DisinfectionAnnotation)
+        .filter(
+            models.DisinfectionAnnotation.status == "verified",
+            models.DisinfectionAnnotation.source_type == "company_published",
+        )
+        .all()
+    )
+    holdout = [row for row in annotations if row.dataset_split == "holdout"]
+    calibration = [row for row in annotations if row.dataset_split == "calibration"]
+    runs = db.query(models.DisinfectionDecompositionRun).all()
+    evaluated: list[dict] = []
+    # Evaluation is only possible when a holdout annotation has an explicitly
+    # paired original image and a traceable run for that case.
+    for annotation in holdout:
+        if not annotation.original_image_path:
+            continue
+        matching_case = (
+            db.query(models.Case)
+            .join(models.Image, models.Case.image_id == models.Image.id)
+            .filter(models.Image.filename == Path(annotation.original_image_path).name)
+            .first()
+        )
+        run = next(
+            (
+                candidate for candidate in reversed(runs)
+                if matching_case and candidate.case_id == matching_case.id
+                and candidate.initial_ai_blueprint_json not in ("", "{}")
+            ),
+            None,
+        )
+        if not run:
+            continue
+        predicted = json.loads(run.initial_ai_blueprint_json).get("modules_json", [])
+        truth = json.loads(annotation.regions_json or "[]")
+        evaluated.append({
+            "annotation_id": annotation.id,
+            **disinfection_annotations.evaluate_regions(predicted, truth),
+            "manual_edit_count": run.manual_edit_count,
+            "no_edit": run.manual_edit_count == 0,
+        })
+    if not calibration or not holdout or not evaluated:
+        return {
+            "status": "not_ready",
+            "calibration_count": len(calibration),
+            "holdout_count": len(holdout),
+            "evaluated_count": len(evaluated),
+            "metrics": {},
+            "gates": {},
+            "message": "Need verified project-grouped calibration and holdout annotations, paired unannotated originals, and traceable AI runs.",
+        }
+    def average(key: str) -> float:
+        values = [row[key] for row in evaluated if row.get(key) is not None]
+        return round(sum(values) / len(values), 4) if values else 0.0
+    metrics = {
+        "product_image_iou": average("product_image_iou"),
+        "main_text_iou": average("main_text_iou"),
+        "layout_block_mean_iou": average("layout_block_mean_iou"),
+        "product_image_accuracy": average("product_image_accuracy"),
+        "main_text_accuracy": average("main_text_accuracy"),
+        "module_type_accuracy": average("module_type_accuracy"),
+        "missed": sum(row["missed"] for row in evaluated),
+        "extra": sum(row["extra"] for row in evaluated),
+        "out_of_bounds": sum(row["out_of_bounds"] for row in evaluated),
+        "coordinate_validity": average("coordinate_validity"),
+        "manual_edit_count": sum(row["manual_edit_count"] for row in evaluated),
+        "no_edit_rate": round(sum(row["no_edit"] for row in evaluated) / len(evaluated), 4),
+    }
+    gates = {
+        "product_image_accuracy_gte_90": metrics["product_image_accuracy"] >= 0.90,
+        "main_text_accuracy_gte_80": metrics["main_text_accuracy"] >= 0.80,
+        "module_type_accuracy_gte_80": metrics["module_type_accuracy"] >= 0.80,
+        "coordinates_legal_100": metrics["coordinate_validity"] == 1.0,
+    }
+    return {
+        "status": "passed" if all(gates.values()) else "failed",
+        "calibration_count": len(calibration),
+        "holdout_count": len(holdout),
+        "evaluated_count": len(evaluated),
+        "metrics": metrics,
+        "gates": gates,
+        "items": evaluated,
+        "holdout_policy": "Holdout is excluded from few-shot retrieval and must not be used for prompt iteration.",
     }
 
 

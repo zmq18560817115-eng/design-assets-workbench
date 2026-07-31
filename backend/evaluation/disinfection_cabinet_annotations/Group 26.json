@@ -1,0 +1,87 @@
+{
+  "image_path": "Group 26.png",
+  "product_category": "消毒柜",
+  "source_type": "company_published",
+  "annotation_source": "human_color_box_v1",
+  "annotation_status": "pending_review",
+  "canvas_width": 965,
+  "canvas_height": 1280,
+  "canvas_ratio": "193:256",
+  "orientation": "portrait",
+  "regions": [
+    {
+      "id": "region-1",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.014508,
+      "y": 0.116406,
+      "width": 0.984456,
+      "height": 0.339844,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-2",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.078756,
+      "y": 0.226562,
+      "width": 0.812435,
+      "height": 0.208594,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-3",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.014508,
+      "y": 0.449219,
+      "width": 0.984456,
+      "height": 0.424219,
+      "confidence": 0.969
+    },
+    {
+      "id": "region-4",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.088083,
+      "y": 0.464844,
+      "width": 0.372021,
+      "height": 0.379688,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-5",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.693264,
+      "y": 0.464844,
+      "width": 0.300518,
+      "height": 0.307031,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-6",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.450777,
+      "y": 0.498437,
+      "width": 0.310881,
+      "height": 0.307031,
+      "confidence": 1.0
+    }
+  ],
+  "detection_warnings": [
+    "unannotated_original_not_found"
+  ],
+  "annotation_version": 1,
+  "created_at": "2026-07-31T03:47:59.746096+00:00",
+  "reviewer": "",
+  "history": [
+    {
+      "version": 1,
+      "source": "color_box_parser_v1",
+      "status": "pending_review",
+      "created_at": "2026-07-31T03:47:59.746096+00:00"
+    }
+  ]
+}
