@@ -29,6 +29,9 @@ NEW_SOURCE_TYPES = (
 )
 HISTORICAL_SOURCE_TYPES = ("company_finished_asset", "internal_reference")
 SUPPORTED_SOURCE_TYPES = NEW_SOURCE_TYPES + HISTORICAL_SOURCE_TYPES
+COMPANY_EVIDENCE_SOURCE_TYPES = ("company_published", "company_finished_asset")
+EXTERNAL_REFERENCE_SOURCE_TYPES = ("external_reference", "internal_reference")
+HUMAN_CONFIRMED_TRUST_STATUSES = ("verified", "company_recommended")
 
 MANIFEST_FIELDS = (
     "relative_path",
@@ -67,6 +70,34 @@ def normalize_source_type(value: str, default: str) -> str:
     if value not in SUPPORTED_SOURCE_TYPES:
         raise ValueError(f"invalid source_type: {value}")
     return value
+
+
+def normalize_new_source_type(value: str, default: str) -> str:
+    """Validate a source type for newly persisted assets."""
+    value = (value or default).strip()
+    if value not in NEW_SOURCE_TYPES:
+        raise ValueError(f"invalid source_type: {value}")
+    return value
+
+
+def is_company_evidence(source_type: str, trust_status: str) -> bool:
+    """Return whether an asset may support formal company-business evidence."""
+    if trust_status == "rejected":
+        return False
+    if source_type in COMPANY_EVIDENCE_SOURCE_TYPES:
+        return True
+    return (
+        source_type == "company_revision"
+        and trust_status in HUMAN_CONFIRMED_TRUST_STATUSES
+    )
+
+
+def is_external_reference(source_type: str, trust_status: str) -> bool:
+    """Return whether an asset is supplementary external-reference evidence."""
+    return (
+        trust_status != "rejected"
+        and source_type in EXTERNAL_REFERENCE_SOURCE_TYPES
+    )
 
 
 def normalize_page_role(value: str) -> str:

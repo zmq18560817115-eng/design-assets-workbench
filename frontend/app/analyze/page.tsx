@@ -113,7 +113,8 @@ export default function AnalyzePage() {
             >
               <option value="company_published">公司已发布成品</option>
               <option value="external_reference">外部参考素材</option>
-              <option value="unused_internal">内部未采用方案</option>
+              <option value="rejected_company_design">内部未采用方案</option>
+              <option value="company_revision">公司修订方案</option>
             </select>
             <input
               value={sourceUrl}

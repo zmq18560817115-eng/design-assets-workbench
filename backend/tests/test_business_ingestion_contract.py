@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import csv
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from PIL import Image as PILImage
@@ -15,11 +17,19 @@ from app.agents import run_pipeline
 from app.business_contract import (
     HISTORICAL_SOURCE_TYPES,
     PAGE_ROLES,
+    is_company_evidence,
+    normalize_new_source_type,
     parse_manifest,
 )
 from app.database import Base
 from app.ingestion import dry_run_summary
-from app.schemas import CaseBusinessUpdate, CaseReviewInput
+from app.main import batch_review_cases
+from app.schemas import (
+    BatchReviewInput,
+    CaseBusinessUpdate,
+    CaseReviewInput,
+)
+from scripts import import_asset_library, import_company_finished_assets
 
 
 class BusinessIngestionContractTest(unittest.TestCase):
@@ -218,6 +228,147 @@ class BusinessIngestionContractTest(unittest.TestCase):
             self.assertEqual(reviewed.trust_status, "verified")
             self.assertEqual(db.query(models.AnalysisVersion).count(), 2)
             self.assertEqual(db.query(models.CaseReview).count(), 1)
+
+    def test_review_and_batch_review_do_not_clear_business_fields(self):
+        image_path = self._image()
+        result = run_pipeline(str(image_path), enable_vlm=False)
+        with self.Session() as db:
+            image = models.Image(
+                url="/uploads/a.png",
+                filename="a.png",
+                source_type="company_published",
+                uploader="tester",
+            )
+            db.add(image)
+            db.flush()
+            case = crud.create_case_from_analysis(db, image, result)
+            crud.update_case_business_fields(
+                db,
+                case,
+                CaseBusinessUpdate(
+                    product_name="P1",
+                    content_purpose="产品卖点",
+                    page_role="cover_hook",
+                    sequence_index=3,
+                    brief_ref="B-3",
+                    business_line="母婴",
+                    product_category="吸奶器",
+                    channel="小红书",
+                    campaign_stage="日常",
+                ),
+            )
+            crud.review_case(
+                db,
+                case,
+                CaseReviewInput(reviewer="reviewer", trust_status="verified"),
+            )
+            batch_review_cases(
+                BatchReviewInput(
+                    case_ids=[case.id],
+                    action="confirm",
+                    reviewer="reviewer",
+                ),
+                db,
+            )
+            db.refresh(case)
+            self.assertEqual(
+                (
+                    case.product_name,
+                    case.content_purpose,
+                    case.page_role,
+                    case.sequence_index,
+                    case.brief_ref,
+                ),
+                ("P1", "产品卖点", "cover_hook", 3, "B-3"),
+            )
+
+    def test_invalid_new_source_type_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "invalid source_type"):
+            normalize_new_source_type("unused_internal", "external_reference")
+        with self.assertRaisesRegex(ValueError, "invalid source_type"):
+            batch.create_batch(
+                [{
+                    "path": "unused",
+                    "filename": "unused.png",
+                    "source_type": "internal_reference",
+                }],
+                background=False,
+            )
+        self.assertFalse(is_company_evidence("company_revision", "ai_unverified"))
+        self.assertTrue(is_company_evidence("company_revision", "verified"))
+        self.assertFalse(is_company_evidence("company_published", "rejected"))
+
+    def test_local_only_batch_disables_visual_model(self):
+        image_path = self._image()
+        original_session = batch.SessionLocal
+        original_upload = config.UPLOAD_DIR
+        batch.SessionLocal = self.Session
+        config.UPLOAD_DIR = self.uploads
+        item = {
+            "path": str(image_path),
+            "filename": image_path.name,
+            "copy_to_uploads": True,
+            "source_type": "external_reference",
+            "asset_category": "layout",
+        }
+        try:
+            with patch("app.batch.run_pipeline", wraps=run_pipeline) as mocked:
+                batch.create_batch(
+                    [item], background=False, enable_vlm=False
+                )
+            self.assertIs(mocked.call_args.kwargs["enable_vlm"], False)
+        finally:
+            batch.SessionLocal = original_session
+            config.UPLOAD_DIR = original_upload
+
+    def test_local_only_import_scripts_disable_visual_model(self):
+        self._image("line/a.png")
+        with (
+            patch.object(import_asset_library, "init_db"),
+            patch.object(import_asset_library, "close_db"),
+            patch.object(
+                import_asset_library,
+                "execute_items",
+                return_value={"failed": 0},
+            ) as external_execute,
+            patch.object(
+                sys,
+                "argv",
+                [
+                    "import_asset_library.py",
+                    str(self.root),
+                    "--execute",
+                    "--local-only",
+                ],
+            ),
+        ):
+            self.assertEqual(import_asset_library.main(), 0)
+        self.assertIs(external_execute.call_args.kwargs["enable_vlm"], False)
+
+        with (
+            patch.object(import_company_finished_assets, "init_db"),
+            patch.object(import_company_finished_assets, "close_db"),
+            patch.object(
+                import_company_finished_assets,
+                "execute_items",
+                return_value={"failed": 0},
+            ) as company_execute,
+            patch.object(
+                sys,
+                "argv",
+                [
+                    "import_company_finished_assets.py",
+                    str(self.root),
+                    "--execute",
+                    "--local-only",
+                    "--workers",
+                    "3",
+                ],
+            ),
+        ):
+            self.assertEqual(import_company_finished_assets.main(), 0)
+        self.assertIs(company_execute.call_args.kwargs["enable_vlm"], False)
+        self.assertEqual(company_execute.call_args.kwargs["concurrency"], 3)
 
 
 if __name__ == "__main__":

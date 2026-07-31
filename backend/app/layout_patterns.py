@@ -15,6 +15,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from . import models
+from .business_contract import is_company_evidence
 from .business_taxonomy import normalize_business_value
 from .layout_blueprint import validate_canvas_ratio, validate_modules
 
@@ -52,10 +53,11 @@ def _valid_blueprint(blueprint: models.LayoutBlueprint) -> bool:
 
 
 def latest_verified_blueprints(db: Session) -> list[models.LayoutBlueprint]:
-    """Return at most one valid verified blueprint per existing case."""
+    """Return the latest legal verified company blueprint for each case."""
     rows = (
         db.query(models.LayoutBlueprint)
         .join(models.Case, models.Case.id == models.LayoutBlueprint.case_id)
+        .join(models.Image, models.Image.id == models.Case.image_id)
         .filter(models.LayoutBlueprint.review_status == "verified")
         .order_by(
             models.LayoutBlueprint.case_id,
@@ -66,7 +68,16 @@ def latest_verified_blueprints(db: Session) -> list[models.LayoutBlueprint]:
     )
     selected: dict[int, models.LayoutBlueprint] = {}
     for blueprint in rows:
-        if blueprint.case_id not in selected and _valid_blueprint(blueprint):
+        case = blueprint.case
+        if (
+            case
+            and case.image
+            and is_company_evidence(
+                case.image.source_type or "", case.trust_status or ""
+            )
+            and blueprint.case_id not in selected
+            and _valid_blueprint(blueprint)
+        ):
             selected[blueprint.case_id] = blueprint
     return list(selected.values())
 
@@ -264,7 +275,6 @@ def aggregate_business_context(cases: list[models.Case]) -> dict[str, Any]:
     fields = {
         "product_categories": ("product_category", "product_category"),
         "channels": ("channel", "channel"),
-        "content_purposes": ("content_type", "content_purpose"),
         "campaign_stages": ("campaign_stage", "campaign_stage"),
         "business_goals": ("business_goal", "business_goal"),
     }
@@ -276,6 +286,16 @@ def aggregate_business_context(cases: list[models.Case]) -> dict[str, Any]:
             if (getattr(case, attribute, "") or "").strip()
         )
         result[output_key] = dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+    purposes = Counter()
+    for case in cases:
+        value = (case.content_purpose or "").strip() or (
+            case.content_type or ""
+        ).strip()
+        if value:
+            purposes[normalize_business_value("content_purpose", value)] += 1
+    result["content_purposes"] = dict(
+        sorted(purposes.items(), key=lambda item: (-item[1], item[0]))
+    )
     return result
 
 

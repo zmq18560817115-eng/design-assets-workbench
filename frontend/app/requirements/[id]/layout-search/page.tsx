@@ -34,13 +34,18 @@ function ResultCard({
   async function feedback(
     relevance: "relevant" | "partially_relevant" | "irrelevant"
   ) {
+    const resultType = item.result_type;
+    if (resultType === "external_reference") {
+      onMessage("外部参考不进入公司业务验收反馈。");
+      return;
+    }
     if (!reviewer.trim()) {
       onMessage("请先填写反馈人。");
       return;
     }
     try {
       await api.addLayoutSearchFeedback(runId, {
-        result_type: item.result_type,
+        result_type: resultType,
         result_id: item.id,
         rank: item.rank,
         relevance,
@@ -94,11 +99,17 @@ function ResultCard({
         来源案例 {item.source_case_ids.join("、") || "无"} · 蓝图 {item.source_blueprint_ids.join("、") || "无"}
         {item.related_pattern_ids.length > 0 && ` · 关联模式 ${item.related_pattern_ids.join("、")}`}
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button onClick={() => feedback("relevant")} className="rounded-lg bg-emerald-600 px-2 py-2 text-xs text-white">相关</button>
-        <button onClick={() => feedback("partially_relevant")} className="rounded-lg border border-amber-300 px-2 py-2 text-xs">部分相关</button>
-        <button onClick={() => feedback("irrelevant")} className="rounded-lg border border-rose-200 px-2 py-2 text-xs text-rose-600">不相关</button>
-      </div>
+      {item.acceptance_eligible ? (
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <button onClick={() => feedback("relevant")} className="rounded-lg bg-emerald-600 px-2 py-2 text-xs text-white">相关</button>
+          <button onClick={() => feedback("partially_relevant")} className="rounded-lg border border-amber-300 px-2 py-2 text-xs">部分相关</button>
+          <button onClick={() => feedback("irrelevant")} className="rounded-lg border border-rose-200 px-2 py-2 text-xs text-rose-600">不相关</button>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-lg bg-canvas p-3 text-xs text-gray-500">
+          外部参考仅供补充查看，不进入公司评分和真实验收。
+        </div>
+      )}
     </Card>
   );
 }
@@ -139,6 +150,7 @@ export default function RequirementLayoutSearchPage() {
   const groups = [
     ["推荐排版模式", result?.patterns || []],
     ["推荐真实案例", result?.cases || []],
+    ["外部参考（不参与公司评分）", result?.external_references || []],
     ["被约束排除的结果", result?.excluded_results || []],
   ] as const;
 

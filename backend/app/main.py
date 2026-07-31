@@ -30,6 +30,7 @@ from . import (
     llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
+from .business_contract import normalize_new_source_type
 from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
@@ -155,6 +156,10 @@ async def analyze_image(
 
     覆盖技术方案 MVP 核心功能：图片上传 / AI视觉分析 / 自动生成案例卡。
     """
+    try:
+        source_type = normalize_new_source_type(source_type, "external_reference")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not (file.content_type or "").startswith("image/"):
         raise HTTPException(status_code=400, detail="请上传图片文件")
 
@@ -220,6 +225,10 @@ async def analyze_batch(
     asset_subcategory: str = Form(""),
 ):
     """批量上传：先落盘，起后台任务顺序拆解入库，返回 batch_id 供轮询进度。"""
+    try:
+        source_type = normalize_new_source_type(source_type, "external_reference")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     items = []
     for f in files:
         if not (f.content_type or "").startswith("image/"):

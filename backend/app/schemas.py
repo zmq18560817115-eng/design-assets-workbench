@@ -616,19 +616,19 @@ class CaseReviewInput(BaseModel):
     ] = "verified"
     review_decision: Literal["", "adopt", "adapt", "reject"] = ""
     review_notes: str = ""
-    business_line: str = ""
-    channel: str = ""
-    campaign_stage: str = ""
-    business_goal: str = ""
-    product_name: str = ""
-    content_purpose: str = ""
+    business_line: str | None = None
+    channel: str | None = None
+    campaign_stage: str | None = None
+    business_goal: str | None = None
+    product_name: str | None = None
+    content_purpose: str | None = None
     page_role: Literal[
         "cover_hook", "problem_statement", "cause_explanation",
         "product_display", "function_explanation", "parameter_comparison",
         "usage_step", "service_assurance", "conclusion", "call_to_action", "other",
-    ] = "other"
+    ] | None = None
     sequence_index: int | None = Field(default=None, ge=0)
-    brief_ref: str = ""
+    brief_ref: str | None = None
     asset_category: Literal["layout", "style", "color", "photo"] | None = None
     name: str | None = None
     summary: str | None = None

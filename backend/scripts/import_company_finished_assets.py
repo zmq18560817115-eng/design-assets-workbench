@@ -9,19 +9,14 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
-import shutil
 import sys
-import uuid
-from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app import config, crud, imagehash, models, vlm  # noqa: E402
-from app.agents import run_pipeline  # noqa: E402
-from app.database import SessionLocal, close_db, init_db  # noqa: E402
+from app import config, imagehash, vlm  # noqa: E402
+from app.database import close_db, init_db  # noqa: E402
 from app.sampling import color_sample  # noqa: E402
 from app.ingestion import dry_run_summary, execute_items, prepare_manifest  # noqa: E402
 
@@ -139,126 +134,6 @@ def confirm_categories(
     return confirmed
 
 
-def ensure_project(business_line: str) -> int:
-    db = SessionLocal()
-    try:
-        name = f"公司成品·{business_line}"
-        project = (
-            db.query(models.Project)
-            .filter(models.Project.name == name)
-            .first()
-        )
-        if not project:
-            project = models.Project(
-                name=name,
-                description=(
-                    f"{business_line}业务线已制作完成的公司视觉成品，"
-                    "用于学习真实排版、风格与色彩倾向。"
-                ),
-                business_line=business_line,
-                status="active",
-                is_gold=False,
-            )
-            db.add(project)
-            db.commit()
-            db.refresh(project)
-        return project.id
-    finally:
-        db.close()
-
-
-def import_one(
-    item: dict,
-    project_id: int,
-    enable_vlm: bool,
-    reanalyze_existing: bool,
-) -> str:
-    db = SessionLocal()
-    copied_path: Path | None = None
-    try:
-        source: Path = item["path"]
-        phash = imagehash.dhash(str(source))
-        duplicate_id = crud.find_duplicate_case_id(
-            db, phash, asset_category=item["category"]
-        )
-        if duplicate_id:
-            case = (
-                db.query(models.Case)
-                .filter(models.Case.id == duplicate_id)
-                .first()
-            )
-            if case:
-                if reanalyze_existing:
-                    if (
-                        case.analysis
-                        and case.analysis.model_name == config.VISION_MODEL
-                    ):
-                        return "already_model_analyzed"
-                    result = run_pipeline(
-                        str(source),
-                        asset_category=item["category"],
-                        enable_vlm=enable_vlm,
-                        strict_vlm=enable_vlm,
-                    )
-                    crud.replace_analysis_from_result(
-                        db,
-                        case,
-                        result,
-                        source="company_finished_reanalysis",
-                    )
-                case.project_id = project_id
-                case.business_line = item["business_line"]
-                case.asset_subcategory = item["subcategory"]
-                if case.image:
-                    case.image.source_type = "company_published"
-                    case.image.rights_note = "公司内部成品素材，团队授权用于分析"
-                    case.image.source_url = str(source)
-                db.commit()
-                return "reanalyzed" if reanalyze_existing else "updated_duplicate"
-            return "skipped"
-
-        stored_name = f"{uuid.uuid4().hex}{source.suffix.lower()}"
-        copied_path = BACKEND_DIR / "uploads" / stored_name
-        shutil.copy2(source, copied_path)
-        result = run_pipeline(
-            str(copied_path),
-            asset_category=item["category"],
-            enable_vlm=enable_vlm,
-            strict_vlm=enable_vlm,
-        )
-        image = models.Image(
-            url=f"/uploads/{stored_name}",
-            filename=source.name,
-            source="company_finished_import",
-            source_type="company_published",
-            source_url=str(source),
-            rights_note="公司内部成品素材，团队授权用于分析",
-            visibility="team",
-            uploader="company-finished-import",
-            phash=phash,
-        )
-        db.add(image)
-        db.flush()
-        case = crud.create_case_from_analysis(
-            db,
-            image,
-            result,
-            asset_category=item["category"],
-            asset_subcategory=item["subcategory"],
-        )
-        case.project_id = project_id
-        case.business_line = item["business_line"]
-        db.commit()
-        return "imported"
-    except Exception:
-        db.rollback()
-        if copied_path:
-            copied_path.unlink(missing_ok=True)
-        raise
-    finally:
-        db.close()
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("root", type=Path)
@@ -266,11 +141,6 @@ def main() -> int:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--local-only", action="store_true")
-    parser.add_argument(
-        "--reanalyze-existing",
-        action="store_true",
-        help="Run analysis again for perceptual duplicates already in the database.",
-    )
     parser.add_argument("--business-line", default="")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument(
@@ -320,7 +190,7 @@ def main() -> int:
             for item in items
             if item["business_line"] == args.business_line
         ]
-    if args.execute and args.confirm_with_model:
+    if args.execute and args.confirm_with_model and not args.local_only:
         before = len(items)
         items = confirm_categories(
             items,
@@ -329,7 +199,6 @@ def main() -> int:
             timeout_seconds=max(5, args.model_timeout),
         )
         print(f"模型确认通过：{len(items)}/{before}")
-    counts = Counter(item["business_line"] for item in items)
     for item in items:
         item["project_name"] = f"公司成品·{item['business_line']}"
         item["product_category"] = ""
@@ -348,72 +217,15 @@ def main() -> int:
         return 2
     init_db()
     try:
-        result = execute_items(prepared)
+        result = execute_items(
+            prepared,
+            concurrency=max(1, min(args.workers, 5)),
+            enable_vlm=not args.local_only,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1 if result.get("failed") else 0
     finally:
         close_db()
-    print(f"代表样本：{len(items)}")
-    if args.sampling == "color":
-        print(
-            "注意：色彩评分只负责缩小候选范围，可能包含实拍图；"
-            "必须看原图或通过视觉模型确认后再执行入库。"
-        )
-    for line, count in sorted(counts.items()):
-        total = next(
-            item["folder_total"]
-            for item in items
-            if item["business_line"] == line
-        )
-        print(f"- {line}: {count}/{total}")
-        if args.sampling == "color":
-            for item in items:
-                if item["business_line"] == line:
-                    print(
-                        f"  {item['sampling_score']:>5.1f}  "
-                        f"{item['path'].name}"
-                    )
-    if not args.execute:
-        print("当前为预览模式；添加 --execute 后才会复制、分析并入库。")
-        return 0
-
-    init_db()
-    projects = {line: ensure_project(line) for line in counts}
-    stats = Counter()
-    try:
-        workers = max(1, min(args.workers, 5))
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {
-                executor.submit(
-                    import_one,
-                    item,
-                    projects[item["business_line"]],
-                    not args.local_only,
-                    args.reanalyze_existing,
-                ): item
-                for item in items
-            }
-            for index, future in enumerate(as_completed(futures), 1):
-                item = futures[future]
-                try:
-                    state = future.result()
-                    stats[state] += 1
-                    print(
-                        f"[{index}/{len(items)}] {state}: "
-                        f"{item['business_line']}/{item['path'].name}",
-                        flush=True,
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    stats["failed"] += 1
-                    print(
-                        f"[{index}/{len(items)}] failed: "
-                        f"{item['business_line']}/{item['path'].name}: {exc}",
-                        flush=True,
-                    )
-    finally:
-        close_db()
-    print("完成：" + ", ".join(f"{key}={value}" for key, value in sorted(stats.items())))
-    return 1 if stats["failed"] else 0
 
 
 if __name__ == "__main__":
