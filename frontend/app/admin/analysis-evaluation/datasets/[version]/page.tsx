@@ -3,17 +3,35 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { AnalysisDataset, analysisEvaluationApi } from "@/lib/analysis-evaluation";
+import { AnalysisDataset, AnalysisRuntimeVersion, analysisEvaluationApi } from "@/lib/analysis-evaluation";
 import { Card } from "@/components/ui";
 
 export default function AnalysisDatasetDetailPage() {
   const { version } = useParams<{ version: string }>();
   const [dataset, setDataset] = useState<AnalysisDataset | null>(null);
   const [message, setMessage] = useState("");
+  const [versions, setVersions] = useState<AnalysisRuntimeVersion[]>([]);
+  const [runtimeId, setRuntimeId] = useState("");
   const load = () => analysisEvaluationApi.dataset(version).then(setDataset).catch((e) => setMessage(e.message));
   useEffect(() => {
     void analysisEvaluationApi.dataset(version).then(setDataset).catch((e) => setMessage(e.message));
+    void analysisEvaluationApi.versions().then((rows) => {
+      setVersions(rows);
+      if (rows[0]) setRuntimeId(String(rows[0].id));
+    }).catch(() => undefined);
   }, [version]);
+  const execute = async (split: "calibration" | "holdout") => {
+    if (!runtimeId) return setMessage("请先创建 Prompt / Validator 版本");
+    if (split === "holdout" && !window.confirm("本次运行会消耗当前Holdout。运行结果不能用于直接修改当前版本。")) return;
+    try {
+      const run = await analysisEvaluationApi.execute({
+        dataset_version: version, dataset_split: split,
+        runtime_version_id: Number(runtimeId), created_by: "管理员",
+        confirm_consume_holdout: split === "holdout",
+      });
+      window.location.href = `/admin/analysis-evaluation/runs/${run.id}`;
+    } catch (error) { setMessage((error as Error).message); }
+  };
   const assign = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -59,6 +77,22 @@ export default function AnalysisDatasetDetailPage() {
           </div>
         </Card>)}
       </div>
+      <Card>
+        <h2 className="font-semibold">运行与冻结</h2>
+        <select value={runtimeId} onChange={(event) => setRuntimeId(event.target.value)}
+          className="mt-4 w-full rounded-xl border border-line px-3 py-2 text-sm">
+          <option value="">选择模型 / Prompt / Validator 版本</option>
+          {versions.map((item) => <option key={item.id} value={item.id}>{item.model_name} · {item.prompt_version} · {item.validator_version} · {item.status}</option>)}
+        </select>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button onClick={() => execute("calibration")} className="rounded-xl bg-ink px-4 py-2 text-sm text-white">运行 Calibration</button>
+          <button onClick={async () => {
+            try { await analysisEvaluationApi.freezeVersion({ dataset_version: version, runtime_version_id: Number(runtimeId), actor: "管理员" }); setMessage("版本已冻结，Holdout 已密封"); load(); }
+            catch (error) { setMessage((error as Error).message); }
+          }} className="rounded-xl border border-line px-4 py-2 text-sm">冻结版本</button>
+          <button onClick={() => execute("holdout")} className="rounded-xl bg-accent px-4 py-2 text-sm text-white">执行独立 Holdout</button>
+        </div>
+      </Card>
     </div>
   );
 }

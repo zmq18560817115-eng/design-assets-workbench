@@ -481,6 +481,17 @@ class AnalysisEvaluationRunCreate(BaseModel):
     confirm_consume_holdout: bool = False
 
 
+class AnalysisVersionFreezeInput(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    runtime_version_id: int = Field(ge=1)
+    actor: str = Field(min_length=1, max_length=120)
+
+
+class AnalysisHoldoutUnsealInput(BaseModel):
+    actor: str = Field(min_length=1, max_length=120)
+    confirm_consumed: bool = False
+
+
 class BusinessRequirementCreate(BaseModel):
     title: str = Field(min_length=1, max_length=180)
     request_text: str = ""

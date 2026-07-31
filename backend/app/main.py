@@ -65,6 +65,9 @@ from .schemas import (
     AnalysisDatasetItemUpsert,
     AnalysisGroundTruthUpdate,
     AnalysisRuntimeVersionCreate,
+    AnalysisEvaluationRunCreate,
+    AnalysisVersionFreezeInput,
+    AnalysisHoldoutUnsealInput,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -267,6 +270,119 @@ def create_analysis_version(
     except analysis_evaluation.EvaluationConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return analysis_evaluation.runtime_to_dict(row, technical=True)
+
+
+@app.post("/api/analysis-versions/freeze")
+def freeze_analysis_version(
+    payload: AnalysisVersionFreezeInput,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, payload.dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    runtime = db.get(models.AnalysisRuntimeVersion, payload.runtime_version_id)
+    if not runtime:
+        raise HTTPException(status_code=404, detail="运行版本不存在")
+    try:
+        analysis_evaluation.freeze_runtime(db, dataset, runtime)
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "dataset": analysis_evaluation.dataset_detail(db, dataset, admin=True),
+        "runtime": analysis_evaluation.runtime_to_dict(runtime, technical=True),
+    }
+
+
+@app.post("/api/analysis-evaluation/runs")
+def run_analysis_evaluation(
+    payload: AnalysisEvaluationRunCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, payload.dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    runtime = db.get(models.AnalysisRuntimeVersion, payload.runtime_version_id)
+    if not runtime:
+        raise HTTPException(status_code=404, detail="运行版本不存在")
+    try:
+        row = analysis_evaluation.run_evaluation(
+            db,
+            dataset,
+            runtime,
+            dataset_split=payload.dataset_split,
+            actor=payload.created_by,
+            confirm_holdout=payload.confirm_consume_holdout,
+        )
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.run_to_dict(
+        row, include_details=payload.dataset_split == "calibration", db=db
+    )
+
+
+@app.get("/api/analysis-evaluation/runs")
+def list_analysis_evaluation_runs(
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    rows = (
+        db.query(models.AnalysisEvaluationRun)
+        .order_by(models.AnalysisEvaluationRun.created_at.desc())
+        .all()
+    )
+    return [
+        analysis_evaluation.run_to_dict(
+            row,
+            include_details=row.dataset_split == "calibration" or bool(row.unsealed_at),
+            db=db,
+        )
+        for row in rows
+    ]
+
+
+@app.get("/api/analysis-evaluation/runs/{run_id}")
+def get_analysis_evaluation_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    row = db.get(models.AnalysisEvaluationRun, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="运行记录不存在")
+    return analysis_evaluation.run_to_dict(
+        row,
+        include_details=row.dataset_split == "calibration" or bool(row.unsealed_at),
+        db=db,
+    )
+
+
+@app.post("/api/analysis-evaluation/runs/{run_id}/unseal")
+def unseal_analysis_evaluation_run(
+    run_id: int,
+    payload: AnalysisHoldoutUnsealInput,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    if not payload.confirm_consumed:
+        raise HTTPException(
+            status_code=409,
+            detail="必须确认解封后当前 Holdout 将标记为 consumed",
+        )
+    row = db.get(models.AnalysisEvaluationRun, run_id)
+    if not row or row.dataset_split != "holdout":
+        raise HTTPException(status_code=404, detail="Holdout 运行记录不存在")
+    dataset = db.get(models.AnalysisEvaluationDataset, row.dataset_id)
+    if not dataset:
+        raise HTTPException(status_code=404, detail="数据集不存在")
+    now = dt.datetime.utcnow()
+    row.unsealed_at = now
+    analysis_evaluation.mark_consumed(dataset, now=now)
+    db.commit()
+    return analysis_evaluation.run_to_dict(row, include_details=True, db=db)
 
 
 @app.post("/api/analyze", response_model=CaseOut)

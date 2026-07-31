@@ -42,6 +42,23 @@ export interface AnalysisRuntimeVersion {
   frozen_at: string | null;
 }
 
+export interface AnalysisEvaluationRun {
+  id: number;
+  dataset_id: number;
+  dataset_split: "calibration" | "holdout";
+  run_status: "queued" | "running" | "passed" | "failed";
+  aggregate: Record<string, number>;
+  version_snapshot: Partial<AnalysisRuntimeVersion>;
+  started_at: string | null;
+  finished_at: string | null;
+  elapsed_ms: number;
+  unsealed: boolean;
+  results?: {
+    id: number; item_id: number; status: string; error_code: string;
+    metrics: Record<string, number>; prediction: Record<string, unknown>;
+  }[];
+}
+
 const adminHeaders = {
   "Content-Type": "application/json",
   "X-Workbench-Role": "admin",
@@ -80,4 +97,25 @@ export const analysisEvaluationApi = {
     fetch("/api/analysis-versions", {
       method: "POST", headers: adminHeaders, body: JSON.stringify(payload),
     }).then((response) => read<AnalysisRuntimeVersion>(response)),
+  freezeVersion: (payload: Record<string, unknown>) =>
+    fetch("/api/analysis-versions/freeze", {
+      method: "POST", headers: adminHeaders, body: JSON.stringify(payload),
+    }).then((response) => read<Record<string, unknown>>(response)),
+  runs: () =>
+    fetch("/api/analysis-evaluation/runs", {
+      cache: "no-store", headers: adminHeaders,
+    }).then((response) => read<AnalysisEvaluationRun[]>(response)),
+  run: (id: string | number) =>
+    fetch(`/api/analysis-evaluation/runs/${id}`, {
+      cache: "no-store", headers: adminHeaders,
+    }).then((response) => read<AnalysisEvaluationRun>(response)),
+  execute: (payload: Record<string, unknown>) =>
+    fetch("/api/analysis-evaluation/runs", {
+      method: "POST", headers: adminHeaders, body: JSON.stringify(payload),
+    }).then((response) => read<AnalysisEvaluationRun>(response)),
+  unseal: (id: string | number, actor: string) =>
+    fetch(`/api/analysis-evaluation/runs/${id}/unseal`, {
+      method: "POST", headers: adminHeaders,
+      body: JSON.stringify({ actor, confirm_consumed: true }),
+    }).then((response) => read<AnalysisEvaluationRun>(response)),
 };
