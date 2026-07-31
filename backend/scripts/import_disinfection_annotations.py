@@ -1,4 +1,8 @@
-"""Dry-run or idempotently import colored-box annotations for human review."""
+"""Dry-run or idempotently import colored-box layout annotations for review.
+
+The historical filename is retained for operator compatibility. New workflows
+should use import_layout_annotations.py.
+"""
 from __future__ import annotations
 
 import argparse
@@ -18,6 +22,12 @@ from app.disinfection_annotations import scan_directory, write_annotation_files 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", default=str(ROOT / "Untitled"))
+    parser.add_argument("--product-category", default="消毒柜")
+    parser.add_argument(
+        "--source-type",
+        choices=("company_published", "external_reference"),
+        default="company_published",
+    )
     parser.add_argument(
         "--report",
         default=str(ROOT / "backend/evaluation/disinfection_cabinet_layout_report.json"),
@@ -32,6 +42,11 @@ def main() -> int:
     if not source.is_dir():
         raise SystemExit(f"source directory not found: {source}")
     report = scan_directory(source)
+    for item in report["items"]:
+        item["product_category"] = args.product_category
+        item["source_type"] = args.source_type
+    report["product_category"] = args.product_category
+    report["source_type"] = args.source_type
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -51,7 +66,10 @@ def main() -> int:
     init_db()
     db = SessionLocal()
     try:
-        batch_id = uuid.uuid5(uuid.NAMESPACE_URL, f"disinfection:{source}").hex
+        batch_id = uuid.uuid5(
+            uuid.NAMESPACE_URL,
+            f"layout-annotations:{source}:{args.product_category}:{args.source_type}",
+        ).hex
         batch = db.get(models.DisinfectionAnnotationBatch, batch_id)
         if not batch:
             batch = models.DisinfectionAnnotationBatch(id=batch_id)
@@ -90,6 +108,8 @@ def main() -> int:
                 batch_id=batch_id,
                 annotated_image_path=str(source / item["relative_path"]),
                 source_sha256=item["sha256"],
+                source_type=args.source_type,
+                product_category=args.product_category,
                 canvas_width=item["width"],
                 canvas_height=item["height"],
                 orientation=item["orientation"],

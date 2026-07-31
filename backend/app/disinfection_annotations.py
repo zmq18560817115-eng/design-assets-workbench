@@ -165,8 +165,8 @@ def annotation_payload(item: dict[str, Any]) -> dict[str, Any]:
     """Return the stable, per-image contract consumed by review tooling."""
     return {
         "image_path": item["relative_path"],
-        "product_category": "消毒柜",
-        "source_type": "company_published",
+        "product_category": item.get("product_category", "消毒柜"),
+        "source_type": item.get("source_type", "company_published"),
         "annotation_source": "human_color_box_v1",
         "annotation_status": "pending_review",
         "canvas_width": item["width"],
@@ -321,17 +321,34 @@ def select_few_shot_annotations(
     *,
     orientation: str,
     page_role: str = "",
+    product_category: str = "",
+    evidence_mode: str = "company",
     limit: int = 5,
 ) -> list[Any]:
-    """Retrieve only human-verified calibration company evidence."""
+    """Retrieve reviewed evidence without mixing company standards and references.
+
+    Company evidence is always preferred. Cross-category company examples are
+    structural analogies only. External references are opt-in and never enter
+    the company-standard pool.
+    """
+    if evidence_mode not in {"company", "imitation"}:
+        raise ValueError("evidence_mode must be company or imitation")
     eligible = [
         row for row in rows
         if row.status == "verified"
-        and row.source_type == "company_published"
         and row.dataset_split == "calibration"
+        and (
+            row.source_type == "company_published"
+            or (
+                evidence_mode == "imitation"
+                and row.source_type == "external_reference"
+            )
+        )
     ]
     eligible.sort(
         key=lambda row: (
+            row.source_type != "company_published",
+            bool(product_category) and row.product_category != product_category,
             row.orientation != orientation,
             bool(page_role) and row.page_role != page_role,
             abs((row.canvas_width / max(1, row.canvas_height)) - (3 / 4)),
@@ -345,10 +362,16 @@ def _center(region: dict[str, Any]) -> tuple[float, float]:
     return region["x"] + region["width"] / 2, region["y"] + region["height"] / 2
 
 
-def verified_statistics(rows: list[Any]) -> dict[str, Any]:
+def verified_statistics(
+    rows: list[Any],
+    *,
+    product_category: str = "",
+    readiness_threshold: int = 30,
+) -> dict[str, Any]:
     verified = [
         row for row in rows
         if row.status == "verified" and row.source_type == "company_published"
+        and (not product_category or row.product_category == product_category)
     ]
     if not verified:
         return {
@@ -388,8 +411,10 @@ def verified_statistics(rows: list[Any]) -> dict[str, Any]:
             relationships["text_above_product" if ty < py else "text_below_product"] += 1
             relationships["text_left_of_product" if tx < px else "text_right_of_product"] += 1
     return {
-        "status": "ready",
+        "status": "ready" if len(verified) >= readiness_threshold else "not_ready",
         "verified_count": len(verified),
+        "readiness_threshold": readiness_threshold,
+        "remaining_to_ready": max(0, readiness_threshold - len(verified)),
         "canvas_ratios": dict(Counter(canvas_ratio(r.canvas_width, r.canvas_height) for r in verified)),
         "orientations": dict(Counter(r.orientation for r in verified)),
         "average_modules_per_image": mean([len(regions) for regions in per_image]),

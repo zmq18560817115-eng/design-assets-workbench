@@ -103,7 +103,7 @@ def _annotation_dict(row: models.DisinfectionAnnotation) -> dict:
         "batch_id": row.batch_id,
         "filename": Path(row.annotated_image_path).name,
         "original_image_path": row.original_image_path,
-        "image_url": f"/api/disinfection-annotations/{row.id}/image",
+        "image_url": f"/api/layout-annotations/{row.id}/image",
         "source_type": row.source_type,
         "product_category": row.product_category,
         "project_key": row.project_key,
@@ -122,14 +122,23 @@ def _annotation_dict(row: models.DisinfectionAnnotation) -> dict:
     }
 
 
+@app.get("/api/layout-annotations")
 @app.get("/api/disinfection-annotations")
 def list_disinfection_annotations(
     status: str = "",
+    product_category: str = "",
+    source_type: str = "",
     db: Session = Depends(get_db),
 ) -> dict:
     query = db.query(models.DisinfectionAnnotation)
     if status:
         query = query.filter(models.DisinfectionAnnotation.status == status)
+    if product_category:
+        query = query.filter(
+            models.DisinfectionAnnotation.product_category == product_category
+        )
+    if source_type:
+        query = query.filter(models.DisinfectionAnnotation.source_type == source_type)
     rows = query.order_by(models.DisinfectionAnnotation.id).all()
     counts = dict(
         db.query(models.DisinfectionAnnotation.status, func.count(models.DisinfectionAnnotation.id))
@@ -163,6 +172,7 @@ def list_disinfection_annotations(
     }
 
 
+@app.get("/api/layout-annotations/{annotation_id}/image")
 @app.get("/api/disinfection-annotations/{annotation_id}/image")
 def get_disinfection_annotation_image(
     annotation_id: int,
@@ -172,12 +182,17 @@ def get_disinfection_annotation_image(
     if not row:
         raise HTTPException(404, "annotation not found")
     path = Path(row.annotated_image_path).resolve()
-    allowed = (Path(__file__).resolve().parents[2] / "Untitled").resolve()
-    if allowed not in path.parents or not path.is_file():
+    workspace = Path(__file__).resolve().parents[2]
+    allowed_roots = {
+        (workspace / "Untitled").resolve(),
+        (workspace / "Untitled1").resolve(),
+    }
+    if not any(root in path.parents for root in allowed_roots) or not path.is_file():
         raise HTTPException(404, "annotation image unavailable")
     return FileResponse(path)
 
 
+@app.patch("/api/layout-annotations/{annotation_id}")
 @app.patch("/api/disinfection-annotations/{annotation_id}")
 def update_disinfection_annotation(
     annotation_id: int,
@@ -208,10 +223,17 @@ def update_disinfection_annotation(
             raise HTTPException(422, str(exc)) from exc
     for field in (
         "project_key", "page_role", "sequence_index", "reviewer",
-        "original_image_path",
+        "original_image_path", "product_category", "source_type",
     ):
         if field in payload:
             setattr(row, field, payload[field])
+    if not (row.product_category or "").strip():
+        raise HTTPException(422, "product_category is required")
+    if row.source_type not in {
+        "company_published", "external_reference",
+        "rejected_company_design", "company_revision",
+    }:
+        raise HTTPException(422, "invalid source_type")
     if row.status == "verified":
         row.status = "pending_review"
         row.dataset_split = ""
@@ -227,6 +249,7 @@ def update_disinfection_annotation(
     return _annotation_dict(row)
 
 
+@app.post("/api/layout-annotations/{annotation_id}/verify")
 @app.post("/api/disinfection-annotations/{annotation_id}/verify")
 def verify_disinfection_annotation(
     annotation_id: int,
@@ -263,6 +286,7 @@ def verify_disinfection_annotation(
         .filter(
             models.DisinfectionAnnotation.status == "verified",
             models.DisinfectionAnnotation.source_type == "company_published",
+            models.DisinfectionAnnotation.product_category == row.product_category,
         )
         .all()
     )
@@ -275,16 +299,33 @@ def verify_disinfection_annotation(
     return _annotation_dict(row)
 
 
+@app.get("/api/layout-annotations/report/summary")
 @app.get("/api/disinfection-annotations/report/summary")
-def disinfection_annotation_summary(db: Session = Depends(get_db)) -> dict:
+def disinfection_annotation_summary(
+    product_category: str = "",
+    db: Session = Depends(get_db),
+) -> dict:
     rows = db.query(models.DisinfectionAnnotation).all()
-    verified = [row for row in rows if row.status == "verified" and row.source_type == "company_published"]
-    statistics = disinfection_annotations.verified_statistics(rows)
+    scoped = [
+        row for row in rows
+        if not product_category or row.product_category == product_category
+    ]
+    verified = [
+        row for row in scoped
+        if row.status == "verified" and row.source_type == "company_published"
+    ]
+    statistics = disinfection_annotations.verified_statistics(
+        rows, product_category=product_category, readiness_threshold=30
+    )
     return {
-        "status": "ready" if len(verified) >= 5 and any(row.dataset_split == "holdout" for row in verified) else "not_ready",
-        "total": len(rows),
-        "pending_review": sum(row.status == "pending_review" for row in rows),
+        "status": "ready" if len(verified) >= 30 and any(row.dataset_split == "holdout" for row in verified) else "not_ready",
+        "product_category": product_category or "all",
+        "total": len(scoped),
+        "pending_review": sum(row.status == "pending_review" for row in scoped),
         "verified": len(verified),
+        "few_shot_ready": sum(row.dataset_split == "calibration" for row in verified) >= 3,
+        "evaluation_ready": len(verified) >= 30 and any(row.dataset_split == "holdout" for row in verified),
+        "readiness_threshold": 30,
         "calibration": sum(row.dataset_split == "calibration" for row in verified),
         "holdout": sum(row.dataset_split == "holdout" for row in verified),
         "statistics": statistics,
@@ -310,6 +351,7 @@ def _decomposition_run_dict(row: models.DisinfectionDecompositionRun) -> dict:
     }
 
 
+@app.get("/api/layout-decomposition-runs")
 @app.get("/api/disinfection-decomposition-runs")
 def list_disinfection_decomposition_runs(db: Session = Depends(get_db)) -> dict:
     rows = (
@@ -323,6 +365,7 @@ def list_disinfection_decomposition_runs(db: Session = Depends(get_db)) -> dict:
     }
 
 
+@app.post("/api/layout-decomposition-runs/{run_id}/finalize")
 @app.post("/api/disinfection-decomposition-runs/{run_id}/finalize")
 def finalize_disinfection_decomposition_run(
     run_id: int,
@@ -352,33 +395,56 @@ def finalize_disinfection_decomposition_run(
     return _decomposition_run_dict(run)
 
 
+@app.get("/api/layout-annotations/few-shots")
 @app.get("/api/disinfection-annotations/few-shots")
 def list_disinfection_few_shots(
     orientation: str = "portrait",
     page_role: str = "",
+    product_category: str = "",
+    evidence_mode: str = "company",
     db: Session = Depends(get_db),
 ) -> dict:
     rows = db.query(models.DisinfectionAnnotation).all()
-    selected = disinfection_annotations.select_few_shot_annotations(
-        rows, orientation=orientation, page_role=page_role
-    )
+    try:
+        selected = disinfection_annotations.select_few_shot_annotations(
+            rows,
+            orientation=orientation,
+            page_role=page_role,
+            product_category=product_category,
+            evidence_mode=evidence_mode,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     return {
-        "items": [_annotation_dict(row) for row in selected],
+        "items": [
+            {
+                **_annotation_dict(row),
+                "evidence_role": (
+                    "company_standard"
+                    if row.source_type == "company_published"
+                    and (not product_category or row.product_category == product_category)
+                    else "cross_category_structure_reference"
+                    if row.source_type == "company_published"
+                    else "imitation_reference"
+                ),
+            }
+            for row in selected
+        ],
         "evidence_annotation_ids": [row.id for row in selected],
-        "policy": "company_published + human verified + calibration only",
+        "policy": "exact-category company standards first; cross-category structure second; external references only in imitation mode",
     }
 
 
+@app.post("/api/cases/{case_id}/layout-auto-decompose")
 @app.post("/api/cases/{case_id}/disinfection-auto-decompose")
 def auto_decompose_disinfection_case(
     case_id: int,
     db: Session = Depends(get_db),
+    evidence_mode: str = "company",
 ) -> dict:
     case = db.get(models.Case, case_id)
     if not case or not case.image:
         raise HTTPException(404, "case or original image not found")
-    if case.product_category != "消毒柜":
-        raise HTTPException(422, "case product_category must be 消毒柜")
     image_path = (config.UPLOAD_DIR / Path(case.image.url).name).resolve()
     if not image_path.is_file():
         raise HTTPException(404, "unannotated original image file not found")
@@ -390,16 +456,22 @@ def auto_decompose_disinfection_case(
         else "landscape" if image_width > image_height
         else "square"
     )
-    few_shots = disinfection_annotations.select_few_shot_annotations(
-        rows,
-        orientation=orientation,
-        page_role=case.page_role,
-    )
+    try:
+        few_shots = disinfection_annotations.select_few_shot_annotations(
+            rows,
+            orientation=orientation,
+            page_role=case.page_role,
+            product_category=case.product_category,
+            evidence_mode=evidence_mode,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     run = models.DisinfectionDecompositionRun(
         case_id=case.id,
         evidence_annotation_ids_json=json.dumps([row.id for row in few_shots]),
         model_name=config.VISION_MODEL or "",
         generation_mode="model",
+        prompt_version="generic-layout-few-shot-v1",
     )
     db.add(run)
     db.flush()
@@ -424,6 +496,16 @@ def auto_decompose_disinfection_case(
     evidence = [
         {
             "annotation_id": row.id,
+            "product_category": row.product_category,
+            "source_type": row.source_type,
+            "evidence_role": (
+                "company_standard"
+                if row.source_type == "company_published"
+                and row.product_category == case.product_category
+                else "cross_category_structure_reference"
+                if row.source_type == "company_published"
+                else "imitation_reference"
+            ),
             "canvas_ratio": disinfection_annotations.canvas_ratio(
                 row.canvas_width, row.canvas_height
             ),
@@ -472,8 +554,12 @@ def auto_decompose_disinfection_case(
     return _decomposition_run_dict(run)
 
 
+@app.get("/api/layout-annotations/evaluation")
 @app.get("/api/disinfection-annotations/evaluation")
-def evaluate_disinfection_holdout(db: Session = Depends(get_db)) -> dict:
+def evaluate_disinfection_holdout(
+    product_category: str = "",
+    db: Session = Depends(get_db),
+) -> dict:
     annotations = (
         db.query(models.DisinfectionAnnotation)
         .filter(
@@ -482,6 +568,10 @@ def evaluate_disinfection_holdout(db: Session = Depends(get_db)) -> dict:
         )
         .all()
     )
+    if product_category:
+        annotations = [
+            row for row in annotations if row.product_category == product_category
+        ]
     holdout = [row for row in annotations if row.dataset_split == "holdout"]
     calibration = [row for row in annotations if row.dataset_split == "calibration"]
     runs = db.query(models.DisinfectionDecompositionRun).all()

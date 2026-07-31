@@ -82,6 +82,17 @@ class DisinfectionWorkflowTests(unittest.TestCase):
             .count(),
         )
 
+    def test_generic_route_logic_accepts_another_product_category(self):
+        self.case.product_category = "奶瓶"
+        self.db.commit()
+        with (
+            patch("app.main.config.UPLOAD_DIR", self.uploads),
+            patch("app.main.config.vlm_enabled", return_value=False),
+        ):
+            result = auto_decompose_disinfection_case(self.case.id, self.db)
+        self.assertEqual("review_required", result["status"])
+        self.assertIn("vision_model_unavailable", result["failure_reasons"][0])
+
     def test_finalize_preserves_initial_ai_snapshot(self):
         initial = {"version": 1, "modules_json": [{"id": "ai"}]}
         blueprint = models.LayoutBlueprint(
