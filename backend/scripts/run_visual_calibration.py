@@ -77,7 +77,13 @@ def aggregate(rows: list[dict]) -> dict:
     }
 
 
-def evaluate_one(asset: dict, output_root: Path, instructions: str, timeout: float) -> dict:
+def evaluate_one(
+    asset: dict,
+    output_root: Path,
+    instructions: str,
+    timeout: float,
+    validator_config: dict,
+) -> dict:
     started = dt.datetime.now(dt.UTC)
     begin = time.perf_counter()
     raw_dir = output_root / "raw"
@@ -94,7 +100,9 @@ def evaluate_one(asset: dict, output_root: Path, instructions: str, timeout: flo
             timeout_seconds=timeout,
         )
         raw_path.write_text(raw, encoding="utf-8")
-        validation = validate_prediction(parsed, asset["ground_truth"])
+        validation = validate_prediction(
+            parsed, asset["ground_truth"], thresholds=validator_config
+        )
         error_codes = validation["error_codes"]
         status = "completed"
     except Exception as error:
@@ -133,6 +141,7 @@ def main() -> int:
     parser.add_argument("--prompt-version", required=True)
     parser.add_argument("--validator-version", required=True)
     parser.add_argument("--instructions-file", type=Path)
+    parser.add_argument("--validator-config", type=Path)
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=300)
     args = parser.parse_args()
@@ -142,6 +151,10 @@ def main() -> int:
     instructions = (
         args.instructions_file.read_text(encoding="utf-8")
         if args.instructions_file else ""
+    )
+    validator_config = (
+        json.loads(args.validator_config.read_text(encoding="utf-8"))
+        if args.validator_config else {}
     )
     project_root = args.manifest.resolve().parents[2]
     assets = []
@@ -175,7 +188,7 @@ def main() -> int:
         futures = [
             pool.submit(
                 evaluate_one, asset, args.output.parent,
-                instructions, args.timeout,
+                instructions, args.timeout, validator_config,
             )
             for asset in assets
         ]
@@ -203,7 +216,12 @@ def main() -> int:
         "model_name": config.VISION_MODEL,
         "prompt_version": args.prompt_version,
         "validator_version": args.validator_version,
-        "thresholds": __import__("app.visual_calibration", fromlist=["DEFAULT_THRESHOLDS"]).DEFAULT_THRESHOLDS,
+        "thresholds": {
+            **__import__(
+                "app.visual_calibration", fromlist=["DEFAULT_THRESHOLDS"]
+            ).DEFAULT_THRESHOLDS,
+            **validator_config,
+        },
         "gates": CALIBRATION_GATES,
         "metrics": aggregate(rows),
         "runs": sorted(rows, key=lambda row: row["filename"].casefold()),

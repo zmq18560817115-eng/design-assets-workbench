@@ -36,6 +36,9 @@ DEFAULT_THRESHOLDS = {
     "product_iou": 0.45,
     "maximum_sibling_overlap_ratio": 0.35,
     "duplicate_module_iou": 0.9,
+    "containment_exemption_ratio": 0.9,
+    "check_duplicate_modules": True,
+    "check_containment_exemption": True,
 }
 
 CALIBRATION_GATES = {
@@ -48,6 +51,17 @@ CALIBRATION_GATES = {
     "timeout_rate_max": 0.05,
     "severe_regression_count_max": 0,
 }
+
+CALIBRATION_OUTPUT_PROMPT = """
+分析这张消毒柜公司成品图的真实排版，仅返回一个 JSON 对象：
+{{"blueprint_modules":[
+{{"id":"module-1","type":"product_image","label":"产品主体",
+"x":0.1,"y":0.1,"width":0.4,"height":0.5,
+"importance":1,"alignment":"center","content_summary":"","confidence":0.9}}
+]}}
+type 只能是：{module_types}。
+坐标均为相对整张原图的 0 到 1 数值。只输出实际可见模块。
+""".strip()
 
 
 @dataclass(frozen=True)
@@ -329,7 +343,7 @@ def validate_prediction(
     parsed: dict[str, Any],
     ground_truth: dict[str, Any],
     *,
-    thresholds: dict[str, float] | None = None,
+    thresholds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     rules = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     errors: list[str] = []
@@ -387,12 +401,23 @@ def validate_prediction(
             if pair in allowed:
                 continue
             iou = region_iou(left, right)
-            if iou >= rules["duplicate_module_iou"] and left.get("type") == right.get("type"):
+            if (
+                rules["check_duplicate_modules"]
+                and iou >= rules["duplicate_module_iou"]
+                and left.get("type") == right.get("type")
+            ):
                 duplicates += 1
                 invalid_overlaps += 1
             elif (
-                containment_ratio(left, right) < 0.9
-                and containment_ratio(right, left) < 0.9
+                (
+                    not rules["check_containment_exemption"]
+                    or (
+                        containment_ratio(left, right)
+                        < rules["containment_exemption_ratio"]
+                        and containment_ratio(right, left)
+                        < rules["containment_exemption_ratio"]
+                    )
+                )
                 and iou > rules["maximum_sibling_overlap_ratio"]
             ):
                 invalid_overlaps += 1
@@ -436,6 +461,10 @@ def run_model_once(
         asset_category="layout",
         additional_instructions=additional_instructions,
         timeout_seconds=timeout_seconds,
+        prompt_override=CALIBRATION_OUTPUT_PROMPT.format(
+            module_types=", ".join(MODULE_TYPE_ORDER)
+        ),
+        max_tokens=1400,
     )
 
 

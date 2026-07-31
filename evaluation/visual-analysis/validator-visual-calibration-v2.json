@@ -1,0 +1,9 @@
+{
+  "region_iou": 0.5,
+  "product_iou": 0.45,
+  "maximum_sibling_overlap_ratio": 0.35,
+  "duplicate_module_iou": 0.9,
+  "containment_exemption_ratio": 0.9,
+  "check_duplicate_modules": true,
+  "check_containment_exemption": true
+}
