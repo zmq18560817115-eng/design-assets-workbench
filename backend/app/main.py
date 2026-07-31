@@ -68,6 +68,7 @@ from .schemas import (
     AnalysisEvaluationRunCreate,
     AnalysisVersionFreezeInput,
     AnalysisHoldoutUnsealInput,
+    AnalysisResultRetryInput,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -383,6 +384,25 @@ def unseal_analysis_evaluation_run(
     analysis_evaluation.mark_consumed(dataset, now=now)
     db.commit()
     return analysis_evaluation.run_to_dict(row, include_details=True, db=db)
+
+
+@app.post("/api/analysis-evaluation/results/{result_id}/retry")
+def retry_analysis_evaluation_result(
+    result_id: int,
+    payload: AnalysisResultRetryInput,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    result = db.get(models.AnalysisEvaluationResult, result_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="拆解结果不存在")
+    run = db.get(models.AnalysisEvaluationRun, result.run_id)
+    if not run or run.dataset_split != "calibration":
+        raise HTTPException(status_code=409, detail="仅 Calibration 失败项允许单条重试")
+    try:
+        return analysis_evaluation.retry_result(db, result, actor=payload.actor)
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/api/analyze", response_model=CaseOut)

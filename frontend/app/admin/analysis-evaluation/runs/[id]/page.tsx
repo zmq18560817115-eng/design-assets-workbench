@@ -31,7 +31,12 @@ export default function AnalysisRunDetailPage() {
         try { setRun(await analysisEvaluationApi.unseal(id, "管理员")); } catch (e) { setMessage((e as Error).message); }
       }} className="mt-4 rounded-xl border border-rose-300 px-4 py-2 text-sm text-rose-700">解封详细结果</button></Card>
       : <Card><h2 className="font-semibold">逐案例诊断</h2><div className="mt-4 space-y-2">{run.results?.map((row) =>
-        <div key={row.id} className="flex justify-between rounded-xl border border-line p-3 text-sm"><span>条目 #{row.item_id}</span><span>{row.error_code || "通过"}</span></div>)}</div></Card>}
+        <div key={row.id} className="flex items-center justify-between gap-3 rounded-xl border border-line p-3 text-sm"><span>条目 #{row.item_id}</span>
+          <span>{row.error_code || "通过"}</span>
+          {run.dataset_split === "calibration" && row.status === "failed" && <button onClick={async () => {
+            try { await analysisEvaluationApi.retryResult(row.id, "管理员"); setRun(await analysisEvaluationApi.run(id)); }
+            catch (error) { setMessage((error as Error).message); }
+          }} className="rounded-lg border border-line px-3 py-1 text-xs">单条重试</button>}</div>)}</div></Card>}
     {message && <p className="text-sm text-rose-600">{message}</p>}
   </div>;
 }

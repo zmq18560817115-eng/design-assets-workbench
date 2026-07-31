@@ -30,7 +30,13 @@ class EvaluationConflict(ValueError):
 
 
 def _json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        default=lambda item: item.isoformat() if isinstance(item, (dt.date, dt.datetime)) else str(item),
+    )
 
 
 def _load(value: str, fallback: Any) -> Any:
@@ -164,6 +170,12 @@ def dataset_detail(
     visible = []
     for item in items:
         if item.dataset_split == "holdout" and not admin:
+            continue
+        if (
+            item.dataset_split == "holdout"
+            and dataset.sealed_at
+            and dataset.status != "consumed"
+        ):
             continue
         visible.append(
             serialize_item(
@@ -452,3 +464,37 @@ def run_to_dict(run: models.AnalysisEvaluationRun, *, include_details: bool, db:
             "prediction": _load(row.prediction_json, {}), "elapsed_ms": row.elapsed_ms,
         } for row in rows]
     return result
+
+
+def retry_result(
+    db: Session,
+    result: models.AnalysisEvaluationResult,
+    *,
+    actor: str,
+) -> dict:
+    if result.status != "failed":
+        raise EvaluationConflict("只有失败项可以单条重试")
+    run = db.get(models.AnalysisEvaluationRun, result.run_id)
+    item = db.get(models.AnalysisEvaluationItem, result.item_id)
+    if not run or not item or run.dataset_split != "calibration":
+        raise EvaluationConflict("仅 Calibration 失败项允许单条重试")
+    runtime = db.get(models.AnalysisRuntimeVersion, run.runtime_version_id)
+    if not runtime:
+        raise EvaluationConflict("运行版本不存在")
+    outcome = evaluate_item(db, item, _load(runtime.validator_config_json, {}))
+    result.status = outcome["status"]
+    result.error_code = outcome["error_code"]
+    result.metrics_json = _json(outcome["metrics"])
+    result.prediction_json = _json({
+        **outcome["prediction"], "retried_by": actor,
+        "retried_at": dt.datetime.utcnow().isoformat(),
+    })
+    db.commit()
+    return {
+        "id": result.id,
+        "item_id": result.item_id,
+        "status": result.status,
+        "error_code": result.error_code,
+        "metrics": _load(result.metrics_json, {}),
+        "prediction": _load(result.prediction_json, {}),
+    }

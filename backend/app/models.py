@@ -81,6 +81,8 @@ class Case(Base):
     review_notes = Column(Text, default="")
     reviewer = Column(String, default="")
     reviewed_at = Column(DateTime, nullable=True)
+    blueprint_correct = Column(Boolean, default=False, index=True)
+    business_reusable = Column(Boolean, default=False, index=True)
     trust_status = Column(String, default="ai_unverified", index=True)
     status = Column(String, default="public", index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)

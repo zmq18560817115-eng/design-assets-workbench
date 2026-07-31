@@ -89,6 +89,10 @@ export const analysisEvaluationApi = {
     fetch(`/api/analysis-evaluation/datasets/${encodeURIComponent(version)}/items`, {
       method: "POST", headers: adminHeaders, body: JSON.stringify(payload),
     }).then((response) => read<AnalysisDatasetItem>(response)),
+  saveGroundTruth: (version: string, itemId: string | number, payload: Record<string, unknown>) =>
+    fetch(`/api/analysis-evaluation/datasets/${encodeURIComponent(version)}/items/${itemId}/ground-truth`, {
+      method: "PUT", headers: adminHeaders, body: JSON.stringify(payload),
+    }).then((response) => read<AnalysisDatasetItem>(response)),
   versions: () =>
     fetch("/api/analysis-versions", {
       cache: "no-store", headers: adminHeaders,
@@ -118,4 +122,8 @@ export const analysisEvaluationApi = {
       method: "POST", headers: adminHeaders,
       body: JSON.stringify({ actor, confirm_consumed: true }),
     }).then((response) => read<AnalysisEvaluationRun>(response)),
+  retryResult: (id: string | number, actor: string) =>
+    fetch(`/api/analysis-evaluation/results/${id}/retry`, {
+      method: "POST", headers: adminHeaders, body: JSON.stringify({ actor }),
+    }).then((response) => read<Record<string, unknown>>(response)),
 };

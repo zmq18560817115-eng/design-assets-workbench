@@ -165,6 +165,8 @@ class CaseOut(BaseModel):
     review_notes: str = ""
     reviewer: str = ""
     reviewed_at: dt.datetime | None = None
+    blueprint_correct: bool = False
+    business_reusable: bool = False
     trust_status: str = "ai_unverified"
     status: str = "public"
     created_at: dt.datetime
@@ -492,6 +494,10 @@ class AnalysisHoldoutUnsealInput(BaseModel):
     confirm_consumed: bool = False
 
 
+class AnalysisResultRetryInput(BaseModel):
+    actor: str = Field(min_length=1, max_length=120)
+
+
 class BusinessRequirementCreate(BaseModel):
     title: str = Field(min_length=1, max_length=180)
     request_text: str = ""
@@ -671,6 +677,8 @@ class CaseReviewInput(BaseModel):
     ] = "verified"
     review_decision: Literal["", "adopt", "adapt", "reject"] = ""
     review_notes: str = ""
+    blueprint_correct: bool | None = None
+    business_reusable: bool | None = None
     business_line: str | None = None
     channel: str | None = None
     campaign_stage: str | None = None

@@ -91,6 +91,8 @@ export interface CaseOut {
   review_notes: string;
   reviewer: string;
   reviewed_at: string | null;
+  blueprint_correct: boolean;
+  business_reusable: boolean;
   trust_status: string;
   status: string;
   created_at: string;
@@ -1030,6 +1032,8 @@ export interface CaseReviewInput {
   trust_status: "ai_unverified" | "verified" | "company_recommended" | "rejected";
   review_decision: "" | "adopt" | "adapt" | "reject";
   review_notes: string;
+  blueprint_correct?: boolean;
+  business_reusable?: boolean;
   business_line?: string;
   channel?: string;
   campaign_stage?: string;

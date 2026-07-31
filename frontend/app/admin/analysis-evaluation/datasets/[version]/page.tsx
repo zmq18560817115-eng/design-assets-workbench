@@ -70,7 +70,7 @@ export default function AnalysisDatasetDetailPage() {
           <h2 className="font-semibold">{split === "calibration" ? "Calibration 可诊断集" : "Holdout 密封集"}</h2>
           <div className="mt-4 space-y-2">
             {dataset.items.filter((item) => item.dataset_split === split).map((item) =>
-              <Link key={item.id} href={`/cases/${item.case_id}`} className="flex justify-between rounded-xl border border-line p-3 text-sm">
+              <Link key={item.id} href={`/admin/analysis-evaluation/datasets/${version}/items/${item.id}`} className="flex justify-between rounded-xl border border-line p-3 text-sm">
                 <span>案例 #{item.case_id}</span><span>{item.gt_status}</span>
               </Link>)}
             {!dataset.items.some((item) => item.dataset_split === split) && <p className="text-sm text-gray-400">暂无案例</p>}
