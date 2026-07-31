@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import json
+import hashlib
 import tempfile
 import uuid
 import datetime as dt
@@ -351,6 +352,41 @@ def _decomposition_run_dict(row: models.DisinfectionDecompositionRun) -> dict:
     }
 
 
+def _find_annotation_original_case(
+    db: Session,
+    annotation: models.DisinfectionAnnotation,
+) -> models.Case | None:
+    """Resolve a paired original without crossing product categories.
+
+    Historical imports preserve the display filename, which is not globally
+    unique. Exact content identity is preferred; a unique category-scoped
+    candidate is the compatibility fallback.
+    """
+    if not annotation.original_image_path:
+        return None
+    original_path = Path(annotation.original_image_path)
+    candidates = (
+        db.query(models.Case)
+        .join(models.Image, models.Case.image_id == models.Image.id)
+        .filter(
+            models.Image.filename == original_path.name,
+            models.Image.source_type == "company_published",
+            models.Case.product_category == annotation.product_category,
+        )
+        .all()
+    )
+    if original_path.is_file():
+        expected = hashlib.sha256(original_path.read_bytes()).hexdigest()
+        for candidate in candidates:
+            uploaded = (config.UPLOAD_DIR / Path(candidate.image.url).name).resolve()
+            if (
+                uploaded.is_file()
+                and hashlib.sha256(uploaded.read_bytes()).hexdigest() == expected
+            ):
+                return candidate
+    return candidates[0] if len(candidates) == 1 else None
+
+
 @app.get("/api/layout-decomposition-runs")
 @app.get("/api/disinfection-decomposition-runs")
 def list_disinfection_decomposition_runs(db: Session = Depends(get_db)) -> dict:
@@ -581,12 +617,7 @@ def evaluate_disinfection_holdout(
     for annotation in holdout:
         if not annotation.original_image_path:
             continue
-        matching_case = (
-            db.query(models.Case)
-            .join(models.Image, models.Case.image_id == models.Image.id)
-            .filter(models.Image.filename == Path(annotation.original_image_path).name)
-            .first()
-        )
+        matching_case = _find_annotation_original_case(db, annotation)
         run = next(
             (
                 candidate for candidate in reversed(runs)

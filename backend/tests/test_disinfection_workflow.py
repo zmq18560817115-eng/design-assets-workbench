@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from app import models
 from app.database import Base
 from app.main import (
+    _find_annotation_original_case,
     auto_decompose_disinfection_case,
     finalize_disinfection_decomposition_run,
     update_disinfection_annotation,
@@ -92,6 +93,31 @@ class DisinfectionWorkflowTests(unittest.TestCase):
             result = auto_decompose_disinfection_case(self.case.id, self.db)
         self.assertEqual("review_required", result["status"])
         self.assertIn("vision_model_unavailable", result["failure_reasons"][0])
+
+    def test_original_case_resolution_does_not_cross_categories(self):
+        annotation = (
+            self.db.query(models.DisinfectionAnnotation)
+            .filter(models.DisinfectionAnnotation.source_sha256 == "sha-0")
+            .one()
+        )
+        annotation.product_category = "消毒柜"
+        annotation.original_image_path = str(self.uploads / "case.png")
+        wrong_image = models.Image(
+            url="/uploads/case.png",
+            filename="case.png",
+            source_type="company_published",
+        )
+        self.db.add(wrong_image)
+        self.db.flush()
+        self.db.add(models.Case(
+            image_id=wrong_image.id,
+            name="wrong",
+            product_category="奶瓶",
+        ))
+        self.db.commit()
+        with patch("app.main.config.UPLOAD_DIR", self.uploads):
+            matched = _find_annotation_original_case(self.db, annotation)
+        self.assertEqual(self.case.id, matched.id)
 
     def test_finalize_preserves_initial_ai_snapshot(self):
         initial = {"version": 1, "modules_json": [{"id": "ai"}]}
