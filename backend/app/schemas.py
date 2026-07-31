@@ -788,6 +788,10 @@ class BatchCategorizeInput(BaseModel):
     actor: str
 
 
+class ProviderWorkflowStageInput(BaseModel):
+    stage: Literal["provider_probe", "smoke", "canary", "full"]
+
+
 class BatchCategorySuggestionInput(BaseModel):
     case_ids: list[int]
 

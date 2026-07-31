@@ -19,3 +19,10 @@ test("designer navigation excludes administrator entries by default", async () =
   const designerBlock = navigation.split("export const adminNavigation")[0];
   assert.doesNotMatch(designerBlock, /AI拆解校准|业务检索验收|Prompt与校验版本/);
 });
+
+test("provider recovery page enforces ordered gates and has no holdout action", async () => {
+  const page = await source("../app/admin/provider-availability/page.tsx");
+  assert.match(page, /provider_probe.*smoke.*canary.*full/s);
+  assert.match(page, /系统没有提供从此页面执行\s*Holdout\s*的按钮/);
+  assert.doesNotMatch(page, /run\("holdout"\)|runProviderStage\("holdout"\)/);
+});

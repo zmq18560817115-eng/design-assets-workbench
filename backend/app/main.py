@@ -35,7 +35,7 @@ from . import (
     acceptance_pack, analysis_evaluation, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
     llm, models, overlay, vlm,
     acceptance_pack, batch, concept, config, crud, imagehash, layout_blueprint, layout_patterns, layout_search,
-    disinfection_annotations, llm, models, overlay, vlm,
+    disinfection_annotations, llm, models, overlay, provider_workflow, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
 from .business_contract import normalize_new_source_type, normalize_page_role
@@ -76,6 +76,7 @@ from .schemas import (
     AnalysisVersionFreezeInput,
     AnalysisHoldoutUnsealInput,
     AnalysisResultRetryInput,
+    ProviderWorkflowStageInput,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -754,6 +755,22 @@ def _require_admin(x_workbench_role: str = Header(default="designer")) -> str:
     if x_workbench_role != "admin":
         raise HTTPException(status_code=403, detail="需要管理员权限")
     return x_workbench_role
+
+
+@app.get("/api/admin/provider-availability")
+def get_provider_availability(_: str = Depends(_require_admin)):
+    return provider_workflow.workflow_status()
+
+
+@app.post("/api/admin/provider-availability/run")
+def run_provider_availability_stage(
+    payload: ProviderWorkflowStageInput,
+    _: str = Depends(_require_admin),
+):
+    try:
+        return provider_workflow.start_stage(payload.stage)
+    except provider_workflow.WorkflowConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.get("/api/analysis-evaluation/datasets")

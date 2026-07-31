@@ -9,6 +9,7 @@ export const designerNavigation = [
 
 export const adminNavigation = [
   { href: "/admin/analysis-evaluation", label: "AI拆解校准" },
+  { href: "/admin/provider-availability", label: "模型服务诊断" },
   { href: "/layout-search/evaluation", label: "业务检索验收" },
   { href: "/admin/analysis-evaluation/datasets", label: "数据集管理" },
   { href: "/admin/analysis-versions", label: "Prompt与校验版本" },

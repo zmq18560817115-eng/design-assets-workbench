@@ -28,9 +28,10 @@ export default function AnalysisEvaluationPage() {
             使用公司素材 Ground Truth 校准多模态拆解。该模块与业务检索验收完全隔离。
           </p>
         </div>
-        <Link href="/admin/analysis-evaluation/datasets" className="rounded-xl bg-ink px-5 py-3 text-sm text-white">
-          管理数据集
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/provider-availability" className="rounded-xl border border-line bg-white px-5 py-3 text-sm">模型服务诊断</Link>
+          <Link href="/admin/analysis-evaluation/datasets" className="rounded-xl bg-ink px-5 py-3 text-sm text-white">管理数据集</Link>
+        </div>
       </header>
       <div className="grid gap-3 md:grid-cols-7">
         {steps.map((step, index) => (

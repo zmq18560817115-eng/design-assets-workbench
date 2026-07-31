@@ -59,6 +59,26 @@ export interface AnalysisEvaluationRun {
   }[];
 }
 
+export type ProviderStage = "provider_probe" | "smoke" | "canary" | "full";
+
+export interface ProviderWorkflowStatus {
+  status: "blocked_by_provider_availability" | "calibration_in_progress" | "calibration_ready_for_freeze";
+  configuration: {
+    provider: string; api_key: "configured" | "missing"; base_url: string;
+    region: string; model: string; batch_concurrency: number;
+    timeouts: { connect_seconds: number; read_seconds: number };
+    max_retries: number; configuration_errors: string[];
+  };
+  gates: Record<string, boolean>;
+  execution: {
+    running: boolean; stage: string; started_at: string | null;
+    finished_at: string | null; exit_code: number | null; message: string;
+  };
+  actions: Record<ProviderStage | "holdout", boolean>;
+  reports: Record<ProviderStage, Record<string, unknown>>;
+  holdout: { sealed: boolean; executed: boolean; message: string };
+}
+
 const adminHeaders = {
   "Content-Type": "application/json",
   "X-Workbench-Role": "admin",
@@ -73,6 +93,14 @@ async function read<T>(response: Response): Promise<T> {
 }
 
 export const analysisEvaluationApi = {
+  providerStatus: () =>
+    fetch("/api/admin/provider-availability", {
+      cache: "no-store", headers: adminHeaders,
+    }).then((response) => read<ProviderWorkflowStatus>(response)),
+  runProviderStage: (stage: ProviderStage) =>
+    fetch("/api/admin/provider-availability/run", {
+      method: "POST", headers: adminHeaders, body: JSON.stringify({ stage }),
+    }).then((response) => read<ProviderWorkflowStatus>(response)),
   datasets: () =>
     fetch("/api/analysis-evaluation/datasets", {
       cache: "no-store", headers: adminHeaders,

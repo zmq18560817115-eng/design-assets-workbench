@@ -28,3 +28,7 @@ backend/acceptance_data/
 # OS
 .DS_Store
 evaluation/visual-analysis/raw/
+evaluation/provider-availability/formal-schema-latest.json
+evaluation/provider-availability/smoke-3.json
+evaluation/provider-availability/calibration-canary.json
+evaluation/provider-availability/calibration-full.json
