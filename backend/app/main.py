@@ -3,15 +3,18 @@ from __future__ import annotations
 
 import os
 import json
+import hashlib
 import tempfile
 import uuid
 import datetime as dt
 import mimetypes
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from fastapi import (
     BackgroundTasks,
+    Body,
     Depends,
     FastAPI,
     File,
@@ -22,12 +25,13 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
     acceptance_pack, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
-    llm, models, overlay, vlm,
+    disinfection_annotations, llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
 from .business_contract import normalize_new_source_type
@@ -91,6 +95,155 @@ app.add_middleware(
 
 # 静态托管上传的图片
 app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploads")
+
+
+def _annotation_dict(row: models.DisinfectionAnnotation) -> dict:
+    return {
+        "id": row.id,
+        "batch_id": row.batch_id,
+        "filename": Path(row.annotated_image_path).name,
+        "image_url": f"/api/disinfection-annotations/{row.id}/image",
+        "source_type": row.source_type,
+        "product_category": row.product_category,
+        "project_key": row.project_key,
+        "page_role": row.page_role,
+        "sequence_index": row.sequence_index,
+        "canvas_width": row.canvas_width,
+        "canvas_height": row.canvas_height,
+        "orientation": row.orientation,
+        "regions": json.loads(row.regions_json or "[]"),
+        "warnings": json.loads(row.warnings_json or "[]"),
+        "status": row.status,
+        "dataset_split": row.dataset_split,
+        "reviewer": row.reviewer,
+        "reviewed_at": row.reviewed_at,
+        "annotation_version": row.annotation_version,
+    }
+
+
+@app.get("/api/disinfection-annotations")
+def list_disinfection_annotations(
+    status: str = "",
+    db: Session = Depends(get_db),
+) -> dict:
+    query = db.query(models.DisinfectionAnnotation)
+    if status:
+        query = query.filter(models.DisinfectionAnnotation.status == status)
+    rows = query.order_by(models.DisinfectionAnnotation.id).all()
+    counts = dict(
+        db.query(models.DisinfectionAnnotation.status, func.count(models.DisinfectionAnnotation.id))
+        .group_by(models.DisinfectionAnnotation.status)
+        .all()
+    )
+    return {"items": [_annotation_dict(row) for row in rows], "counts": counts, "total": len(rows)}
+
+
+@app.get("/api/disinfection-annotations/{annotation_id}/image")
+def get_disinfection_annotation_image(
+    annotation_id: int,
+    db: Session = Depends(get_db),
+):
+    row = db.get(models.DisinfectionAnnotation, annotation_id)
+    if not row:
+        raise HTTPException(404, "annotation not found")
+    path = Path(row.annotated_image_path).resolve()
+    allowed = (Path(__file__).resolve().parents[2] / "Untitled").resolve()
+    if allowed not in path.parents or not path.is_file():
+        raise HTTPException(404, "annotation image unavailable")
+    return FileResponse(path)
+
+
+@app.patch("/api/disinfection-annotations/{annotation_id}")
+def update_disinfection_annotation(
+    annotation_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+) -> dict:
+    row = db.get(models.DisinfectionAnnotation, annotation_id)
+    if not row:
+        raise HTTPException(404, "annotation not found")
+    regions = payload.get("regions", json.loads(row.regions_json or "[]"))
+    allowed_types = set(disinfection_annotations.COLOR_TYPES.values())
+    for region in regions:
+        if region.get("type") not in allowed_types:
+            raise HTTPException(422, f"invalid region type: {region.get('type')}")
+        for key in ("x", "y", "width", "height"):
+            value = float(region.get(key, -1))
+            if value < 0 or value > 1:
+                raise HTTPException(422, f"{key} must be normalized")
+        if float(region["x"]) + float(region["width"]) > 1.000001 or float(region["y"]) + float(region["height"]) > 1.000001:
+            raise HTTPException(422, "region exceeds canvas")
+    snapshot = _annotation_dict(row)
+    row.annotation_version += 1
+    row.regions_json = json.dumps(regions, ensure_ascii=False)
+    for field in ("project_key", "page_role", "sequence_index", "reviewer"):
+        if field in payload:
+            setattr(row, field, payload[field])
+    if row.status == "verified":
+        row.status = "pending_review"
+        row.dataset_split = ""
+    db.add(models.DisinfectionAnnotationVersion(
+        annotation_id=row.id,
+        version=row.annotation_version,
+        payload_json=json.dumps(snapshot, ensure_ascii=False, default=str),
+        source="manual",
+        editor=str(payload.get("reviewer") or row.reviewer),
+    ))
+    db.commit()
+    db.refresh(row)
+    return _annotation_dict(row)
+
+
+@app.post("/api/disinfection-annotations/{annotation_id}/verify")
+def verify_disinfection_annotation(
+    annotation_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+) -> dict:
+    row = db.get(models.DisinfectionAnnotation, annotation_id)
+    if not row:
+        raise HTTPException(404, "annotation not found")
+    reviewer = str(payload.get("reviewer") or "").strip()
+    if not reviewer:
+        raise HTTPException(422, "reviewer is required")
+    if row.source_type != "company_published":
+        raise HTTPException(422, "only company_published evidence can be verified")
+    row.reviewer = reviewer
+    row.status = "verified"
+    row.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    # Deterministic project-level split. Holdout is never selected as few-shot.
+    split_key = row.project_key or f"unassigned:{row.id}"
+    row.dataset_split = "holdout" if int(hashlib.sha256(split_key.encode()).hexdigest()[:8], 16) % 5 == 0 else "calibration"
+    row.annotation_version += 1
+    db.add(models.DisinfectionAnnotationVersion(
+        annotation_id=row.id,
+        version=row.annotation_version,
+        payload_json=json.dumps(_annotation_dict(row), ensure_ascii=False, default=str),
+        source="verify",
+        editor=reviewer,
+    ))
+    db.commit()
+    db.refresh(row)
+    return _annotation_dict(row)
+
+
+@app.get("/api/disinfection-annotations/report/summary")
+def disinfection_annotation_summary(db: Session = Depends(get_db)) -> dict:
+    rows = db.query(models.DisinfectionAnnotation).all()
+    verified = [row for row in rows if row.status == "verified" and row.source_type == "company_published"]
+    region_counts: Counter[str] = Counter()
+    for row in verified:
+        region_counts.update(region["type"] for region in json.loads(row.regions_json or "[]"))
+    return {
+        "status": "ready" if len(verified) >= 5 and any(row.dataset_split == "holdout" for row in verified) else "not_ready",
+        "total": len(rows),
+        "pending_review": sum(row.status == "pending_review" for row in rows),
+        "verified": len(verified),
+        "calibration": sum(row.dataset_split == "calibration" for row in verified),
+        "holdout": sum(row.dataset_split == "holdout" for row in verified),
+        "verified_region_counts": dict(region_counts),
+        "message": "Only human-verified company_published annotations are counted as learning evidence.",
+    }
 
 
 @app.on_event("startup")
