@@ -22,6 +22,7 @@ from . import config, crud, imagehash, models
 from .agents import run_pipeline
 from .business_contract import normalize_new_source_type
 from .database import SessionLocal
+from .provider_availability import CallPolicy, is_real_model_success, run_preflight
 
 _db_write_lock = threading.Lock()  # 串行化 DB 写入，规避 SQLite 锁竞争
 
@@ -61,6 +62,35 @@ def create_batch(
         db.commit()
     finally:
         db.close()
+    if enable_vlm and config.vlm_enabled():
+        sample_path = Path(normalized_items[0]["path"]) if normalized_items else None
+        preflight = run_preflight(
+            sample_path,
+            policy=CallPolicy(
+                connect_timeout=config.VISION_CONNECT_TIMEOUT,
+                read_timeout=config.VISION_READ_TIMEOUT,
+                max_retries=1,
+            ),
+        )
+        if preflight["status"] != "ready":
+            db = SessionLocal()
+            try:
+                job = db.get(models.BatchImportJob, batch_id)
+                if job:
+                    job.status = "blocked"
+                    job.finished_at = _now()
+                    job.errors = json.dumps(
+                        [{
+                            "task_status": "blocked_by_provider_availability",
+                            "error_type": preflight.get("block_reason", ""),
+                            "recovery": "检查模型控制台、部署点、配额和网络后重新运行preflight",
+                        }],
+                        ensure_ascii=False,
+                    )
+                    db.commit()
+            finally:
+                db.close()
+            return batch_id
     if background:
         threading.Thread(
             target=_run,
@@ -269,7 +299,7 @@ def _run(
                         ids = json.loads(job.case_ids or "[]")
                         ids.append(cid)
                         job.case_ids = json.dumps(ids)
-                        if result.analyzed_by in ("", "启发式规则"):
+                        if not is_real_model_success(result.analyzed_by):
                             job.fallback = (getattr(job, "fallback", 0) or 0) + 1
                     wdb.commit()
                 except Exception:

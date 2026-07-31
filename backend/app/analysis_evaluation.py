@@ -15,6 +15,7 @@ DATASET_STATES = (
     "draft",
     "gt_ready",
     "calibration_active",
+    "blocked_by_provider_availability",
     "calibration_passed",
     "version_frozen",
     "holdout_ready",

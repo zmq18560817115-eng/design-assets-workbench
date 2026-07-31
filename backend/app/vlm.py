@@ -14,12 +14,12 @@ import io
 import json
 import re
 
-import httpx
 from PIL import Image
 
 from . import config
 from .asset_categories import category_focus, category_label, normalize_category
 from .layout_blueprint import MODULE_TYPE_ORDER
+from .provider_availability import CallPolicy, guarded_chat_request
 
 
 def _model_image_payload(
@@ -204,19 +204,15 @@ def analyze_image_with_trace(
     }
     if max_tokens is not None:
         payload["max_tokens"] = max_tokens
-    headers = {
-        "Authorization": f"Bearer {config.VISION_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    base = (config.VISION_BASE_URL or "https://api.openai.com/v1").rstrip("/")
-    url = f"{base}/chat/completions"
-
-    with httpx.Client(
-        trust_env=config.VISION_TRUST_ENV, timeout=timeout_seconds
-    ) as client:
-        resp = client.post(url, json=payload, headers=headers)
-    resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
+    response = guarded_chat_request(
+        payload,
+        policy=CallPolicy(
+            connect_timeout=min(config.VISION_CONNECT_TIMEOUT, timeout_seconds),
+            read_timeout=timeout_seconds,
+            max_retries=config.VISION_MAX_RETRIES,
+        ),
+    )
+    content = response["body"]["choices"][0]["message"]["content"]
     return _extract_json(content), content
 
 
@@ -258,22 +254,17 @@ def suggest_asset_category(
         ],
         "temperature": 0.1,
     }
-    headers = {
-        "Authorization": f"Bearer {config.VISION_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    base = (config.VISION_BASE_URL or "https://api.openai.com/v1").rstrip("/")
-    with httpx.Client(
-        trust_env=config.VISION_TRUST_ENV,
-        timeout=timeout_seconds,
-    ) as client:
-        resp = client.post(
-            f"{base}/chat/completions",
-            json=payload,
-            headers=headers,
-        )
-    resp.raise_for_status()
-    result = _extract_json(resp.json()["choices"][0]["message"]["content"])
+    response = guarded_chat_request(
+        payload,
+        policy=CallPolicy(
+            connect_timeout=min(config.VISION_CONNECT_TIMEOUT, timeout_seconds),
+            read_timeout=timeout_seconds,
+            max_retries=config.VISION_MAX_RETRIES,
+        ),
+    )
+    result = _extract_json(
+        response["body"]["choices"][0]["message"]["content"]
+    )
     raw_category = str(result.get("category") or "").strip()
     if raw_category not in {"layout", "style", "color", "photo"}:
         raise ValueError("模型未返回有效素材类别")

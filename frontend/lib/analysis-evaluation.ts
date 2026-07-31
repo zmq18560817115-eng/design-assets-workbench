@@ -1,5 +1,5 @@
 export type DatasetState =
-  | "draft" | "gt_ready" | "calibration_active" | "calibration_passed"
+  | "draft" | "gt_ready" | "calibration_active" | "blocked_by_provider_availability" | "calibration_passed"
   | "version_frozen" | "holdout_ready" | "holdout_running"
   | "passed" | "failed" | "consumed";
 

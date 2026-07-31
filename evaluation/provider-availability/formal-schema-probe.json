@@ -1,0 +1,105 @@
+{
+  "report_kind": "provider_availability_preflight",
+  "generated_at": "2026-07-31T10:02:06.966766+00:00",
+  "status": "blocked_by_provider_availability",
+  "requested_smoke_count": 1,
+  "completed_smoke_count": 0,
+  "calibration_batch_executed": false,
+  "holdout_executed": false,
+  "sample_split": "calibration",
+  "runs": [
+    {
+      "checked_at": "2026-07-31T09:57:02.504757+00:00",
+      "status": "blocked_by_provider_availability",
+      "configuration": {
+        "provider": "volcengine",
+        "api_key": "configured",
+        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+        "region": "cn-beijing",
+        "model": "ep-20260727140608-zgwnq",
+        "model_configured": true,
+        "trust_environment_proxy": false,
+        "environment_sources": [
+          "C:\\Users\\bu\\设计灵感资产库_Phase1_初步建设源码\\design-assets-workbench\\.env",
+          "C:\\Users\\bu\\设计灵感资产库_Phase1_初步建设源码\\design-assets-workbench\\backend\\.env"
+        ],
+        "timeouts": {
+          "connect_seconds": 10.0,
+          "read_seconds": 120.0
+        },
+        "max_retries": 2,
+        "batch_concurrency": 1,
+        "image_encoding": "base64 data URI; JPEG after bounded resize",
+        "max_tokens": 1400
+      },
+      "network": {
+        "checked_at": "2026-07-31T09:57:02.504757+00:00",
+        "host": "ark.cn-beijing.volces.com",
+        "port": 443,
+        "dns": "success",
+        "tcp_tls": "success",
+        "elapsed_ms": 114,
+        "error_type": "",
+        "exception_type": "",
+        "resolved_address_count": 1,
+        "tls_version": "TLSv1.3"
+      },
+      "minimal_text": {
+        "status": "success",
+        "http_status": 200,
+        "provider_error_code": "",
+        "request_id": "0217854918225956bc07008344feaee43478f55fd03b6b43e9d9a",
+        "connect_ms": null,
+        "first_byte_ms": 4607,
+        "total_ms": 4676,
+        "attempt_count": 1,
+        "attempts": [],
+        "entered_provider": true
+      },
+      "minimal_image": {
+        "status": "success",
+        "encoded_image_bytes": 54352,
+        "http_status": 200,
+        "provider_error_code": "",
+        "request_id": "02178549182724274362bddaa0737e4d4745c12c1558f84fab7d4",
+        "connect_ms": null,
+        "first_byte_ms": 58154,
+        "total_ms": 58167,
+        "attempt_count": 1,
+        "attempts": [],
+        "entered_provider": true
+      },
+      "formal_schema": {
+        "status": "failed",
+        "error_type": "read_timeout",
+        "http_status": null,
+        "provider_error_code": "",
+        "request_id": "",
+        "entered_provider": true,
+        "message": "The read operation timed out",
+        "attempts": [
+          {
+            "attempt": 1,
+            "error_type": "read_timeout",
+            "http_status": null,
+            "provider_error_code": "",
+            "request_id": "",
+            "elapsed_ms": 120224
+          },
+          {
+            "attempt": 2,
+            "error_type": "read_timeout",
+            "http_status": null,
+            "provider_error_code": "",
+            "request_id": "",
+            "elapsed_ms": 120210
+          }
+        ],
+        "result_persisted_as_verified": false
+      },
+      "holdout_executed": false,
+      "block_reason": "read_timeout",
+      "sequence": 1
+    }
+  ]
+}

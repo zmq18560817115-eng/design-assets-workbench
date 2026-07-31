@@ -40,6 +40,10 @@ VISION_TRUST_ENV = os.getenv("VISION_TRUST_ENV", "false").lower() in {
     "true",
     "yes",
 }
+VISION_CONNECT_TIMEOUT = float(os.getenv("VISION_CONNECT_TIMEOUT", "10"))
+VISION_READ_TIMEOUT = float(os.getenv("VISION_READ_TIMEOUT", "120"))
+VISION_MAX_RETRIES = max(0, min(int(os.getenv("VISION_MAX_RETRIES", "2")), 2))
+VISION_MAX_TOKENS = max(8, int(os.getenv("VISION_MAX_TOKENS", "1400")))
 
 
 def vlm_enabled() -> bool:
@@ -89,9 +93,9 @@ CORS_ORIGINS = os.getenv(
 
 # 批量拆解并发数（每个 worker 独立调模型；SQLite 建议 2~4）
 try:
-    BATCH_CONCURRENCY = max(1, int(os.getenv("BATCH_CONCURRENCY", "3")))
+    BATCH_CONCURRENCY = max(1, int(os.getenv("BATCH_CONCURRENCY", "1")))
 except ValueError:
-    BATCH_CONCURRENCY = 3
+    BATCH_CONCURRENCY = 1
 
 # Task 5 capability remains off until a real acceptance dataset passes every gate.
 ENABLE_LAYOUT_DIRECTIONS = os.getenv(

@@ -1,0 +1,80 @@
+{
+  "report_kind": "provider_availability_preflight",
+  "generated_at": "2026-07-31T09:56:14.438854+00:00",
+  "status": "ready",
+  "requested_smoke_count": 1,
+  "completed_smoke_count": 1,
+  "calibration_batch_executed": false,
+  "holdout_executed": false,
+  "sample_split": "calibration",
+  "runs": [
+    {
+      "checked_at": "2026-07-31T09:55:41.624002+00:00",
+      "status": "ready",
+      "configuration": {
+        "provider": "volcengine",
+        "api_key": "configured",
+        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+        "region": "cn-beijing",
+        "model": "ep-20260727140608-zgwnq",
+        "model_configured": true,
+        "trust_environment_proxy": false,
+        "environment_sources": [
+          "C:\\Users\\bu\\设计灵感资产库_Phase1_初步建设源码\\design-assets-workbench\\.env",
+          "C:\\Users\\bu\\设计灵感资产库_Phase1_初步建设源码\\design-assets-workbench\\backend\\.env"
+        ],
+        "timeouts": {
+          "connect_seconds": 10.0,
+          "read_seconds": 120.0
+        },
+        "max_retries": 2,
+        "batch_concurrency": 1,
+        "image_encoding": "base64 data URI; JPEG after bounded resize",
+        "max_tokens": 1400
+      },
+      "network": {
+        "checked_at": "2026-07-31T09:55:41.624002+00:00",
+        "host": "ark.cn-beijing.volces.com",
+        "port": 443,
+        "dns": "success",
+        "tcp_tls": "success",
+        "elapsed_ms": 148,
+        "error_type": "",
+        "exception_type": "",
+        "resolved_address_count": 1,
+        "tls_version": "TLSv1.3"
+      },
+      "minimal_text": {
+        "status": "success",
+        "http_status": 200,
+        "provider_error_code": "",
+        "request_id": "0217854917418003b2b0407ffd677ecb32e5e07988358b9bec062",
+        "connect_ms": null,
+        "first_byte_ms": 2885,
+        "total_ms": 2998,
+        "attempt_count": 1,
+        "attempts": [],
+        "entered_provider": true
+      },
+      "minimal_image": {
+        "status": "success",
+        "encoded_image_bytes": 54352,
+        "http_status": 200,
+        "provider_error_code": "",
+        "request_id": "021785491744743b5b9ce5b00a712e1e9ea0ccc356a2f77915411",
+        "connect_ms": null,
+        "first_byte_ms": 29607,
+        "total_ms": 29620,
+        "attempt_count": 1,
+        "attempts": [],
+        "entered_provider": true
+      },
+      "formal_schema": {
+        "status": "not_run"
+      },
+      "holdout_executed": false,
+      "block_reason": "",
+      "sequence": 1
+    }
+  ]
+}

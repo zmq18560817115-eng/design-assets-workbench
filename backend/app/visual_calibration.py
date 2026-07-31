@@ -13,6 +13,7 @@ from PIL import Image
 import httpx
 
 from . import config, vlm
+from .provider_availability import ProviderCallError
 from .layout_blueprint import MODULE_TYPE_ORDER
 
 
@@ -29,6 +30,11 @@ ERROR_CODES = {
     "MODEL_TIMEOUT",
     "MODEL_PROVIDER_ERROR",
     "UNKNOWN_ANALYSIS_ERROR",
+    "dns_error", "tls_error", "connect_timeout", "read_timeout",
+    "authentication_error", "permission_error", "endpoint_not_found",
+    "model_not_found", "rate_limited", "quota_exceeded",
+    "payload_too_large", "invalid_request", "provider_5xx",
+    "invalid_json", "schema_validation_failed", "unknown_provider_error",
 }
 
 DEFAULT_THRESHOLDS = {
@@ -51,6 +57,22 @@ CALIBRATION_GATES = {
     "timeout_rate_max": 0.05,
     "severe_regression_count_max": 0,
 }
+
+
+def resume_calibration_assets(
+    assets: list[dict[str, Any]], existing_report: dict[str, Any]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Return pending assets and only genuine completed model rows."""
+    completed_rows = [
+        row for row in existing_report.get("runs", [])
+        if row.get("run_status") == "completed"
+        and not row.get("fallback", False)
+    ]
+    completed_ids = {row["asset_id"] for row in completed_rows}
+    return (
+        [item for item in assets if item["asset_id"] not in completed_ids],
+        completed_rows,
+    )
 
 CALIBRATION_OUTPUT_PROMPT = """
 分析这张消毒柜公司成品图的真实排版，仅返回一个 JSON 对象：
@@ -475,8 +497,10 @@ def run_model_once(
 
 
 def classify_exception(error: Exception) -> str:
+    if isinstance(error, ProviderCallError):
+        return error.error_type
     if isinstance(error, (httpx.TimeoutException, TimeoutError)):
-        return "MODEL_TIMEOUT"
+        return "read_timeout"
     if isinstance(error, (httpx.HTTPError, ConnectionError)):
         return "MODEL_PROVIDER_ERROR"
     if isinstance(error, (json.JSONDecodeError, KeyError, TypeError, ValueError)):
