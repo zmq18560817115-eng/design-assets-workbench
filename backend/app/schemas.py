@@ -437,6 +437,50 @@ class LayoutSearchDatasetCreate(BaseModel):
     created_by: str = Field(min_length=1, max_length=120)
 
 
+class AnalysisDatasetCreate(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=180)
+    product_category: str = ""
+    description: str = ""
+    created_by: str = Field(min_length=1, max_length=120)
+
+
+class AnalysisDatasetItemUpsert(BaseModel):
+    case_id: int = Field(ge=1)
+    dataset_split: Literal["calibration", "holdout"]
+    reviewer: str = ""
+    reason: str = ""
+
+
+class AnalysisGroundTruthUpdate(BaseModel):
+    has_product: bool
+    product_regions: list[NormalizedRegion] = Field(default_factory=list)
+    primary_text_regions: list[NormalizedRegion] = Field(default_factory=list)
+    modules: list[LayoutModule] = Field(default_factory=list)
+    containment: list[dict[str, str]] = Field(default_factory=list)
+    allowed_overlaps: list[list[str]] = Field(default_factory=list)
+    reviewer: str = Field(min_length=1, max_length=120)
+    reason: str = Field(min_length=1)
+
+
+class AnalysisRuntimeVersionCreate(BaseModel):
+    model_name: str = Field(min_length=1, max_length=160)
+    model_provider: str = Field(min_length=1, max_length=80)
+    prompt_version: str = Field(min_length=1, max_length=80)
+    prompt_text: str = ""
+    validator_version: str = Field(min_length=1, max_length=80)
+    validator_config: dict[str, Any] = Field(default_factory=dict)
+    created_by: str = Field(min_length=1, max_length=120)
+
+
+class AnalysisEvaluationRunCreate(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    dataset_split: Literal["calibration", "holdout"]
+    runtime_version_id: int = Field(ge=1)
+    created_by: str = Field(min_length=1, max_length=120)
+    confirm_consume_holdout: bool = False
+
+
 class BusinessRequirementCreate(BaseModel):
     title: str = Field(min_length=1, max_length=180)
     request_text: str = ""

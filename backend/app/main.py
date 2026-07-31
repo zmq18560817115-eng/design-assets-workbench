@@ -19,6 +19,7 @@ from fastapi import (
     HTTPException,
     Response,
     UploadFile,
+    Header,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -26,7 +27,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    acceptance_pack, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
+    acceptance_pack, analysis_evaluation, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
     llm, models, overlay, vlm,
 )
 from .asset_categories import category_focus, category_label, normalize_category
@@ -60,6 +61,10 @@ from .schemas import (
     LayoutSearchGroundTruthUpdate,
     LayoutSearchEvaluationRunInput,
     LayoutSearchDatasetCreate,
+    AnalysisDatasetCreate,
+    AnalysisDatasetItemUpsert,
+    AnalysisGroundTruthUpdate,
+    AnalysisRuntimeVersionCreate,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -138,6 +143,130 @@ def health() -> dict:
         "llm_enabled": config.llm_enabled(),
         "llm_model": config.LLM_MODEL if config.llm_enabled() else "",
     }
+
+
+def _require_admin(x_workbench_role: str = Header(default="designer")) -> str:
+    """Temporary centralized role seam; replace with real auth when available."""
+    if x_workbench_role != "admin":
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+    return x_workbench_role
+
+
+@app.get("/api/analysis-evaluation/datasets")
+def list_analysis_datasets(
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    rows = (
+        db.query(models.AnalysisEvaluationDataset)
+        .order_by(models.AnalysisEvaluationDataset.created_at.desc())
+        .all()
+    )
+    return [analysis_evaluation.dataset_detail(db, row, admin=True) for row in rows]
+
+
+@app.post("/api/analysis-evaluation/datasets")
+def create_analysis_dataset(
+    payload: AnalysisDatasetCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        row = analysis_evaluation.create_dataset(db, payload.model_dump())
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.dataset_detail(db, row, admin=True)
+
+
+@app.get("/api/analysis-evaluation/datasets/{dataset_version}")
+def get_analysis_dataset(
+    dataset_version: str,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        row = analysis_evaluation.dataset_or_error(db, dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return analysis_evaluation.dataset_detail(db, row, admin=True)
+
+
+@app.post("/api/analysis-evaluation/datasets/{dataset_version}/items")
+def assign_analysis_dataset_item(
+    dataset_version: str,
+    payload: AnalysisDatasetItemUpsert,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, dataset_version)
+        row = analysis_evaluation.assign_item(db, dataset, payload.model_dump())
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.serialize_item(row, include_ground_truth=False)
+
+
+@app.put("/api/analysis-evaluation/datasets/{dataset_version}/items/{item_id}/ground-truth")
+def update_analysis_ground_truth(
+    dataset_version: str,
+    item_id: int,
+    payload: AnalysisGroundTruthUpdate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    item = db.get(models.AnalysisEvaluationItem, item_id)
+    if not item or item.dataset_id != dataset.id:
+        raise HTTPException(status_code=404, detail="数据集条目不存在")
+    try:
+        row = analysis_evaluation.save_ground_truth(
+            db, dataset, item, payload.model_dump(mode="json")
+        )
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.serialize_item(row, include_ground_truth=True)
+
+
+@app.get("/api/analysis-evaluation/public-summary")
+def analysis_evaluation_public_summary(db: Session = Depends(get_db)):
+    """Designer-safe endpoint: never returns holdout labels or ground truth."""
+    rows = db.query(models.AnalysisEvaluationDataset).all()
+    return [
+        analysis_evaluation.dataset_detail(db, row, admin=False) for row in rows
+    ]
+
+
+@app.get("/api/analysis-versions")
+def list_analysis_versions(
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    rows = (
+        db.query(models.AnalysisRuntimeVersion)
+        .order_by(models.AnalysisRuntimeVersion.created_at.desc())
+        .all()
+    )
+    return [
+        analysis_evaluation.runtime_to_dict(row, technical=True) for row in rows
+    ]
+
+
+@app.post("/api/analysis-versions")
+def create_analysis_version(
+    payload: AnalysisRuntimeVersionCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        row = analysis_evaluation.create_runtime(db, payload.model_dump())
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.runtime_to_dict(row, technical=True)
 
 
 @app.post("/api/analyze", response_model=CaseOut)
