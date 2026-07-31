@@ -1,0 +1,3522 @@
+{
+  "manifest_version": "untitled1-visual-calibration-v1",
+  "source_directory": "消毒柜",
+  "source_alias": "消毒柜 (Untitled1 export alias)",
+  "generated_at": "2026-07-31T09:18:00.971379+00:00",
+  "product_category": "消毒柜",
+  "total_scanned": 56,
+  "verified_count": 30,
+  "split_counts": {
+    "calibration": 24,
+    "holdout": 6,
+    "unassigned": 26
+  },
+  "holdout_sealed": true,
+  "holdout_ground_truth_included": false,
+  "assets": [
+    {
+      "asset_id": "untitled1-11b5153fd674f9a1",
+      "filename": "Group 1.png",
+      "relative_path": "消毒柜/Group 1.png",
+      "sha256": "11b5153fd674f9a1ded1a81a5d5843bbc9b10a0ba5f08ddfb85669a77e69eafc",
+      "perceptual_hash": "000000008000c007c7efffffffffbfff3fff17fe07fe07fe079f47fcf8000000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双产品展示-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (9).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-11b5153fd674f9a1",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.123302,
+              "y": 0.379688,
+              "width": 0.495298,
+              "height": 0.457813
+            },
+            "pixels": {
+              "x": 118,
+              "y": 486,
+              "width": 474,
+              "height": 586
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.609195,
+              "y": 0.452344,
+              "width": 0.318704,
+              "height": 0.319531
+            },
+            "pixels": {
+              "x": 583,
+              "y": 579,
+              "width": 305,
+              "height": 409
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.123302,
+              "y": 0.120313,
+              "width": 0.664577,
+              "height": 0.139844
+            },
+            "pixels": {
+              "x": 118,
+              "y": 154,
+              "width": 636,
+              "height": 179
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.098224,
+              "y": 0.101562,
+              "width": 0.714734,
+              "height": 0.173437
+            },
+            "pixels": {
+              "x": 94,
+              "y": 130,
+              "width": 684,
+              "height": 222
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.055381,
+              "y": 0.296875,
+              "width": 0.893417,
+              "height": 0.604688
+            },
+            "pixels": {
+              "x": 53,
+              "y": 380,
+              "width": 855,
+              "height": 774
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-ae595e807d3ca089",
+      "filename": "Group 10.png",
+      "relative_path": "消毒柜/Group 10.png",
+      "sha256": "ae595e807d3ca0895eb627af0372cd0282efed55a5e907c0f8d5465cc7df4c94",
+      "perceptual_hash": "fffff04ff063f8fdf8f90000f821f8a10cbe0fbe0fbe0fbe7fbe7fbe7fbe0000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-顶部机型参数对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (16).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-ae595e807d3ca089",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "manual-3",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.32,
+              "y": 0.15,
+              "width": 0.22,
+              "height": 0.18
+            },
+            "pixels": {
+              "x": 306,
+              "y": 192,
+              "width": 211,
+              "height": 230
+            }
+          },
+          {
+            "id": "manual-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.69,
+              "y": 0.15,
+              "width": 0.22,
+              "height": 0.18
+            },
+            "pixels": {
+              "x": 660,
+              "y": 192,
+              "width": 211,
+              "height": 230
+            }
+          },
+          {
+            "id": "manual-6",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.32,
+              "y": 0.35,
+              "width": 0.22,
+              "height": 0.14
+            },
+            "pixels": {
+              "x": 306,
+              "y": 448,
+              "width": 211,
+              "height": 179
+            }
+          },
+          {
+            "id": "manual-7",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.69,
+              "y": 0.35,
+              "width": 0.22,
+              "height": 0.14
+            },
+            "pixels": {
+              "x": 660,
+              "y": 448,
+              "width": 211,
+              "height": 179
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "manual-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.105,
+              "y": 0.078,
+              "width": 0.74,
+              "height": 0.085
+            },
+            "pixels": {
+              "x": 100,
+              "y": 100,
+              "width": 708,
+              "height": 109
+            }
+          },
+          {
+            "id": "manual-8",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.04,
+              "y": 0.5,
+              "width": 0.92,
+              "height": 0.48
+            },
+            "pixels": {
+              "x": 38,
+              "y": 640,
+              "width": 880,
+              "height": 614
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "manual-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.005,
+              "y": 0.078,
+              "width": 0.978,
+              "height": 0.255
+            },
+            "pixels": {
+              "x": 5,
+              "y": 100,
+              "width": 936,
+              "height": 326
+            }
+          },
+          {
+            "id": "manual-5",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.01,
+              "y": 0.337,
+              "width": 0.978,
+              "height": 0.653
+            },
+            "pixels": {
+              "x": 10,
+              "y": 431,
+              "width": 936,
+              "height": 836
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-70ef21d06ef89fba",
+      "filename": "Group 11.png",
+      "relative_path": "消毒柜/Group 11.png",
+      "sha256": "70ef21d06ef89fba09f3784d3dea7f9a828c978bed41798beaf7633e2f39a921",
+      "perceptual_hash": "ffff7fff7fff3c437f837ff163017e007e007e007e0080000000ff7dff7dff78",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双产品推荐对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (15).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-70ef21d06ef89fba",
+        "canvas": {
+          "width": 960,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.502083,
+              "y": 0.296875,
+              "width": 0.439583,
+              "height": 0.410156
+            },
+            "pixels": {
+              "x": 482,
+              "y": 380,
+              "width": 422,
+              "height": 525
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.061458,
+              "y": 0.335938,
+              "width": 0.45,
+              "height": 0.360156
+            },
+            "pixels": {
+              "x": 59,
+              "y": 430,
+              "width": 432,
+              "height": 461
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.041667,
+              "y": 0.076563,
+              "width": 0.484375,
+              "height": 0.105469
+            },
+            "pixels": {
+              "x": 40,
+              "y": 98,
+              "width": 465,
+              "height": 135
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.376042,
+              "y": 0.201563,
+              "width": 0.528125,
+              "height": 0.086719
+            },
+            "pixels": {
+              "x": 361,
+              "y": 258,
+              "width": 507,
+              "height": 111
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.013542,
+              "y": 0.065625,
+              "width": 0.975,
+              "height": 0.123438
+            },
+            "pixels": {
+              "x": 13,
+              "y": 84,
+              "width": 936,
+              "height": 158
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.013542,
+              "y": 0.182812,
+              "width": 0.975,
+              "height": 0.620313
+            },
+            "pixels": {
+              "x": 13,
+              "y": 234,
+              "width": 936,
+              "height": 794
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-ffd630c685fd89e9",
+      "filename": "Group 12.png",
+      "relative_path": "消毒柜/Group 12.png",
+      "sha256": "ffd630c685fd89e941fd4c891685898ac8681b7e1767013dfd1ddce7c9f47d01",
+      "perceptual_hash": "ffff00007ffeffffffff04010400040004014f02702efffeffdefffefcfe7c1e",
+      "width": 961,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-UVC原理说明-01",
+      "annotation_status": "verified",
+      "dataset_split": "holdout",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (15).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-c4eff94932294948",
+      "filename": "Group 13.png",
+      "relative_path": "消毒柜/Group 13.png",
+      "sha256": "c4eff94932294948e1a88bfa835fede6d44b98a7aa998bcffe9aed8142e6dc85",
+      "perceptual_hash": "803f243f803f843fadbfc039c61c8f8cffff007f003f80ffc003c039c181c063",
+      "width": 961,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-消毒效果对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (14).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-c4eff94932294948",
+        "canvas": {
+          "width": 961,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-2",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.031217,
+              "y": 0.035156,
+              "width": 0.611863,
+              "height": 0.447656
+            },
+            "pixels": {
+              "x": 30,
+              "y": 45,
+              "width": 588,
+              "height": 573
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.006243,
+              "y": 0.513281,
+              "width": 0.611863,
+              "height": 0.447656
+            },
+            "pixels": {
+              "x": 6,
+              "y": 657,
+              "width": 588,
+              "height": 573
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-3",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.674298,
+              "y": 0.046094,
+              "width": 0.26847,
+              "height": 0.15
+            },
+            "pixels": {
+              "x": 648,
+              "y": 59,
+              "width": 258,
+              "height": 192
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.674298,
+              "y": 0.560937,
+              "width": 0.26847,
+              "height": 0.15
+            },
+            "pixels": {
+              "x": 648,
+              "y": 718,
+              "width": 258,
+              "height": 192
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.002081,
+              "y": 0.009375,
+              "width": 0.994797,
+              "height": 0.498437
+            },
+            "pixels": {
+              "x": 2,
+              "y": 12,
+              "width": 956,
+              "height": 638
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.500781,
+              "width": 0.994797,
+              "height": 0.473438
+            },
+            "pixels": {
+              "x": 0,
+              "y": 641,
+              "width": 956,
+              "height": 606
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-32d53001099dc6e9",
+      "filename": "Group 14.png",
+      "relative_path": "消毒柜/Group 14.png",
+      "sha256": "32d53001099dc6e949dc787927eecab429688406c9efe84160096109fe205f7f",
+      "perceptual_hash": "ffff000041860000600ee7ffe7fbe7f343c243ca7ffe7ffe7ffe7efe7ffe0000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-参数对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "holdout",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (14).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-2f0df5afebc156df",
+      "filename": "Group 15.png",
+      "relative_path": "消毒柜/Group 15.png",
+      "sha256": "2f0df5afebc156df006d0316780ca390566d3319b40019fef06b931dee0f1175",
+      "perceptual_hash": "8000001e279ecfa789860f92ffffffff0e600e608fdf0fd207c003c007e30e00",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双机内外消毒实测-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (13).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-2f0df5afebc156df",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "manual-3",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.41,
+              "y": 0.14,
+              "width": 0.26,
+              "height": 0.26
+            },
+            "pixels": {
+              "x": 392,
+              "y": 179,
+              "width": 249,
+              "height": 333
+            }
+          },
+          {
+            "id": "manual-6",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.4,
+              "y": 0.61,
+              "width": 0.26,
+              "height": 0.26
+            },
+            "pixels": {
+              "x": 383,
+              "y": 781,
+              "width": 249,
+              "height": 333
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "manual-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.67,
+              "y": 0.07,
+              "width": 0.24,
+              "height": 0.1
+            },
+            "pixels": {
+              "x": 641,
+              "y": 90,
+              "width": 230,
+              "height": 128
+            }
+          },
+          {
+            "id": "manual-5",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.73,
+              "y": 0.6,
+              "width": 0.23,
+              "height": 0.09
+            },
+            "pixels": {
+              "x": 699,
+              "y": 768,
+              "width": 220,
+              "height": 115
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "manual-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.005,
+              "y": 0.04,
+              "width": 0.99,
+              "height": 0.41
+            },
+            "pixels": {
+              "x": 5,
+              "y": 51,
+              "width": 947,
+              "height": 525
+            }
+          },
+          {
+            "id": "manual-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.005,
+              "y": 0.53,
+              "width": 0.99,
+              "height": 0.41
+            },
+            "pixels": {
+              "x": 5,
+              "y": 678,
+              "width": 947,
+              "height": 525
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-2d441f6a3d3fbe12",
+      "filename": "Group 16.png",
+      "relative_path": "消毒柜/Group 16.png",
+      "sha256": "2d441f6a3d3fbe125a8ae0eda424fa96f25b509fc43a24df2a4a44e843f4fc4d",
+      "perceptual_hash": "fffffffffffff3fff7ff61ff67e1e7f8e1f8ee00ce0030003000100001000008",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-灯珠托盘展示-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (13).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-2d441f6a3d3fbe12",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.097179,
+              "y": 0.311719,
+              "width": 0.811912,
+              "height": 0.548438
+            },
+            "pixels": {
+              "x": 93,
+              "y": 399,
+              "width": 777,
+              "height": 702
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.07837,
+              "y": 0.05625,
+              "width": 0.756531,
+              "height": 0.180469
+            },
+            "pixels": {
+              "x": 75,
+              "y": 72,
+              "width": 724,
+              "height": 231
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.052247,
+              "y": 0.0375,
+              "width": 0.893417,
+              "height": 0.235937
+            },
+            "pixels": {
+              "x": 50,
+              "y": 48,
+              "width": 855,
+              "height": 302
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.052247,
+              "y": 0.266406,
+              "width": 0.893417,
+              "height": 0.657813
+            },
+            "pixels": {
+              "x": 50,
+              "y": 341,
+              "width": 855,
+              "height": 842
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-06304221242481ed",
+      "filename": "Group 17.png",
+      "relative_path": "消毒柜/Group 17.png",
+      "sha256": "06304221242481ed82d8301a8242c43a54ebaf1e041d8a764d7298c01ec41997",
+      "perceptual_hash": "f7dffc1fffffffffffffff000100013800000000010001000100ffc2ffffffff",
+      "width": 923,
+      "height": 1214,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-灯珠布局对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (17).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-06304221242481ed",
+        "canvas": {
+          "width": 923,
+          "height": 1214
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.520043,
+              "y": 0.261944,
+              "width": 0.452871,
+              "height": 0.578254
+            },
+            "pixels": {
+              "x": 480,
+              "y": 318,
+              "width": 418,
+              "height": 702
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.016251,
+              "y": 0.275947,
+              "width": 0.452871,
+              "height": 0.578254
+            },
+            "pixels": {
+              "x": 15,
+              "y": 335,
+              "width": 418,
+              "height": 702
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.16143,
+              "y": 0.025535,
+              "width": 0.685807,
+              "height": 0.088138
+            },
+            "pixels": {
+              "x": 149,
+              "y": 31,
+              "width": 633,
+              "height": 107
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.059588,
+              "y": 0.855025,
+              "width": 0.290358,
+              "height": 0.088138
+            },
+            "pixels": {
+              "x": 55,
+              "y": 1038,
+              "width": 268,
+              "height": 107
+            }
+          },
+          {
+            "id": "region-7",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.611051,
+              "y": 0.855025,
+              "width": 0.290358,
+              "height": 0.088138
+            },
+            "pixels": {
+              "x": 564,
+              "y": 1038,
+              "width": 268,
+              "height": 107
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.145179,
+              "y": 0.017298,
+              "width": 0.720477,
+              "height": 0.104613
+            },
+            "pixels": {
+              "x": 134,
+              "y": 21,
+              "width": 665,
+              "height": 127
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.150741,
+              "width": 0.998917,
+              "height": 0.827842
+            },
+            "pixels": {
+              "x": 0,
+              "y": 183,
+              "width": 922,
+              "height": 1005
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-8607c743e3d54fea",
+      "filename": "Group 18.png",
+      "relative_path": "消毒柜/Group 18.png",
+      "sha256": "8607c743e3d54fea3f30da662b83c002d915403713d92ae381e4f5795f95548b",
+      "perceptual_hash": "ffffffffffff7fff23ffff03ff07660741074107632704fe0dff010000010000",
+      "width": 935,
+      "height": 1247,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-3f81f20df6ad7b65",
+      "filename": "Group 19.png",
+      "relative_path": "消毒柜/Group 19.png",
+      "sha256": "3f81f20df6ad7b653cbd071d3814cf972acca15f78c3127329e89fb60822cc8e",
+      "perceptual_hash": "0ffe000000000000026602003fff3ffe3fff3ffe3ffe3fff3fff3ffe3fff0a14",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-四款选购对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280.JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-3f81f20df6ad7b65",
+        "canvas": {
+          "width": 960,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.148958,
+              "y": 0.214062,
+              "width": 0.180208,
+              "height": 0.134375
+            },
+            "pixels": {
+              "x": 143,
+              "y": 274,
+              "width": 173,
+              "height": 172
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.357292,
+              "y": 0.214062,
+              "width": 0.180208,
+              "height": 0.134375
+            },
+            "pixels": {
+              "x": 343,
+              "y": 274,
+              "width": 173,
+              "height": 172
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.580208,
+              "y": 0.214062,
+              "width": 0.180208,
+              "height": 0.134375
+            },
+            "pixels": {
+              "x": 557,
+              "y": 274,
+              "width": 173,
+              "height": 172
+            }
+          },
+          {
+            "id": "region-7",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.794792,
+              "y": 0.214062,
+              "width": 0.180208,
+              "height": 0.134375
+            },
+            "pixels": {
+              "x": 763,
+              "y": 274,
+              "width": 173,
+              "height": 172
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.042708,
+              "y": 0.067187,
+              "width": 0.917708,
+              "height": 0.109375
+            },
+            "pixels": {
+              "x": 41,
+              "y": 86,
+              "width": 881,
+              "height": 140
+            }
+          },
+          {
+            "id": "region-8",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.01875,
+              "y": 0.357812,
+              "width": 0.941667,
+              "height": 0.623437
+            },
+            "pixels": {
+              "x": 18,
+              "y": 458,
+              "width": 904,
+              "height": 798
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.016406,
+              "width": 0.997917,
+              "height": 0.196094
+            },
+            "pixels": {
+              "x": 0,
+              "y": 21,
+              "width": 958,
+              "height": 251
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.002083,
+              "y": 0.197656,
+              "width": 0.996875,
+              "height": 0.801562
+            },
+            "pixels": {
+              "x": 2,
+              "y": 253,
+              "width": 957,
+              "height": 1026
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-d29cfe1f9f0975a1",
+      "filename": "Group 2.png",
+      "relative_path": "消毒柜/Group 2.png",
+      "sha256": "d29cfe1f9f0975a14130d1485d700776239495b402276ce8bb3c6d1f6033cb6d",
+      "perceptual_hash": "80018001bfff8001faf8fafe6efe6c1e060c8000fcfafcfade7e8e6e0e0cffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-4adbf281a1f69685",
+      "filename": "Group 20.png",
+      "relative_path": "消毒柜/Group 20.png",
+      "sha256": "4adbf281a1f696855eef049d6dfe63105869c2945c8326f4e0ae075ee5ad6d60",
+      "perceptual_hash": "ffff91f99918ff98a9ef999891988f91ffff999f998181819d819d8099988181",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-b5e7034be6c4f97f",
+      "filename": "Group 21.png",
+      "relative_path": "消毒柜/Group 21.png",
+      "sha256": "b5e7034be6c4f97f2da0a433074d96cf45131e6925b1e747e82bad1a4e2953d2",
+      "perceptual_hash": "840104008001ce9f868780ff80ffc19fffdfffffffff801f00ff00ff80ffffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-e128c0ad40d614ba",
+      "filename": "Group 22.png",
+      "relative_path": "消毒柜/Group 22.png",
+      "sha256": "e128c0ad40d614ba86e5029efcccf08d0edba9bcc874e75d20484aad45a38a60",
+      "perceptual_hash": "00000000000300001ffe19fe1f1e7fde27de1b0cfe1ce7fccfecf00ce01e001f",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-抹布烘干实测-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (5).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-e128c0ad40d614ba",
+        "canvas": {
+          "width": 960,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.114583,
+              "y": 0.2375,
+              "width": 0.809375,
+              "height": 0.705469
+            },
+            "pixels": {
+              "x": 110,
+              "y": 304,
+              "width": 777,
+              "height": 903
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.064583,
+              "y": 0.090625,
+              "width": 0.859375,
+              "height": 0.088281
+            },
+            "pixels": {
+              "x": 62,
+              "y": 116,
+              "width": 825,
+              "height": 113
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.230208,
+              "y": 0.724219,
+              "width": 0.678125,
+              "height": 0.144531
+            },
+            "pixels": {
+              "x": 221,
+              "y": 927,
+              "width": 651,
+              "height": 185
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.035417,
+              "y": 0.070312,
+              "width": 0.930208,
+              "height": 0.124219
+            },
+            "pixels": {
+              "x": 34,
+              "y": 90,
+              "width": 893,
+              "height": 159
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.035417,
+              "y": 0.1875,
+              "width": 0.930208,
+              "height": 0.798438
+            },
+            "pixels": {
+              "x": 34,
+              "y": 240,
+              "width": 893,
+              "height": 1022
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-e87d34e7b60e5cc5",
+      "filename": "Group 23.png",
+      "relative_path": "消毒柜/Group 23.png",
+      "sha256": "e87d34e7b60e5cc5710157c3bf481e0b3e80922642ea775c50004f45f5db9bf1",
+      "perceptual_hash": "03ff03110001e0bff8fff0ffc0ffc1ffffdfffffffff001d00bf00ff00ffffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-08dd955a7524d900",
+      "filename": "Group 24.png",
+      "relative_path": "消毒柜/Group 24.png",
+      "sha256": "08dd955a7524d9007d2b8b627def30c4f58e92054f047dde322fc241286cfbef",
+      "perceptual_hash": "000000bc03fe03ff83ffcfffffffffff0000000000000718001c1c163def9cf0",
+      "width": 967,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-82eafc7176919080",
+      "filename": "Group 25.png",
+      "relative_path": "消毒柜/Group 25.png",
+      "sha256": "82eafc71769190805127bf5b35b6d8fc9d843b5f85fcc53a182bcaec94e8633b",
+      "perceptual_hash": "fffefffeffffffff3fff183f1800003f039f1e301cc10f870000000000000000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-内外消毒实测-01",
+      "annotation_status": "verified",
+      "dataset_split": "holdout",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (7).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-1336782f59a0d84b",
+      "filename": "Group 26.png",
+      "relative_path": "消毒柜/Group 26.png",
+      "sha256": "1336782f59a0d84bc23b8d3d444f8cdda84fe92fad0bf308a89781ba17a7fe82",
+      "perceptual_hash": "801f00030000000000000000000000003fff3fff3fff3fff3fffffffffffffff",
+      "width": 965,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-人群选择-01",
+      "annotation_status": "verified",
+      "dataset_split": "holdout",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (7).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-f601e2aeced1850d",
+      "filename": "Group 27.png",
+      "relative_path": "消毒柜/Group 27.png",
+      "sha256": "f601e2aeced1850dd05512c5d702ac1a0dd40ceeeafc95eadae72c34b29c2dfc",
+      "perceptual_hash": "0fffffffc003c003ffffffffffb1c181919d8181818901010100ffff0000006f",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双款容量实拍-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (8).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-f601e2aeced1850d",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.058516,
+              "y": 0.33125,
+              "width": 0.438871,
+              "height": 0.440625
+            },
+            "pixels": {
+              "x": 56,
+              "y": 424,
+              "width": 420,
+              "height": 564
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.549634,
+              "y": 0.33125,
+              "width": 0.438871,
+              "height": 0.440625
+            },
+            "pixels": {
+              "x": 526,
+              "y": 424,
+              "width": 420,
+              "height": 564
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.086729,
+              "y": 0.05,
+              "width": 0.819227,
+              "height": 0.208594
+            },
+            "pixels": {
+              "x": 83,
+              "y": 64,
+              "width": 784,
+              "height": 267
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.003135,
+              "y": 0.017969,
+              "width": 0.992685,
+              "height": 0.271875
+            },
+            "pixels": {
+              "x": 3,
+              "y": 23,
+              "width": 950,
+              "height": 348
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.00209,
+              "y": 0.282813,
+              "width": 0.992685,
+              "height": 0.619531
+            },
+            "pixels": {
+              "x": 2,
+              "y": 362,
+              "width": 950,
+              "height": 793
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-0b896588983149e9",
+      "filename": "Group 28.png",
+      "relative_path": "消毒柜/Group 28.png",
+      "sha256": "0b896588983149e9a86027e6e6a531a91f0df229d11155a6d1ef1986d819e3c7",
+      "perceptual_hash": "00001ff80c0000000e000800000003f003f063f00bf063f4031fffffe7ff43ff",
+      "width": 972,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-核心卖点展示-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (8).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-0b896588983149e9",
+        "canvas": {
+          "width": 972,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.307613,
+              "y": 0.425781,
+              "width": 0.478395,
+              "height": 0.380469
+            },
+            "pixels": {
+              "x": 299,
+              "y": 545,
+              "width": 465,
+              "height": 487
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.085391,
+              "y": 0.05,
+              "width": 0.806584,
+              "height": 0.125781
+            },
+            "pixels": {
+              "x": 83,
+              "y": 64,
+              "width": 784,
+              "height": 161
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.092593,
+              "y": 0.216406,
+              "width": 0.806584,
+              "height": 0.150781
+            },
+            "pixels": {
+              "x": 90,
+              "y": 277,
+              "width": 784,
+              "height": 193
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.014403,
+              "y": 0.026562,
+              "width": 0.977366,
+              "height": 0.358594
+            },
+            "pixels": {
+              "x": 14,
+              "y": 34,
+              "width": 950,
+              "height": 459
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.405469,
+              "width": 0.977366,
+              "height": 0.421875
+            },
+            "pixels": {
+              "x": 0,
+              "y": 519,
+              "width": 950,
+              "height": 540
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-8728904be2d597bd",
+      "filename": "Group 29.png",
+      "relative_path": "消毒柜/Group 29.png",
+      "sha256": "8728904be2d597bd23f316799830e6058b827aaf5da023764c4633b2a6601205",
+      "perceptual_hash": "000000003bc83efc00000000000000000000b0287ff87ffcffffffffffff3fff",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-灯珠外消实测-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (4).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-8728904be2d597bd",
+        "canvas": {
+          "width": 960,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.467708,
+              "y": 0.539844,
+              "width": 0.473958,
+              "height": 0.349219
+            },
+            "pixels": {
+              "x": 449,
+              "y": 691,
+              "width": 455,
+              "height": 447
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.042708,
+              "y": 0.121875,
+              "width": 0.898958,
+              "height": 0.124219
+            },
+            "pixels": {
+              "x": 41,
+              "y": 156,
+              "width": 863,
+              "height": 159
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.563542,
+              "y": 0.4625,
+              "width": 0.371875,
+              "height": 0.057031
+            },
+            "pixels": {
+              "x": 541,
+              "y": 592,
+              "width": 357,
+              "height": 73
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.017708,
+              "y": 0.078906,
+              "width": 0.957292,
+              "height": 0.202344
+            },
+            "pixels": {
+              "x": 17,
+              "y": 101,
+              "width": 919,
+              "height": 259
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.017708,
+              "y": 0.274219,
+              "width": 0.957292,
+              "height": 0.703906
+            },
+            "pixels": {
+              "x": 17,
+              "y": 351,
+              "width": 919,
+              "height": 901
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-6eaf7e1722c11a9b",
+      "filename": "Group 3.png",
+      "relative_path": "消毒柜/Group 3.png",
+      "sha256": "6eaf7e1722c11a9b9e64c79e15cd23498c18bf5fa03e25678cc0e51e9c5317c9",
+      "perceptual_hash": "ffff8000000080c0f9c6c1c1ffffffffffffc7e1018003800fc007c001800000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-6e47a2d5bd4676e8",
+      "filename": "Group 30.png",
+      "relative_path": "消毒柜/Group 30.png",
+      "sha256": "6e47a2d5bd4676e8632bb0c49a2bd8c101847cf7963e57fdcbd6d69742850982",
+      "perceptual_hash": "0000799f00007e90fcde7cda5c921cfe7cf278527cd278507c527fde7fde0006",
+      "width": 956,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双款功能对比-02",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/9c4f0f0f-3121-4079-91cc-48e25c40edaa.png",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-6e47a2d5bd4676e8",
+        "canvas": {
+          "width": 956,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.292887,
+              "y": 0.189844,
+              "width": 0.317992,
+              "height": 0.214062
+            },
+            "pixels": {
+              "x": 280,
+              "y": 243,
+              "width": 304,
+              "height": 274
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.653766,
+              "y": 0.203125,
+              "width": 0.317992,
+              "height": 0.214062
+            },
+            "pixels": {
+              "x": 625,
+              "y": 260,
+              "width": 304,
+              "height": 274
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.066946,
+              "y": 0.033594,
+              "width": 0.869247,
+              "height": 0.130469
+            },
+            "pixels": {
+              "x": 64,
+              "y": 43,
+              "width": 831,
+              "height": 167
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.040795,
+              "y": 0.434375,
+              "width": 0.930962,
+              "height": 0.540625
+            },
+            "pixels": {
+              "x": 39,
+              "y": 556,
+              "width": 890,
+              "height": 692
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.011506,
+              "y": 0.019531,
+              "width": 0.979079,
+              "height": 0.158594
+            },
+            "pixels": {
+              "x": 11,
+              "y": 25,
+              "width": 936,
+              "height": 203
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.011506,
+              "y": 0.171094,
+              "width": 0.979079,
+              "height": 0.828125
+            },
+            "pixels": {
+              "x": 11,
+              "y": 219,
+              "width": 936,
+              "height": 1060
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-9e0503e157e2899b",
+      "filename": "Group 31.png",
+      "relative_path": "消毒柜/Group 31.png",
+      "sha256": "9e0503e157e2899b026876e700a2917389d6e0970809496e71b79294062fe43d",
+      "perceptual_hash": "ffffffffc7fdc1ffffe3fff0c000c3fc43e043e007c003c11fc11fd13f00ffff",
+      "width": 959,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-8a63d950d7285ce2",
+      "filename": "Group 32.png",
+      "relative_path": "消毒柜/Group 32.png",
+      "sha256": "8a63d950d7285ce2c8faa9453926a3fa71e4388ca923e22c23e76b36b1102fdb",
+      "perceptual_hash": "ffffc001c0b3d00fffff80018284c7fcc7f8827000007ff660a27fe0fffff81f",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-fb424846e0ec6471",
+      "filename": "Group 33.png",
+      "relative_path": "消毒柜/Group 33.png",
+      "sha256": "fb424846e0ec64711f9e2e5c5c3f990d07b85082a7b83355407cfa4cc8da62f1",
+      "perceptual_hash": "800ff80fffffffffffffffffffffbf0180017f017e017f013e018001ff0deff3",
+      "width": 935,
+      "height": 1247,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-850c6b004fa1dc98",
+      "filename": "Group 34.png",
+      "relative_path": "消毒柜/Group 34.png",
+      "sha256": "850c6b004fa1dc986a047d35b66250cc02a53dfe8de1d8636e634fa3ee3b9ec4",
+      "perceptual_hash": "ffffc007e0078001804263e666e6f673e643c673c26300007e7e7e7e243cffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双款容量对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (19).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-850c6b004fa1dc98",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-7",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.087774,
+              "y": 0.426563,
+              "width": 0.339603,
+              "height": 0.269531
+            },
+            "pixels": {
+              "x": 84,
+              "y": 546,
+              "width": 325,
+              "height": 345
+            }
+          },
+          {
+            "id": "region-8",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.570533,
+              "y": 0.426563,
+              "width": 0.339603,
+              "height": 0.269531
+            },
+            "pixels": {
+              "x": 546,
+              "y": 546,
+              "width": 325,
+              "height": 345
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.138976,
+              "y": 0.110937,
+              "width": 0.725183,
+              "height": 0.114844
+            },
+            "pixels": {
+              "x": 133,
+              "y": 142,
+              "width": 694,
+              "height": 147
+            }
+          },
+          {
+            "id": "region-9",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.064786,
+              "y": 0.7,
+              "width": 0.386625,
+              "height": 0.209375
+            },
+            "pixels": {
+              "x": 62,
+              "y": 896,
+              "width": 370,
+              "height": 268
+            }
+          },
+          {
+            "id": "region-10",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.546499,
+              "y": 0.7,
+              "width": 0.386625,
+              "height": 0.209375
+            },
+            "pixels": {
+              "x": 523,
+              "y": 896,
+              "width": 370,
+              "height": 268
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.064786,
+              "y": 0.095312,
+              "width": 0.882968,
+              "height": 0.141406
+            },
+            "pixels": {
+              "x": 62,
+              "y": 122,
+              "width": 845,
+              "height": 181
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.037618,
+              "y": 0.253125,
+              "width": 0.439916,
+              "height": 0.671094
+            },
+            "pixels": {
+              "x": 36,
+              "y": 324,
+              "width": 421,
+              "height": 859
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.520376,
+              "y": 0.253125,
+              "width": 0.439916,
+              "height": 0.671094
+            },
+            "pixels": {
+              "x": 498,
+              "y": 324,
+              "width": 421,
+              "height": 859
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v5"
+      }
+    },
+    {
+      "asset_id": "untitled1-011afa8fb0117a66",
+      "filename": "Group 35.png",
+      "relative_path": "消毒柜/Group 35.png",
+      "sha256": "011afa8fb0117a66068e5020f587bbb611fcdf8afe716aa18f1d083df8e77426",
+      "perceptual_hash": "fa3ffa3fffc7ffffff7f81000000247a00000400c41c8000c400ff7fffffffff",
+      "width": 783,
+      "height": 1044,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双款容量对比-02",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (19).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-011afa8fb0117a66",
+        "canvas": {
+          "width": 783,
+          "height": 1044
+        },
+        "product_regions": [
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.045977,
+              "y": 0.228927,
+              "width": 0.41507,
+              "height": 0.588123
+            },
+            "pixels": {
+              "x": 36,
+              "y": 239,
+              "width": 325,
+              "height": 614
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.532567,
+              "y": 0.228927,
+              "width": 0.41507,
+              "height": 0.588123
+            },
+            "pixels": {
+              "x": 417,
+              "y": 239,
+              "width": 325,
+              "height": 614
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.15198,
+              "y": 0.023946,
+              "width": 0.704981,
+              "height": 0.091954
+            },
+            "pixels": {
+              "x": 119,
+              "y": 25,
+              "width": 552,
+              "height": 96
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.10728,
+              "y": 0.007663,
+              "width": 0.840358,
+              "height": 0.143678
+            },
+            "pixels": {
+              "x": 84,
+              "y": 8,
+              "width": 658,
+              "height": 150
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.020434,
+              "y": 0.16954,
+              "width": 0.485313,
+              "height": 0.768199
+            },
+            "pixels": {
+              "x": 16,
+              "y": 177,
+              "width": 380,
+              "height": 802
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.51341,
+              "y": 0.16954,
+              "width": 0.485313,
+              "height": 0.768199
+            },
+            "pixels": {
+              "x": 402,
+              "y": 177,
+              "width": 380,
+              "height": 802
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-04875eb91024bac6",
+      "filename": "Group 36.png",
+      "relative_path": "消毒柜/Group 36.png",
+      "sha256": "04875eb91024bac66bbdc586ab3f759091ba9483e3f1c82a188eb1e8e3188425",
+      "perceptual_hash": "8001831fffff80018065e867f847e005800180009e5dfe7fbe7fffffffffffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双款配置对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (18).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-04875eb91024bac6",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.526646,
+              "y": 0.250781,
+              "width": 0.411703,
+              "height": 0.285156
+            },
+            "pixels": {
+              "x": 504,
+              "y": 321,
+              "width": 394,
+              "height": 365
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.056426,
+              "y": 0.25625,
+              "width": 0.411703,
+              "height": 0.285156
+            },
+            "pixels": {
+              "x": 54,
+              "y": 328,
+              "width": 394,
+              "height": 365
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-1",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.087774,
+              "y": 0.019531,
+              "width": 0.844305,
+              "height": 0.208594
+            },
+            "pixels": {
+              "x": 84,
+              "y": 25,
+              "width": 808,
+              "height": 267
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.065831,
+              "y": 0.558594,
+              "width": 0.39185,
+              "height": 0.25625
+            },
+            "pixels": {
+              "x": 63,
+              "y": 715,
+              "width": 375,
+              "height": 328
+            }
+          },
+          {
+            "id": "region-7",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.545455,
+              "y": 0.558594,
+              "width": 0.39185,
+              "height": 0.25625
+            },
+            "pixels": {
+              "x": 522,
+              "y": 715,
+              "width": 375,
+              "height": 328
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-2",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.040752,
+              "y": 0.239063,
+              "width": 0.446186,
+              "height": 0.738281
+            },
+            "pixels": {
+              "x": 39,
+              "y": 306,
+              "width": 427,
+              "height": 945
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.518286,
+              "y": 0.239063,
+              "width": 0.446186,
+              "height": 0.738281
+            },
+            "pixels": {
+              "x": 496,
+              "y": 306,
+              "width": 427,
+              "height": 945
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-a4446d25073edd76",
+      "filename": "Group 37.png",
+      "relative_path": "消毒柜/Group 37.png",
+      "sha256": "a4446d25073edd769102d8403e6bbb5424ecd3a1887fce35df61f33adbdd3076",
+      "perceptual_hash": "ea0ee08efffefff7ff7fff0e1e0206027e037e013e000e020e000000fffefff6",
+      "width": 904,
+      "height": 1194,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-烘干对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (18).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-a4446d25073edd76",
+        "canvas": {
+          "width": 904,
+          "height": 1194
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.526549,
+              "y": 0.264657,
+              "width": 0.462389,
+              "height": 0.543551
+            },
+            "pixels": {
+              "x": 476,
+              "y": 316,
+              "width": 418,
+              "height": 649
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.022124,
+              "y": 0.28727,
+              "width": 0.462389,
+              "height": 0.520938
+            },
+            "pixels": {
+              "x": 20,
+              "y": 343,
+              "width": 418,
+              "height": 622
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.099558,
+              "y": 0.020938,
+              "width": 0.789823,
+              "height": 0.123116
+            },
+            "pixels": {
+              "x": 90,
+              "y": 25,
+              "width": 714,
+              "height": 147
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.428097,
+              "y": 0.844221,
+              "width": 0.544248,
+              "height": 0.123116
+            },
+            "pixels": {
+              "x": 387,
+              "y": 1008,
+              "width": 492,
+              "height": 147
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.024336,
+              "y": 0.010888,
+              "width": 0.948009,
+              "height": 0.161642
+            },
+            "pixels": {
+              "x": 22,
+              "y": 13,
+              "width": 857,
+              "height": 193
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.004425,
+              "y": 0.217755,
+              "width": 0.994469,
+              "height": 0.625628
+            },
+            "pixels": {
+              "x": 4,
+              "y": 260,
+              "width": 899,
+              "height": 747
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-679af0f55ab389bd",
+      "filename": "Group 38.png",
+      "relative_path": "消毒柜/Group 38.png",
+      "sha256": "679af0f55ab389bdbbc10f804d7151550699dca1b15a90b664731794a7b7529b",
+      "perceptual_hash": "7ff0fffcfffdfe21bf011708361c3e0c00e000000fc03fcb7f3fe27f04cf801f",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-奶瓶消毒误区-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (17).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-679af0f55ab389bd",
+        "canvas": {
+          "width": 960,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.048958,
+              "y": 0.28125,
+              "width": 0.435417,
+              "height": 0.275781
+            },
+            "pixels": {
+              "x": 47,
+              "y": 360,
+              "width": 418,
+              "height": 353
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.130208,
+              "y": 0.074219,
+              "width": 0.74375,
+              "height": 0.141406
+            },
+            "pixels": {
+              "x": 125,
+              "y": 95,
+              "width": 714,
+              "height": 181
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.048958,
+              "y": 0.042188,
+              "width": 0.892708,
+              "height": 0.205469
+            },
+            "pixels": {
+              "x": 47,
+              "y": 54,
+              "width": 857,
+              "height": 263
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.048958,
+              "y": 0.240625,
+              "width": 0.892708,
+              "height": 0.707031
+            },
+            "pixels": {
+              "x": 47,
+              "y": 308,
+              "width": 857,
+              "height": 905
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-6c571ac1ae5e5984",
+      "filename": "Group 39.png",
+      "relative_path": "消毒柜/Group 39.png",
+      "sha256": "6c571ac1ae5e59845fd33389e7650a0e4e0cae3b9a877ee129cab2598b723f7c",
+      "perceptual_hash": "fffff007f806fe32ff220000214037f877dc77d677d237d277c077d277c00000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-热门机型对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (21).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-6c571ac1ae5e5984",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-2",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.62069,
+              "y": 0.176563,
+              "width": 0.328109,
+              "height": 0.158594
+            },
+            "pixels": {
+              "x": 594,
+              "y": 226,
+              "width": 314,
+              "height": 203
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.280042,
+              "y": 0.192969,
+              "width": 0.328109,
+              "height": 0.153125
+            },
+            "pixels": {
+              "x": 268,
+              "y": 247,
+              "width": 314,
+              "height": 196
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-5",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.042842,
+              "y": 0.367188,
+              "width": 0.905956,
+              "height": 0.596094
+            },
+            "pixels": {
+              "x": 41,
+              "y": 470,
+              "width": 867,
+              "height": 763
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.025078,
+              "y": 0.091406,
+              "width": 0.950888,
+              "height": 0.257812
+            },
+            "pixels": {
+              "x": 24,
+              "y": 117,
+              "width": 910,
+              "height": 330
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.024033,
+              "y": 0.346875,
+              "width": 0.950888,
+              "height": 0.641406
+            },
+            "pixels": {
+              "x": 23,
+              "y": 444,
+              "width": 910,
+              "height": 821
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-944191e005101045",
+      "filename": "Group 4.png",
+      "relative_path": "消毒柜/Group 4.png",
+      "sha256": "944191e005101045ca3638082398480284865c5165489899365836fccf22f90d",
+      "perceptual_hash": "8003c003e2c37efc7f240000e0037fd97f998001f00ffddff89ff81fffffff07",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-0341bcb047ccaf1d",
+      "filename": "Group 40.png",
+      "relative_path": "消毒柜/Group 40.png",
+      "sha256": "0341bcb047ccaf1d8857992decea0edbd80e39e2ee7dba007bd3ca1eecc7d8bf",
+      "perceptual_hash": "fffffffffb00000008731c140f0f0f0c00ff00ff400000000f070f8e0000ffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-744fff08733149cd",
+      "filename": "Group 41.png",
+      "relative_path": "消毒柜/Group 41.png",
+      "sha256": "744fff08733149cdb6cd005b236f8f3f31a63dfe4ce324c8271790a2552f0c07",
+      "perceptual_hash": "ffffffff7fff7fffffff000000000402000018007d467d6e01f639e201fe399e",
+      "width": 978,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-831dc73b9a78674f",
+      "filename": "Group 42.png",
+      "relative_path": "消毒柜/Group 42.png",
+      "sha256": "831dc73b9a78674f238f43441aa829c66355f4333eee2b93fe1c6a48d688ee95",
+      "perceptual_hash": "7ffeffffffff7fff7ffeffff7fc77fc00fc04fc807c800000000ff47917f7f7f",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-37055829656b7ac9",
+      "filename": "Group 43.png",
+      "relative_path": "消毒柜/Group 43.png",
+      "sha256": "37055829656b7ac91b96552b991f97428fe9f74dc294b6d6db1e9fe426afe5bb",
+      "perceptual_hash": "010079fe7ffc070006200e603ff8fffff07f005e0e7e07002fe06ff603800200",
+      "width": 959,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-e57a10724ba16317",
+      "filename": "Group 44.png",
+      "relative_path": "消毒柜/Group 44.png",
+      "sha256": "e57a10724ba16317ecae451645f127b592fa7913100cc3dcd172a4031b87d107",
+      "perceptual_hash": "803f803f803f9f3f803f803f803ff03ff07f807fc07fc07fc07fc07fc07fc05f",
+      "width": 959,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-49d37f7344b91995",
+      "filename": "Group 45.png",
+      "relative_path": "消毒柜/Group 45.png",
+      "sha256": "49d37f7344b9199551aa0fc2c1dde77b99c9cfa8ccb5a016511b2a70e8dbcea7",
+      "perceptual_hash": "fdff0c3f0fff0fff073f003300331823f03ff03f7f3f7fffe0bb003000300040",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-托盘容量对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/7c9b32cf-9ee9-446b-a55e-3aa81068d2be.jpg",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-49d37f7344b91995",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "manual-2",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.21,
+              "y": 0.02,
+              "width": 0.63,
+              "height": 0.43
+            },
+            "pixels": {
+              "x": 201,
+              "y": 26,
+              "width": 603,
+              "height": 550
+            }
+          },
+          {
+            "id": "manual-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.21,
+              "y": 0.5,
+              "width": 0.63,
+              "height": 0.43
+            },
+            "pixels": {
+              "x": 201,
+              "y": 640,
+              "width": 603,
+              "height": 550
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "manual-3",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.22,
+              "y": 0.45,
+              "width": 0.56,
+              "height": 0.1
+            },
+            "pixels": {
+              "x": 211,
+              "y": 576,
+              "width": 536,
+              "height": 128
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "manual-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.005,
+              "y": 0.01,
+              "width": 0.99,
+              "height": 0.48
+            },
+            "pixels": {
+              "x": 5,
+              "y": 13,
+              "width": 947,
+              "height": 614
+            }
+          },
+          {
+            "id": "manual-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.005,
+              "y": 0.5,
+              "width": 0.99,
+              "height": 0.47
+            },
+            "pixels": {
+              "x": 5,
+              "y": 640,
+              "width": 947,
+              "height": 602
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-bfc32162505b00e2",
+      "filename": "Group 46.png",
+      "relative_path": "消毒柜/Group 46.png",
+      "sha256": "bfc32162505b00e240d9be302bd5ba649725d5f99412176263e775253d8a53ce",
+      "perceptual_hash": "ffffffffffff01ff003f00000060003c01ff067b187860f031811b030e060604",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-464650dbe62b18c8",
+      "filename": "Group 47.png",
+      "relative_path": "消毒柜/Group 47.png",
+      "sha256": "464650dbe62b18c892c858cd1665542cea7639ed412a6664efc216981f56a3f5",
+      "perceptual_hash": "fffefffefffe7ffe7ffe3fff00000000ec06ffffffff3fff18ff3e0040000000",
+      "width": 959,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-4de9a4455f9dbd2d",
+      "filename": "Group 48.png",
+      "relative_path": "消毒柜/Group 48.png",
+      "sha256": "4de9a4455f9dbd2d32c6cfe4cc89f350856c40e2d166e9dfff00e6311b2f371c",
+      "perceptual_hash": "804000000e72ffe2c7e2fffeffbeff9e7f0e11107fff638243c343c343c263ce",
+      "width": 961,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-ec658e4eb5a23bd8",
+      "filename": "Group 49.png",
+      "relative_path": "消毒柜/Group 49.png",
+      "sha256": "ec658e4eb5a23bd8d4bbf4ac098db89b17149423f0f0d3d78be2eccbe87e071a",
+      "perceptual_hash": "fffffffffffffffffffffffffdfffcfffc7f7c077c0700060004000000000000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-9ae2cdafbbd61a99",
+      "filename": "Group 5.png",
+      "relative_path": "消毒柜/Group 5.png",
+      "sha256": "9ae2cdafbbd61a99d93889bfa60b0859589164d587036ab18a8d829ee2a57c2a",
+      "perceptual_hash": "fffefffe41fc01fc01fe01ff01ff01e0ff00ff00018c03ee01fe03ff01ff0000",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-容量对比实测-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (11).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-9ae2cdafbbd61a99",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-2",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.396029,
+              "y": 0.095312,
+              "width": 0.556949,
+              "height": 0.321094
+            },
+            "pixels": {
+              "x": 379,
+              "y": 122,
+              "width": 533,
+              "height": 411
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.396029,
+              "y": 0.617969,
+              "width": 0.556949,
+              "height": 0.308594
+            },
+            "pixels": {
+              "x": 379,
+              "y": 791,
+              "width": 533,
+              "height": 395
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-3",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.038662,
+              "y": 0.25625,
+              "width": 0.339603,
+              "height": 0.085156
+            },
+            "pixels": {
+              "x": 37,
+              "y": 328,
+              "width": 325,
+              "height": 109
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.317659,
+              "y": 0.417187,
+              "width": 0.378265,
+              "height": 0.157812
+            },
+            "pixels": {
+              "x": 304,
+              "y": 534,
+              "width": 362,
+              "height": 202
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.038662,
+              "y": 0.75625,
+              "width": 0.320794,
+              "height": 0.085156
+            },
+            "pixels": {
+              "x": 37,
+              "y": 968,
+              "width": 307,
+              "height": 109
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.042969,
+              "width": 0.998955,
+              "height": 0.910937
+            },
+            "pixels": {
+              "x": 0,
+              "y": 55,
+              "width": 956,
+              "height": 1166
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-1fd3736fd673f254",
+      "filename": "Group 50.png",
+      "relative_path": "消毒柜/Group 50.png",
+      "sha256": "1fd3736fd673f254be6051540a4262a233914d47e1aea0f5f038f8702a28d2ab",
+      "perceptual_hash": "00001c1c3c3e3e1f1e1f1f0f0e041ff81ff800000c1e3e1f1e0f1f0f0f070201",
+      "width": 958,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-4a5020269bb89f7d",
+      "filename": "Group 51.png",
+      "relative_path": "消毒柜/Group 51.png",
+      "sha256": "4a5020269bb89f7d6977decb901ec176d2274806dc0ff62552d02f26f0438143",
+      "perceptual_hash": "000000420418007c007e4c7e0602fffffeffeefffefe7e7e7e7e7e7ede6f3f1f",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-e2a5b62b6051bf83",
+      "filename": "Group 52.png",
+      "relative_path": "消毒柜/Group 52.png",
+      "sha256": "e2a5b62b6051bf83e0c7d11b3b900fb9b8bed9808ce74b1471ca98c2287ade1e",
+      "perceptual_hash": "fffff081fcc5fc8188c138ff005d8107ffff81c791c387fd83c1f9e1f9f783e3",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-8b9bec39647ebe26",
+      "filename": "Group 53.png",
+      "relative_path": "消毒柜/Group 53.png",
+      "sha256": "8b9bec39647ebe262e1c05e0fff653d838a37d9df21b1fa0dc9aa9c795cb7445",
+      "perceptual_hash": "e100000000001800ffcefffffffff84f780479f618f87880fe80df8c1fbf3e8f",
+      "width": 959,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-b69d9dd0a2fee5c6",
+      "filename": "Group 54.png",
+      "relative_path": "消毒柜/Group 54.png",
+      "sha256": "b69d9dd0a2fee5c60b25b2326ec7fa73d76a300275985292d857faeada9cdc41",
+      "perceptual_hash": "0003000200027ffb7fff7ffffffb7ff87ff87feb7f7b40400000000300000000",
+      "width": 957,
+      "height": 1300,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-48b782e9165285a0",
+      "filename": "Group 55.png",
+      "relative_path": "消毒柜/Group 55.png",
+      "sha256": "48b782e9165285a006076040a9f7c445b8b5d3cba06ff84eebf01d59a489f8fa",
+      "perceptual_hash": "ffff00030040000000000000038003c003fe7ffe7dbe7dbefc3fffffffffffff",
+      "width": 960,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-内外同消展示-01",
+      "annotation_status": "verified",
+      "dataset_split": "holdout",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (3).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-929907552160806a",
+      "filename": "Group 56.png",
+      "relative_path": "消毒柜/Group 56.png",
+      "sha256": "929907552160806a1b2b435c54fc17db40eff1c52c4ef8805bb7957a3d2fbcfa",
+      "perceptual_hash": "0000000074007c3c7830782070007dfe78f279a67ffe7ffe3ffe7ffe7ffe7ffe",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-双款消毒对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (4).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-929907552160806a",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-3",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.281087,
+              "y": 0.124219,
+              "width": 0.296761,
+              "height": 0.219531
+            },
+            "pixels": {
+              "x": 269,
+              "y": 159,
+              "width": 284,
+              "height": 281
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.661442,
+              "y": 0.124219,
+              "width": 0.296761,
+              "height": 0.219531
+            },
+            "pixels": {
+              "x": 633,
+              "y": 159,
+              "width": 284,
+              "height": 281
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.041797,
+              "y": 0.03125,
+              "width": 0.901776,
+              "height": 0.067187
+            },
+            "pixels": {
+              "x": 40,
+              "y": 40,
+              "width": 863,
+              "height": 86
+            }
+          },
+          {
+            "id": "region-5",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.056426,
+              "y": 0.374219,
+              "width": 0.901776,
+              "height": 0.625
+            },
+            "pixels": {
+              "x": 54,
+              "y": 479,
+              "width": 863,
+              "height": 800
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.020899,
+              "y": 0.0125,
+              "width": 0.960293,
+              "height": 0.108594
+            },
+            "pixels": {
+              "x": 20,
+              "y": 16,
+              "width": 919,
+              "height": 139
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v3"
+      }
+    },
+    {
+      "asset_id": "untitled1-4607a73ee8eb8104",
+      "filename": "Group 6.png",
+      "relative_path": "消毒柜/Group 6.png",
+      "sha256": "4607a73ee8eb8104c1bcf54141a7fd9ae3d6f133eaeb5ae1ba1c24c1ac086390",
+      "perceptual_hash": "0f009f01ffffffff000efebffffffefffeffc602ffffe00fe00fe00fe00fffff",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "Untitled1",
+      "annotation_status": "pending_review",
+      "dataset_split": "unassigned",
+      "original_relative_path": "",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-3743a2e4c9ee78d9",
+      "filename": "Group 7.png",
+      "relative_path": "消毒柜/Group 7.png",
+      "sha256": "3743a2e4c9ee78d91e3af671943f57f5c1f3b2cf2d511552a9b18ab646871baa",
+      "perceptual_hash": "ffffffffffffffffffff00ff98f0ac81008100800022000000000000087a1f00",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-层数容量对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (12).JPEG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-3743a2e4c9ee78d9",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-5",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.055381,
+              "y": 0.352344,
+              "width": 0.38767,
+              "height": 0.371094
+            },
+            "pixels": {
+              "x": 53,
+              "y": 451,
+              "width": 371,
+              "height": 475
+            }
+          },
+          {
+            "id": "region-6",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.541275,
+              "y": 0.352344,
+              "width": 0.38767,
+              "height": 0.371094
+            },
+            "pixels": {
+              "x": 518,
+              "y": 451,
+              "width": 371,
+              "height": 475
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.055381,
+              "y": 0.111719,
+              "width": 0.462905,
+              "height": 0.085156
+            },
+            "pixels": {
+              "x": 53,
+              "y": 143,
+              "width": 443,
+              "height": 109
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.500522,
+              "y": 0.197656,
+              "width": 0.462905,
+              "height": 0.085156
+            },
+            "pixels": {
+              "x": 479,
+              "y": 253,
+              "width": 443,
+              "height": 109
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.083594,
+              "width": 0.998955,
+              "height": 0.214844
+            },
+            "pixels": {
+              "x": 0,
+              "y": 107,
+              "width": 956,
+              "height": 275
+            }
+          },
+          {
+            "id": "region-4",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.291406,
+              "width": 0.998955,
+              "height": 0.696094
+            },
+            "pixels": {
+              "x": 0,
+              "y": 373,
+              "width": 956,
+              "height": 891
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    },
+    {
+      "asset_id": "untitled1-3484b0bbaa2cc8d7",
+      "filename": "Group 8.png",
+      "relative_path": "消毒柜/Group 8.png",
+      "sha256": "3484b0bbaa2cc8d7b14a22c013d7c39cbdb95b8e4b41d83dd8880bc460f62bed",
+      "perceptual_hash": "00007002fcfbf073400346b6543e44be46be77bf77bf77bf57bf77bf07bf0001",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-两款参数对比-01",
+      "annotation_status": "verified",
+      "dataset_split": "holdout",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (12).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00"
+    },
+    {
+      "asset_id": "untitled1-9a80f773d45a278a",
+      "filename": "Group 9.png",
+      "relative_path": "消毒柜/Group 9.png",
+      "sha256": "9a80f773d45a278ad7f913e2e34539def4725af44bb4c238954356996b463418",
+      "perceptual_hash": "3fff3fff3fff3fff3e0f301f36cf36ef376f3803c000000638e63984ff8cff00",
+      "width": 957,
+      "height": 1280,
+      "product_category": "消毒柜",
+      "project_category": "消毒柜-灯珠托盘展示-02",
+      "annotation_status": "verified",
+      "dataset_split": "calibration",
+      "original_relative_path": "公司成品素材/消毒柜/1280X1280 (16).PNG",
+      "imported_at": "2026-07-31T09:18:00.971379+00:00",
+      "ground_truth": {
+        "asset_id": "untitled1-9a80f773d45a278a",
+        "canvas": {
+          "width": 957,
+          "height": 1280
+        },
+        "product_regions": [
+          {
+            "id": "region-4",
+            "type": "product_image",
+            "normalized": {
+              "x": 0.113898,
+              "y": 0.3125,
+              "width": 0.774295,
+              "height": 0.5125
+            },
+            "pixels": {
+              "x": 109,
+              "y": 400,
+              "width": 741,
+              "height": 656
+            }
+          }
+        ],
+        "primary_text_regions": [
+          {
+            "id": "region-2",
+            "type": "main_text",
+            "normalized": {
+              "x": 0.088819,
+              "y": 0.079687,
+              "width": 0.825496,
+              "height": 0.154688
+            },
+            "pixels": {
+              "x": 85,
+              "y": 102,
+              "width": 790,
+              "height": 198
+            }
+          }
+        ],
+        "layout_modules": [
+          {
+            "id": "region-1",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.042188,
+              "width": 0.978056,
+              "height": 0.2125
+            },
+            "pixels": {
+              "x": 0,
+              "y": 54,
+              "width": 936,
+              "height": 272
+            }
+          },
+          {
+            "id": "region-3",
+            "type": "layout_block",
+            "normalized": {
+              "x": 0.0,
+              "y": 0.247656,
+              "width": 0.978056,
+              "height": 0.601562
+            },
+            "pixels": {
+              "x": 0,
+              "y": 317,
+              "width": 936,
+              "height": 770
+            }
+          }
+        ],
+        "containment_relations": [],
+        "allowed_overlap_relations": [],
+        "review_status": "verified",
+        "reviewer": "设计负责人张茗淇",
+        "review_reason": "设计负责人已在消毒柜标注工作台确认彩框拆解",
+        "annotation_version": "human-color-box-v4"
+      }
+    }
+  ]
+}
