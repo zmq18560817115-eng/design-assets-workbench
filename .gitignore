@@ -27,3 +27,4 @@ backend/acceptance_data/
 
 # OS
 .DS_Store
+evaluation/visual-analysis/raw/

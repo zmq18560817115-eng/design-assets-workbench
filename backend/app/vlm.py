@@ -138,6 +138,22 @@ def analyze_image(
     asset_category: str = "layout",
 ) -> dict:
     """调用视觉大模型，返回语义分析字典。失败会抛异常，由上层决定回退。"""
+    parsed, _ = analyze_image_with_trace(
+        image_bytes, mime, hints, asset_category=asset_category
+    )
+    return parsed
+
+
+def analyze_image_with_trace(
+    image_bytes: bytes,
+    mime: str,
+    hints: dict,
+    asset_category: str = "layout",
+    *,
+    additional_instructions: str = "",
+    timeout_seconds: float = 300,
+) -> tuple[dict, str]:
+    """Return parsed JSON and the unmodified provider text for calibration."""
     b64 = base64.b64encode(image_bytes).decode()
     data_uri = f"data:{mime or 'image/png'};base64,{b64}"
 
@@ -163,6 +179,8 @@ def analyze_image(
             "请参考其模块位置与阅读关系：\n"
             + json.dumps(few_shots[:5], ensure_ascii=False)
         )
+    if additional_instructions.strip():
+        user_text += f"\n\n本次版本附加约束：\n{additional_instructions.strip()}"
 
     payload = {
         "model": config.VISION_MODEL or "gpt-4o-mini",
@@ -185,11 +203,13 @@ def analyze_image(
     base = (config.VISION_BASE_URL or "https://api.openai.com/v1").rstrip("/")
     url = f"{base}/chat/completions"
 
-    with httpx.Client(trust_env=config.VISION_TRUST_ENV, timeout=300) as client:
+    with httpx.Client(
+        trust_env=config.VISION_TRUST_ENV, timeout=timeout_seconds
+    ) as client:
         resp = client.post(url, json=payload, headers=headers)
     resp.raise_for_status()
     content = resp.json()["choices"][0]["message"]["content"]
-    return _extract_json(content)
+    return _extract_json(content), content
 
 
 def suggest_asset_category(
