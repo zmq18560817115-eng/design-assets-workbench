@@ -152,26 +152,32 @@ def analyze_image_with_trace(
     *,
     additional_instructions: str = "",
     timeout_seconds: float = 300,
+    prompt_override: str = "",
+    max_tokens: int | None = None,
 ) -> tuple[dict, str]:
     """Return parsed JSON and the unmodified provider text for calibration."""
+    image_bytes, mime = _model_image_payload(image_bytes, mime)
     b64 = base64.b64encode(image_bytes).decode()
     data_uri = f"data:{mime or 'image/png'};base64,{b64}"
 
     asset_category = normalize_category(asset_category)
-    user_text = USER_TEMPLATE.format(
-        palette="、".join(hints.get("palette", [])) or "（未知）",
-        tone=hints.get("tone", ""),
-        grid_columns=hints.get("grid_columns", ""),
-        modules=hints.get("modules", ""),
-        margins=hints.get("margins", ""),
-        module_types=", ".join(MODULE_TYPE_ORDER),
-    )
-    user_text += (
-        f"\n\n本素材归入「{category_label(asset_category)}」仓库。"
-        f"{category_focus(asset_category)}"
-        "其余维度仍需返回，但应简洁，并让 summary、critique、improvement、"
-        "reusable_methods 与生图提示词优先服务于本仓库的拆解目标。"
-    )
+    if prompt_override.strip():
+        user_text = prompt_override.strip()
+    else:
+        user_text = USER_TEMPLATE.format(
+            palette="、".join(hints.get("palette", [])) or "（未知）",
+            tone=hints.get("tone", ""),
+            grid_columns=hints.get("grid_columns", ""),
+            modules=hints.get("modules", ""),
+            margins=hints.get("margins", ""),
+            module_types=", ".join(MODULE_TYPE_ORDER),
+        )
+        user_text += (
+            f"\n\n本素材归入「{category_label(asset_category)}」仓库。"
+            f"{category_focus(asset_category)}"
+            "其余维度仍需返回，但应简洁，并让 summary、critique、improvement、"
+            "reusable_methods 与生图提示词优先服务于本仓库的拆解目标。"
+        )
     if additional_instructions.strip():
         user_text += f"\n\n本次版本附加约束：\n{additional_instructions.strip()}"
 
@@ -189,6 +195,8 @@ def analyze_image_with_trace(
         ],
         "temperature": 0.3,
     }
+    if max_tokens is not None:
+        payload["max_tokens"] = max_tokens
     headers = {
         "Authorization": f"Bearer {config.VISION_API_KEY}",
         "Content-Type": "application/json",
