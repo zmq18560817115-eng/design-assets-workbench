@@ -28,12 +28,16 @@ export default function DisinfectionCabinetAnnotationPage() {
   const [summary, setSummary] = useState<Record<string, unknown>>({});
   const [evaluation, setEvaluation] = useState<Record<string, unknown>>({});
   const [runs, setRuns] = useState<Record<string, unknown>[]>([]);
+  const [workflowCounts, setWorkflowCounts] = useState<Record<string, number>>({});
+  const [batch, setBatch] = useState<Record<string, unknown> | null>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? items[0], [items, selectedId]);
 
   async function load() {
     const response = await fetch("/api/disinfection-annotations", { cache: "no-store" });
     const data = await response.json();
     setItems(data.items ?? []);
+    setWorkflowCounts(data.workflow_counts ?? {});
+    setBatch(data.batch ?? null);
     const [summaryResponse, evaluationResponse, runsResponse] = await Promise.all([
       fetch("/api/disinfection-annotations/report/summary", { cache: "no-store" }),
       fetch("/api/disinfection-annotations/evaluation", { cache: "no-store" }),
@@ -90,8 +94,17 @@ export default function DisinfectionCabinetAnnotationPage() {
   return (
     <main style={{ padding: 24, fontFamily: "Arial, sans-serif", color: "#172033" }}>
       <h1>消毒柜公司成品图标注学习</h1>
-      <p>共 {items.length} 张 · 待审核 {counts.pending_review ?? 0} · 已验证 {counts.verified ?? 0}</p>
+      <p>
+        共 {items.length} 张 · 待解析 {workflowCounts.pending_parse ?? 0}
+        · 待人工审核 {workflowCounts.pending_review ?? counts.pending_review ?? 0}
+        · 已确认 {workflowCounts.verified ?? counts.verified ?? 0}
+        · 解析失败 {workflowCounts.parse_failed ?? 0}
+      </p>
       <p style={{ color: "#9a6700" }}>AI/解析器只提出候选框；点击人工确认前，不计入学习证据。</p>
+      <details style={{ marginBottom: 12 }}>
+        <summary>Untitled 导入批次信息</summary>
+        <pre style={{ padding: 12, background: "#f6f7f9", overflow: "auto" }}>{JSON.stringify(batch, null, 2)}</pre>
+      </details>
       <div style={{ display: "flex", gap: 12, marginBottom: 18 }}>
         <pre style={{ flex: 1, padding: 12, background: "#f6f7f9", overflow: "auto" }}>规律统计：{JSON.stringify(summary, null, 2)}</pre>
         <pre style={{ flex: 1, padding: 12, background: "#f6f7f9", overflow: "auto" }}>Holdout 评估：{JSON.stringify(evaluation, null, 2)}</pre>

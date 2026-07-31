@@ -144,6 +144,14 @@ def list_disinfection_annotations(
     return {
         "items": [_annotation_dict(row) for row in rows],
         "counts": counts,
+        "workflow_counts": {
+            "pending_parse": 0,
+            "pending_review": counts.get("pending_review", 0),
+            "verified": counts.get("verified", 0),
+            "parse_failed": sum(
+                not json.loads(row.regions_json or "[]") for row in rows
+            ),
+        },
         "total": len(rows),
         "batch": {
             "id": batch.id,
