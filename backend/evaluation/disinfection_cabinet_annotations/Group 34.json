@@ -1,0 +1,127 @@
+{
+  "image_path": "Group 34.png",
+  "product_category": "消毒柜",
+  "source_type": "company_published",
+  "annotation_source": "human_color_box_v1",
+  "annotation_status": "pending_review",
+  "canvas_width": 957,
+  "canvas_height": 1280,
+  "canvas_ratio": "957:1280",
+  "orientation": "portrait",
+  "regions": [
+    {
+      "id": "region-1",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.064786,
+      "y": 0.095312,
+      "width": 0.882968,
+      "height": 0.141406,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-2",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.138976,
+      "y": 0.110937,
+      "width": 0.725183,
+      "height": 0.114844,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-3",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.037618,
+      "y": 0.253125,
+      "width": 0.439916,
+      "height": 0.671094,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-4",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.520376,
+      "y": 0.253125,
+      "width": 0.439916,
+      "height": 0.671094,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-5",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.330199,
+      "y": 0.278906,
+      "width": 0.031348,
+      "height": 0.030469,
+      "confidence": 0.662
+    },
+    {
+      "id": "region-6",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.328109,
+      "y": 0.284375,
+      "width": 0.029258,
+      "height": 0.025,
+      "confidence": 0.697
+    },
+    {
+      "id": "region-7",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.087774,
+      "y": 0.426563,
+      "width": 0.339603,
+      "height": 0.269531,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-8",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.570533,
+      "y": 0.426563,
+      "width": 0.339603,
+      "height": 0.269531,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-9",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.064786,
+      "y": 0.7,
+      "width": 0.386625,
+      "height": 0.209375,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-10",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.546499,
+      "y": 0.7,
+      "width": 0.386625,
+      "height": 0.209375,
+      "confidence": 1.0
+    }
+  ],
+  "detection_warnings": [
+    "unannotated_original_not_found"
+  ],
+  "annotation_version": 1,
+  "created_at": "2026-07-31T03:47:59.746096+00:00",
+  "reviewer": "",
+  "history": [
+    {
+      "version": 1,
+      "source": "color_box_parser_v1",
+      "status": "pending_review",
+      "created_at": "2026-07-31T03:47:59.746096+00:00"
+    }
+  ]
+}

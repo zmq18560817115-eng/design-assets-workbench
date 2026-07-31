@@ -1,0 +1,5219 @@
+{
+  "source_root": "Untitled",
+  "scan_created_at": "2026-07-31T03:47:59.746096+00:00",
+  "total": 56,
+  "formats": {
+    "PNG": 56
+  },
+  "sizes": {
+    "957x1280": 28,
+    "960x1280": 8,
+    "961x1280": 3,
+    "923x1214": 1,
+    "935x1247": 2,
+    "967x1280": 1,
+    "965x1280": 1,
+    "972x1280": 1,
+    "956x1280": 1,
+    "959x1280": 5,
+    "783x1044": 1,
+    "904x1194": 1,
+    "978x1280": 1,
+    "958x1280": 1,
+    "957x1300": 1
+  },
+  "orientations": {
+    "portrait": 56
+  },
+  "region_totals": {
+    "layout_block": 110,
+    "main_text": 108,
+    "product_image": 125
+  },
+  "box_detection_success": {
+    "layout_block": 50,
+    "product_image": 56,
+    "main_text": 51
+  },
+  "pairing": {
+    "annotated_only": 56,
+    "paired": 0
+  },
+  "ambiguous_items": [
+    {
+      "relative_path": "Group 10.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-6:0.84",
+        "heavy_overlap:region-4:region-7:0.84"
+      ]
+    },
+    {
+      "relative_path": "Group 12.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-6:region-7:0.81"
+      ]
+    },
+    {
+      "relative_path": "Group 15.png",
+      "warnings": [
+        "heavy_overlap:region-4:region-5:0.82"
+      ]
+    },
+    {
+      "relative_path": "Group 16.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.76"
+      ]
+    },
+    {
+      "relative_path": "Group 17.png",
+      "warnings": [
+        "heavy_overlap:region-1:region-2:0.80"
+      ]
+    },
+    {
+      "relative_path": "Group 18.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 2.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.79",
+        "heavy_overlap:region-11:region-14:0.82"
+      ]
+    },
+    {
+      "relative_path": "Group 20.png",
+      "warnings": [
+        "broken_or_missing_red_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 21.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 22.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.77"
+      ]
+    },
+    {
+      "relative_path": "Group 23.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 24.png",
+      "warnings": [
+        "broken_or_missing_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 27.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 29.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 32.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_green_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 39.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-4:region-5:0.89"
+      ]
+    },
+    {
+      "relative_path": "Group 4.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-5:region-6:0.82"
+      ]
+    },
+    {
+      "relative_path": "Group 40.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 42.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-6:region-7:0.83"
+      ]
+    },
+    {
+      "relative_path": "Group 43.png",
+      "warnings": [
+        "broken_or_missing_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 44.png",
+      "warnings": [
+        "broken_or_missing_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 45.png",
+      "warnings": [
+        "heavy_overlap:region-3:region-5:0.88"
+      ]
+    },
+    {
+      "relative_path": "Group 46.png",
+      "warnings": [
+        "broken_or_missing_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 47.png",
+      "warnings": [
+        "broken_or_missing_red_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 48.png",
+      "warnings": [
+        "too_small_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 49.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.80",
+        "heavy_overlap:region-7:region-8:0.76"
+      ]
+    },
+    {
+      "relative_path": "Group 50.png",
+      "warnings": [
+        "broken_or_missing_red_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 51.png",
+      "warnings": [
+        "broken_or_missing_red_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 52.png",
+      "warnings": [
+        "broken_or_missing_red_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 53.png",
+      "warnings": [
+        "broken_or_missing_red_rectangle",
+        "broken_or_missing_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 54.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 6.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.88",
+        "heavy_overlap:region-5:region-6:0.85"
+      ]
+    },
+    {
+      "relative_path": "Group 7.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    },
+    {
+      "relative_path": "Group 8.png",
+      "warnings": [
+        "too_small_green_rectangle"
+      ]
+    },
+    {
+      "relative_path": "Group 9.png",
+      "warnings": [
+        "duplicate_red_rectangle_edge"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "relative_path": "Group 1.png",
+      "sha256": "11b5153fd674f9a1ded1a81a5d5843bbc9b10a0ba5f08ddfb85669a77e69eafc",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.098224,
+          "y": 0.101562,
+          "width": 0.714734,
+          "height": 0.173437,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.123302,
+          "y": 0.120313,
+          "width": 0.664577,
+          "height": 0.139844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.055381,
+          "y": 0.296875,
+          "width": 0.893417,
+          "height": 0.604688,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.123302,
+          "y": 0.379688,
+          "width": 0.495298,
+          "height": 0.457813,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.609195,
+          "y": 0.452344,
+          "width": 0.318704,
+          "height": 0.319531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.680146+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 10.png",
+      "sha256": "ae595e807d3ca0895eb627af0372cd0282efed55a5e907c0f8d5465cc7df4c94",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.316614,
+          "y": 0.148438,
+          "width": 0.218391,
+          "height": 0.178125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.691745,
+          "y": 0.148438,
+          "width": 0.218391,
+          "height": 0.178125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.316614,
+          "y": 0.319531,
+          "width": 0.218391,
+          "height": 0.171094,
+          "confidence": 0.891,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.691745,
+          "y": 0.319531,
+          "width": 0.218391,
+          "height": 0.171094,
+          "confidence": 0.891,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.007315,
+          "y": 0.328125,
+          "width": 0.978056,
+          "height": 0.661719,
+          "confidence": 0.998,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.316614,
+          "y": 0.346094,
+          "width": 0.218391,
+          "height": 0.144531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.691745,
+          "y": 0.346094,
+          "width": 0.218391,
+          "height": 0.144531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.039707,
+          "y": 0.502344,
+          "width": 0.920585,
+          "height": 0.475781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 6,
+        "layout_block": 1,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-6:0.84",
+        "heavy_overlap:region-4:region-7:0.84"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.686637+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 11.png",
+      "sha256": "70ef21d06ef89fba09f3784d3dea7f9a828c978bed41798beaf7633e2f39a921",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.013542,
+          "y": 0.065625,
+          "width": 0.975,
+          "height": 0.123438,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.041667,
+          "y": 0.076563,
+          "width": 0.484375,
+          "height": 0.105469,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.013542,
+          "y": 0.182812,
+          "width": 0.975,
+          "height": 0.620313,
+          "confidence": 0.981,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.376042,
+          "y": 0.201563,
+          "width": 0.528125,
+          "height": 0.086719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.502083,
+          "y": 0.296875,
+          "width": 0.439583,
+          "height": 0.410156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.061458,
+          "y": 0.335938,
+          "width": 0.45,
+          "height": 0.360156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.727772+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 12.png",
+      "sha256": "ffd630c685fd89e941fd4c891685898ac8681b7e1767013dfd1ddce7c9f47d01",
+      "width": 961,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.004162,
+          "y": 0.076563,
+          "width": 0.994797,
+          "height": 0.51875,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.040583,
+          "y": 0.095312,
+          "width": 0.920916,
+          "height": 0.211719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.040583,
+          "y": 0.325,
+          "width": 0.26743,
+          "height": 0.209375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.367326,
+          "y": 0.325,
+          "width": 0.26743,
+          "height": 0.209375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.694069,
+          "y": 0.335938,
+          "width": 0.26743,
+          "height": 0.209375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.002081,
+          "y": 0.588281,
+          "width": 0.994797,
+          "height": 0.401562,
+          "confidence": 0.965,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.03642,
+          "y": 0.624219,
+          "width": 0.920916,
+          "height": 0.35,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-6:region-7:0.81"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.743782+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 13.png",
+      "sha256": "c4eff94932294948e1a88bfa835fede6d44b98a7aa998bcffe9aed8142e6dc85",
+      "width": 961,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.002081,
+          "y": 0.009375,
+          "width": 0.994797,
+          "height": 0.498437,
+          "confidence": 0.966,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.031217,
+          "y": 0.035156,
+          "width": 0.611863,
+          "height": 0.447656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.674298,
+          "y": 0.046094,
+          "width": 0.26847,
+          "height": 0.15,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.500781,
+          "width": 0.994797,
+          "height": 0.473438,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.006243,
+          "y": 0.513281,
+          "width": 0.611863,
+          "height": 0.447656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.674298,
+          "y": 0.560937,
+          "width": 0.26847,
+          "height": 0.15,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "product_image": 2,
+        "main_text": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.770696+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 14.png",
+      "sha256": "32d53001099dc6e949dc787927eecab429688406c9efe84160096109fe205f7f",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.084375,
+          "width": 0.998955,
+          "height": 0.147656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.054336,
+          "y": 0.099219,
+          "width": 0.867294,
+          "height": 0.11875,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.225,
+          "width": 0.998955,
+          "height": 0.774219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.097179,
+          "y": 0.284375,
+          "width": 0.260188,
+          "height": 0.257031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.628004,
+          "y": 0.284375,
+          "width": 0.260188,
+          "height": 0.257031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.033438,
+          "y": 0.5625,
+          "width": 0.444096,
+          "height": 0.417187,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.526646,
+          "y": 0.5625,
+          "width": 0.444096,
+          "height": 0.417187,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 3,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.675634+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 15.png",
+      "sha256": "2f0df5afebc156df006d0316780ca390566d3319b40019fef06b931dee0f1175",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.0375,
+          "width": 0.998955,
+          "height": 0.414844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.670846,
+          "y": 0.071875,
+          "width": 0.239289,
+          "height": 0.099219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.409613,
+          "y": 0.139844,
+          "width": 0.260188,
+          "height": 0.257031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.445312,
+          "width": 0.998955,
+          "height": 0.503125,
+          "confidence": 0.84,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.533594,
+          "width": 0.998955,
+          "height": 0.414844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.727273,
+          "y": 0.596094,
+          "width": 0.225705,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.396029,
+          "y": 0.6125,
+          "width": 0.260188,
+          "height": 0.257031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 3,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "heavy_overlap:region-4:region-5:0.82"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.804618+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 16.png",
+      "sha256": "2d441f6a3d3fbe125a8ae0eda424fa96f25b509fc43a24df2a4a44e843f4fc4d",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.052247,
+          "y": 0.0375,
+          "width": 0.893417,
+          "height": 0.235937,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.07837,
+          "y": 0.05625,
+          "width": 0.756531,
+          "height": 0.180469,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.052247,
+          "y": 0.266406,
+          "width": 0.893417,
+          "height": 0.657813,
+          "confidence": 0.983,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.097179,
+          "y": 0.311719,
+          "width": 0.811912,
+          "height": 0.548438,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.76"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.873133+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 17.png",
+      "sha256": "06304221242481ed82d8301a8242c43a54ebaf1e041d8a764d7298c01ec41997",
+      "width": 923,
+      "height": 1214,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.145179,
+          "y": 0.017298,
+          "width": 0.720477,
+          "height": 0.104613,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.16143,
+          "y": 0.025535,
+          "width": 0.685807,
+          "height": 0.088138,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.150741,
+          "width": 0.998917,
+          "height": 0.827842,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.520043,
+          "y": 0.261944,
+          "width": 0.452871,
+          "height": 0.578254,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.016251,
+          "y": 0.275947,
+          "width": 0.452871,
+          "height": 0.578254,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.059588,
+          "y": 0.855025,
+          "width": 0.290358,
+          "height": 0.088138,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.611051,
+          "y": 0.855025,
+          "width": 0.290358,
+          "height": 0.088138,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 3,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "heavy_overlap:region-1:region-2:0.80"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.894405+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 18.png",
+      "sha256": "8607c743e3d54fea3f30da662b83c002d915403713d92ae381e4f5795f95548b",
+      "width": 935,
+      "height": 1247,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.012834,
+          "y": 0.093825,
+          "width": 0.973262,
+          "height": 0.213312,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.04492,
+          "y": 0.180433,
+          "width": 0.590374,
+          "height": 0.112269,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.012834,
+          "y": 0.29992,
+          "width": 0.973262,
+          "height": 0.699278,
+          "confidence": 0.985,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.500535,
+          "y": 0.330393,
+          "width": 0.349733,
+          "height": 0.338412,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.043079+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 19.png",
+      "sha256": "3f81f20df6ad7b653cbd071d3814cf972acca15f78c3127329e89fb60822cc8e",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.016406,
+          "width": 0.997917,
+          "height": 0.196094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.042708,
+          "y": 0.067187,
+          "width": 0.917708,
+          "height": 0.109375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.002083,
+          "y": 0.197656,
+          "width": 0.996875,
+          "height": 0.801562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.148958,
+          "y": 0.214062,
+          "width": 0.180208,
+          "height": 0.134375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.357292,
+          "y": 0.214062,
+          "width": 0.180208,
+          "height": 0.134375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.580208,
+          "y": 0.214062,
+          "width": 0.180208,
+          "height": 0.134375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.794792,
+          "y": 0.214062,
+          "width": 0.180208,
+          "height": 0.134375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.01875,
+          "y": 0.357812,
+          "width": 0.941667,
+          "height": 0.623437,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 4
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.055719+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 2.png",
+      "sha256": "d29cfe1f9f0975a14130d1485d700776239495b402276ce8bb3c6d1f6033cb6d",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.073145,
+          "y": 0.01875,
+          "width": 0.865204,
+          "height": 0.186719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.095089,
+          "y": 0.033594,
+          "width": 0.808777,
+          "height": 0.072656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.095089,
+          "y": 0.099219,
+          "width": 0.808777,
+          "height": 0.091406,
+          "confidence": 0.881,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.095089,
+          "y": 0.117969,
+          "width": 0.808777,
+          "height": 0.072656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.029258,
+          "y": 0.229687,
+          "width": 0.451411,
+          "height": 0.354687,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.525601,
+          "y": 0.229687,
+          "width": 0.451411,
+          "height": 0.354687,
+          "confidence": 0.729,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.263323,
+          "y": 0.246875,
+          "width": 0.197492,
+          "height": 0.320312,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.751306,
+          "y": 0.246875,
+          "width": 0.197492,
+          "height": 0.320312,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-9",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.048067,
+          "y": 0.35625,
+          "width": 0.205852,
+          "height": 0.192188,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-10",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.525601,
+          "y": 0.365625,
+          "width": 0.205852,
+          "height": 0.192188,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-11",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.267503,
+          "y": 0.560156,
+          "width": 0.196447,
+          "height": 0.376563,
+          "confidence": 0.872,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-12",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.030303,
+          "y": 0.577344,
+          "width": 0.451411,
+          "height": 0.376563,
+          "confidence": 0.707,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-13",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.526646,
+          "y": 0.577344,
+          "width": 0.451411,
+          "height": 0.376563,
+          "confidence": 0.963,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-14",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.270637,
+          "y": 0.616406,
+          "width": 0.197492,
+          "height": 0.320312,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-15",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.760711,
+          "y": 0.616406,
+          "width": 0.197492,
+          "height": 0.320312,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-16",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.031348,
+          "y": 0.732812,
+          "width": 0.205852,
+          "height": 0.192188,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-17",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.53605,
+          "y": 0.732812,
+          "width": 0.205852,
+          "height": 0.192188,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 5,
+        "main_text": 8,
+        "product_image": 4
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.79",
+        "heavy_overlap:region-11:region-14:0.82"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.848557+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 20.png",
+      "sha256": "4adbf281a1f696855eef049d6dfe63105869c2945c8326f4e0ae075ee5ad6d60",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.083333,
+          "y": 0.132031,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.570833,
+          "y": 0.140625,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.194792,
+          "y": 0.442188,
+          "width": 0.630208,
+          "height": 0.126562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.083333,
+          "y": 0.665625,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.565625,
+          "y": 0.665625,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 4,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_red_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.192736+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 21.png",
+      "sha256": "b5e7034be6c4f97f2da0a433074d96cf45131e6925b1e747e82bad1a4e2953d2",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.031348,
+          "y": 0.025,
+          "width": 0.933124,
+          "height": 0.124219,
+          "confidence": 0.637,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.031348,
+          "y": 0.042188,
+          "width": 0.913271,
+          "height": 0.089844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.033438,
+          "y": 0.142187,
+          "width": 0.932079,
+          "height": 0.55625,
+          "confidence": 0.941,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.033438,
+          "y": 0.166406,
+          "width": 0.932079,
+          "height": 0.792969,
+          "confidence": 0.979,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.07837,
+          "y": 0.179688,
+          "width": 0.397074,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.489028,
+          "y": 0.179688,
+          "width": 0.45559,
+          "height": 0.494531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.034483,
+          "y": 0.691406,
+          "width": 0.933124,
+          "height": 0.267969,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.061651,
+          "y": 0.704688,
+          "width": 0.397074,
+          "height": 0.224219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-9",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.476489,
+          "y": 0.708594,
+          "width": 0.45559,
+          "height": 0.208594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 4,
+        "main_text": 3,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.100648+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 22.png",
+      "sha256": "e128c0ad40d614ba86e5029efcccf08d0edba9bcc874e75d20484aad45a38a60",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.035417,
+          "y": 0.070312,
+          "width": 0.930208,
+          "height": 0.124219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.064583,
+          "y": 0.090625,
+          "width": 0.859375,
+          "height": 0.088281,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.035417,
+          "y": 0.1875,
+          "width": 0.930208,
+          "height": 0.798438,
+          "confidence": 0.987,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.114583,
+          "y": 0.2375,
+          "width": 0.809375,
+          "height": 0.705469,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.230208,
+          "y": 0.724219,
+          "width": 0.678125,
+          "height": 0.144531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.77"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.166462+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 23.png",
+      "sha256": "e87d34e7b60e5cc5710157c3bf481e0b3e80922642ea775c50004f45f5db9bf1",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.025078,
+          "y": 0.025,
+          "width": 0.933124,
+          "height": 0.124219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.027168,
+          "y": 0.142187,
+          "width": 0.932079,
+          "height": 0.55625,
+          "confidence": 0.941,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.026123,
+          "y": 0.157812,
+          "width": 0.933124,
+          "height": 0.801562,
+          "confidence": 0.969,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.481714,
+          "y": 0.171094,
+          "width": 0.45559,
+          "height": 0.494531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.0721,
+          "y": 0.179688,
+          "width": 0.397074,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.028213,
+          "y": 0.691406,
+          "width": 0.933124,
+          "height": 0.267969,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.055381,
+          "y": 0.704688,
+          "width": 0.397074,
+          "height": 0.224219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.470219,
+          "y": 0.708594,
+          "width": 0.45559,
+          "height": 0.208594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 4,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.139462+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 24.png",
+      "sha256": "08dd955a7524d9007d2b8b627def30c4f58e92054f047dde322fc241286cfbef",
+      "width": 967,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.004137,
+          "y": 0.007812,
+          "width": 0.990693,
+          "height": 0.980469,
+          "confidence": 0.972,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.299897,
+          "y": 0.025,
+          "width": 0.653568,
+          "height": 0.411719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.349535,
+          "y": 0.551562,
+          "width": 0.251293,
+          "height": 0.411719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.69183,
+          "y": 0.563281,
+          "width": 0.251293,
+          "height": 0.411719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.125878+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 25.png",
+      "sha256": "82eafc71769190805127bf5b35b6d8fc9d843b5f85fcc53a182bcaec94e8633b",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.003135,
+          "y": 0.007812,
+          "width": 0.992685,
+          "height": 0.955469,
+          "confidence": 0.953,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.121212,
+          "y": 0.178125,
+          "width": 0.257053,
+          "height": 0.278125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.496343,
+          "y": 0.307812,
+          "width": 0.375131,
+          "height": 0.379688,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.052247,
+          "y": 0.740625,
+          "width": 0.819227,
+          "height": 0.208594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.399400+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 26.png",
+      "sha256": "1336782f59a0d84bc23b8d3d444f8cdda84fe92fad0bf308a89781ba17a7fe82",
+      "width": 965,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.014508,
+          "y": 0.116406,
+          "width": 0.984456,
+          "height": 0.339844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.078756,
+          "y": 0.226562,
+          "width": 0.812435,
+          "height": 0.208594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.014508,
+          "y": 0.449219,
+          "width": 0.984456,
+          "height": 0.424219,
+          "confidence": 0.969,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.088083,
+          "y": 0.464844,
+          "width": 0.372021,
+          "height": 0.379688,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.693264,
+          "y": 0.464844,
+          "width": 0.300518,
+          "height": 0.307031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.450777,
+          "y": 0.498437,
+          "width": 0.310881,
+          "height": 0.307031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.458691+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 27.png",
+      "sha256": "f601e2aeced1850dd05512c5d702ac1a0dd40ceeeafc95eadae72c34b29c2dfc",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.003135,
+          "y": 0.017969,
+          "width": 0.992685,
+          "height": 0.271875,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.086729,
+          "y": 0.05,
+          "width": 0.819227,
+          "height": 0.208594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00209,
+          "y": 0.282813,
+          "width": 0.992685,
+          "height": 0.619531,
+          "confidence": 0.986,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.058516,
+          "y": 0.33125,
+          "width": 0.438871,
+          "height": 0.440625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.549634,
+          "y": 0.33125,
+          "width": 0.438871,
+          "height": 0.440625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.438157+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 28.png",
+      "sha256": "0b896588983149e9a86027e6e6a531a91f0df229d11155a6d1ef1986d819e3c7",
+      "width": 972,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.014403,
+          "y": 0.026562,
+          "width": 0.977366,
+          "height": 0.358594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.085391,
+          "y": 0.05,
+          "width": 0.806584,
+          "height": 0.125781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.092593,
+          "y": 0.216406,
+          "width": 0.806584,
+          "height": 0.150781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.405469,
+          "width": 0.977366,
+          "height": 0.421875,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.307613,
+          "y": 0.425781,
+          "width": 0.478395,
+          "height": 0.380469,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.420894+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 29.png",
+      "sha256": "8728904be2d597bd23f316799830e6058b827aaf5da023764c4633b2a6601205",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.017708,
+          "y": 0.078906,
+          "width": 0.957292,
+          "height": 0.202344,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.042708,
+          "y": 0.121875,
+          "width": 0.898958,
+          "height": 0.124219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.017708,
+          "y": 0.274219,
+          "width": 0.957292,
+          "height": 0.703906,
+          "confidence": 0.979,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.563542,
+          "y": 0.4625,
+          "width": 0.371875,
+          "height": 0.057031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.467708,
+          "y": 0.539844,
+          "width": 0.473958,
+          "height": 0.349219,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.323551+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 3.png",
+      "sha256": "6eaf7e1722c11a9b9e64c79e15cd23498c18bf5fa03e25678cc0e51e9c5317c9",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.052344,
+          "width": 0.998955,
+          "height": 0.910937,
+          "confidence": 0.912,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.409613,
+          "y": 0.154688,
+          "width": 0.260188,
+          "height": 0.257031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.151515,
+          "y": 0.229687,
+          "width": 0.225705,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.317659,
+          "y": 0.426563,
+          "width": 0.378265,
+          "height": 0.157812,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.396029,
+          "y": 0.627344,
+          "width": 0.260188,
+          "height": 0.257031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.151515,
+          "y": 0.70625,
+          "width": 0.225705,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2,
+        "main_text": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.662813+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 30.png",
+      "sha256": "6e47a2d5bd4676e8632bb0c49a2bd8c101847cf7963e57fdcbd6d69742850982",
+      "width": 956,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.011506,
+          "y": 0.019531,
+          "width": 0.979079,
+          "height": 0.158594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.066946,
+          "y": 0.033594,
+          "width": 0.869247,
+          "height": 0.130469,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.011506,
+          "y": 0.171094,
+          "width": 0.979079,
+          "height": 0.828125,
+          "confidence": 0.987,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.292887,
+          "y": 0.189844,
+          "width": 0.317992,
+          "height": 0.214062,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.653766,
+          "y": 0.203125,
+          "width": 0.317992,
+          "height": 0.214062,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.040795,
+          "y": 0.434375,
+          "width": 0.930962,
+          "height": 0.540625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.469833+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 31.png",
+      "sha256": "9e0503e157e2899b026876e700a2917389d6e0970809496e71b79294062fe43d",
+      "width": 959,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.059437,
+          "y": 0.114844,
+          "width": 0.881126,
+          "height": 0.269531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.094891,
+          "y": 0.1375,
+          "width": 0.812304,
+          "height": 0.19375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.345151,
+          "y": 0.417187,
+          "width": 0.562044,
+          "height": 0.545312,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "main_text": 1,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.006971+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 32.png",
+      "sha256": "8a63d950d7285ce2c8faa9453926a3fa71e4388ca923e22c23e76b36b1102fdb",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.058516,
+          "y": 0.094531,
+          "width": 0.882968,
+          "height": 0.269531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.114943,
+          "y": 0.104688,
+          "width": 0.77116,
+          "height": 0.113281,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.114943,
+          "y": 0.210938,
+          "width": 0.77116,
+          "height": 0.142187,
+          "confidence": 0.989,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.038662,
+          "y": 0.364844,
+          "width": 0.916405,
+          "height": 0.269531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.449321,
+          "y": 0.376563,
+          "width": 0.492163,
+          "height": 0.248438,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.038662,
+          "y": 0.627344,
+          "width": 0.916405,
+          "height": 0.346094,
+          "confidence": 0.986,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.048067,
+          "y": 0.657813,
+          "width": 0.569488,
+          "height": 0.19375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.631139,
+          "y": 0.657813,
+          "width": 0.310345,
+          "height": 0.200781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 3,
+        "main_text": 4,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_green_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.990878+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 33.png",
+      "sha256": "fb424846e0ec64711f9e2e5c5c3f990d07b85082a7b83355407cfa4cc8da62f1",
+      "width": 935,
+      "height": 1247,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.048128,
+          "y": 0.027265,
+          "width": 0.903743,
+          "height": 0.417803,
+          "confidence": 0.943,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.128342,
+          "y": 0.038492,
+          "width": 0.742246,
+          "height": 0.374499,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.530481,
+          "y": 0.457899,
+          "width": 0.408556,
+          "height": 0.382518,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.058824,
+          "y": 0.473136,
+          "width": 0.451337,
+          "height": 0.367281,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.530481,
+          "y": 0.841219,
+          "width": 0.361497,
+          "height": 0.109062,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.977875+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 34.png",
+      "sha256": "850c6b004fa1dc986a047d35b66250cc02a53dfe8de1d8636e634fa3ee3b9ec4",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.064786,
+          "y": 0.095312,
+          "width": 0.882968,
+          "height": 0.141406,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.138976,
+          "y": 0.110937,
+          "width": 0.725183,
+          "height": 0.114844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.037618,
+          "y": 0.253125,
+          "width": 0.439916,
+          "height": 0.671094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.520376,
+          "y": 0.253125,
+          "width": 0.439916,
+          "height": 0.671094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.330199,
+          "y": 0.278906,
+          "width": 0.031348,
+          "height": 0.030469,
+          "confidence": 0.662,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.328109,
+          "y": 0.284375,
+          "width": 0.029258,
+          "height": 0.025,
+          "confidence": 0.697,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.087774,
+          "y": 0.426563,
+          "width": 0.339603,
+          "height": 0.269531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.570533,
+          "y": 0.426563,
+          "width": 0.339603,
+          "height": 0.269531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-9",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.064786,
+          "y": 0.7,
+          "width": 0.386625,
+          "height": 0.209375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-10",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.546499,
+          "y": 0.7,
+          "width": 0.386625,
+          "height": 0.209375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 3,
+        "main_text": 5,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.963480+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 35.png",
+      "sha256": "011afa8fb0117a66068e5020f587bbb611fcdf8afe716aa18f1d083df8e77426",
+      "width": 783,
+      "height": 1044,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.10728,
+          "y": 0.007663,
+          "width": 0.840358,
+          "height": 0.143678,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.15198,
+          "y": 0.023946,
+          "width": 0.704981,
+          "height": 0.091954,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.020434,
+          "y": 0.16954,
+          "width": 0.485313,
+          "height": 0.768199,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.51341,
+          "y": 0.16954,
+          "width": 0.485313,
+          "height": 0.768199,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.045977,
+          "y": 0.228927,
+          "width": 0.41507,
+          "height": 0.588123,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.532567,
+          "y": 0.228927,
+          "width": 0.41507,
+          "height": 0.588123,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 3,
+        "main_text": 1,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.663469+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 36.png",
+      "sha256": "04875eb91024bac66bbdc586ab3f759091ba9483e3f1c82a188eb1e8e3188425",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.087774,
+          "y": 0.019531,
+          "width": 0.844305,
+          "height": 0.208594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.040752,
+          "y": 0.239063,
+          "width": 0.446186,
+          "height": 0.738281,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.518286,
+          "y": 0.239063,
+          "width": 0.446186,
+          "height": 0.738281,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.526646,
+          "y": 0.250781,
+          "width": 0.411703,
+          "height": 0.285156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.056426,
+          "y": 0.25625,
+          "width": 0.411703,
+          "height": 0.285156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.065831,
+          "y": 0.558594,
+          "width": 0.39185,
+          "height": 0.25625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.545455,
+          "y": 0.558594,
+          "width": 0.39185,
+          "height": 0.25625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "main_text": 3,
+        "layout_block": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.951055+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 37.png",
+      "sha256": "a4446d25073edd769102d8403e6bbb5424ecd3a1887fce35df61f33adbdd3076",
+      "width": 904,
+      "height": 1194,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.024336,
+          "y": 0.010888,
+          "width": 0.948009,
+          "height": 0.161642,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.099558,
+          "y": 0.020938,
+          "width": 0.789823,
+          "height": 0.123116,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.004425,
+          "y": 0.217755,
+          "width": 0.994469,
+          "height": 0.625628,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.526549,
+          "y": 0.264657,
+          "width": 0.462389,
+          "height": 0.543551,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.022124,
+          "y": 0.28727,
+          "width": 0.462389,
+          "height": 0.520938,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.428097,
+          "y": 0.844221,
+          "width": 0.544248,
+          "height": 0.123116,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.935999+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 38.png",
+      "sha256": "679af0f55ab389bdbbc10f804d7151550699dca1b15a90b664731794a7b7529b",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.048958,
+          "y": 0.042188,
+          "width": 0.892708,
+          "height": 0.205469,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.130208,
+          "y": 0.074219,
+          "width": 0.74375,
+          "height": 0.141406,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.048958,
+          "y": 0.240625,
+          "width": 0.892708,
+          "height": 0.707031,
+          "confidence": 0.805,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.048958,
+          "y": 0.28125,
+          "width": 0.435417,
+          "height": 0.275781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.920331+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 39.png",
+      "sha256": "6c571ac1ae5e59845fd33389e7650a0e4e0cae3b9a877ee129cab2598b723f7c",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.025078,
+          "y": 0.091406,
+          "width": 0.950888,
+          "height": 0.257812,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.62069,
+          "y": 0.176563,
+          "width": 0.328109,
+          "height": 0.158594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.280042,
+          "y": 0.192969,
+          "width": 0.328109,
+          "height": 0.153125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.024033,
+          "y": 0.346875,
+          "width": 0.950888,
+          "height": 0.641406,
+          "confidence": 0.988,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.042842,
+          "y": 0.367188,
+          "width": 0.905956,
+          "height": 0.596094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "product_image": 2,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-4:region-5:0.89"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.536345+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 4.png",
+      "sha256": "944191e005101045ca3638082398480284865c5165489899365836fccf22f90d",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.031348,
+          "y": 0.017188,
+          "width": 0.935214,
+          "height": 0.335156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.079415,
+          "y": 0.027344,
+          "width": 0.798328,
+          "height": 0.098437,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.048067,
+          "y": 0.185156,
+          "width": 0.438871,
+          "height": 0.142187,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.507837,
+          "y": 0.19375,
+          "width": 0.437827,
+          "height": 0.133594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.031348,
+          "y": 0.345313,
+          "width": 0.935214,
+          "height": 0.249219,
+          "confidence": 0.931,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.031348,
+          "y": 0.370312,
+          "width": 0.935214,
+          "height": 0.249219,
+          "confidence": 0.931,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.059561,
+          "y": 0.428906,
+          "width": 0.467085,
+          "height": 0.142187,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.561129,
+          "y": 0.428906,
+          "width": 0.354232,
+          "height": 0.142187,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-9",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.031348,
+          "y": 0.5875,
+          "width": 0.935214,
+          "height": 0.400781,
+          "confidence": 0.957,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-10",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.310345,
+          "y": 0.66875,
+          "width": 0.38558,
+          "height": 0.161719,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-11",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.107628,
+          "y": 0.842187,
+          "width": 0.774295,
+          "height": 0.100781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 4,
+        "main_text": 4,
+        "product_image": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-5:region-6:0.82"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.595347+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 40.png",
+      "sha256": "0341bcb047ccaf1d8857992decea0edbd80e39e2ee7dba007bd3ca1eecc7d8bf",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00209,
+          "y": 0.001563,
+          "width": 0.99373,
+          "height": 0.128906,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.15256,
+          "y": 0.021875,
+          "width": 0.675026,
+          "height": 0.089063,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00209,
+          "y": 0.146094,
+          "width": 0.471264,
+          "height": 0.400781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.506792,
+          "y": 0.146094,
+          "width": 0.486938,
+          "height": 0.400781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.566353,
+          "y": 0.195312,
+          "width": 0.367816,
+          "height": 0.215625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.054336,
+          "y": 0.207813,
+          "width": 0.367816,
+          "height": 0.215625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00209,
+          "y": 0.539844,
+          "width": 0.471264,
+          "height": 0.423438,
+          "confidence": 0.859,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.506792,
+          "y": 0.539844,
+          "width": 0.486938,
+          "height": 0.423438,
+          "confidence": 0.965,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-9",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.054336,
+          "y": 0.585938,
+          "width": 0.367816,
+          "height": 0.215625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-10",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.582027,
+          "y": 0.611719,
+          "width": 0.367816,
+          "height": 0.215625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 5,
+        "main_text": 1,
+        "product_image": 4
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.573636+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 41.png",
+      "sha256": "744fff08733149cdb6cd005b236f8f3f31a63dfe4ce324c8271790a2552f0c07",
+      "width": 978,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.003067,
+          "y": 0.016406,
+          "width": 0.972393,
+          "height": 0.128906,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.192229,
+          "y": 0.035156,
+          "width": 0.660532,
+          "height": 0.089063,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.02045,
+          "y": 0.161719,
+          "width": 0.46319,
+          "height": 0.775,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.52454,
+          "y": 0.167969,
+          "width": 0.46319,
+          "height": 0.775,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.05317,
+          "y": 0.176563,
+          "width": 0.397751,
+          "height": 0.109375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.54908,
+          "y": 0.176563,
+          "width": 0.397751,
+          "height": 0.109375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.037832,
+          "y": 0.802344,
+          "width": 0.397751,
+          "height": 0.109375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "main_text": 4,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.597240+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 42.png",
+      "sha256": "831dc73b9a78674f238f43441aa829c66355f4333eee2b93fe1c6a48d688ee95",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.005225,
+          "y": 0.016406,
+          "width": 0.99373,
+          "height": 0.239844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.057471,
+          "y": 0.065625,
+          "width": 0.53814,
+          "height": 0.15625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.005225,
+          "y": 0.249219,
+          "width": 0.99373,
+          "height": 0.501563,
+          "confidence": 0.981,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00418,
+          "y": 0.266406,
+          "width": 0.992685,
+          "height": 0.732812,
+          "confidence": 0.953,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.241379,
+          "y": 0.286719,
+          "width": 0.515152,
+          "height": 0.44375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00418,
+          "y": 0.74375,
+          "width": 0.992685,
+          "height": 0.255469,
+          "confidence": 0.866,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00209,
+          "y": 0.785937,
+          "width": 0.99373,
+          "height": 0.213281,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.051202,
+          "y": 0.802344,
+          "width": 0.807732,
+          "height": 0.15625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 5,
+        "main_text": 2,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-6:region-7:0.83"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.025998+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 43.png",
+      "sha256": "37055829656b7ac91b96552b991f97428fe9f74dc294b6d6db1e9fe426afe5bb",
+      "width": 959,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.004171,
+          "y": 0.002344,
+          "width": 0.990615,
+          "height": 0.985938,
+          "confidence": 0.945,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.054223,
+          "y": 0.023438,
+          "width": 0.514077,
+          "height": 0.44375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.080292,
+          "y": 0.533594,
+          "width": 0.514077,
+          "height": 0.44375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.624582+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 44.png",
+      "sha256": "e57a10724ba16317ecae451645f127b592fa7913100cc3dcd172a4031b87d107",
+      "width": 959,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.004171,
+          "y": 0.002344,
+          "width": 0.990615,
+          "height": 0.996875,
+          "confidence": 0.935,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.036496,
+          "y": 0.016406,
+          "width": 0.607925,
+          "height": 0.44375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.049009,
+          "y": 0.544531,
+          "width": 0.607925,
+          "height": 0.44375,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.645176+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 45.png",
+      "sha256": "49d37f7344b9199551aa0fc2c1dde77b99c9cfa8ccb5a016511b2a70e8dbcea7",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.00209,
+          "y": 0.008594,
+          "width": 0.992685,
+          "height": 0.96875,
+          "confidence": 0.986,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.207941,
+          "y": 0.019531,
+          "width": 0.634274,
+          "height": 0.428125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.207941,
+          "y": 0.440625,
+          "width": 0.634274,
+          "height": 0.4875,
+          "confidence": 0.894,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.217346,
+          "y": 0.448437,
+          "width": 0.560084,
+          "height": 0.104688,
+          "confidence": 0.926,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.207941,
+          "y": 0.5,
+          "width": 0.634274,
+          "height": 0.428125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 3,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "heavy_overlap:region-3:region-5:0.88"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.488638+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 46.png",
+      "sha256": "bfc32162505b00e240d9be302bd5ba649725d5f99412176263e775253d8a53ce",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.003135,
+          "y": 0.019531,
+          "width": 0.992685,
+          "height": 0.955469,
+          "confidence": 0.953,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.199582,
+          "y": 0.08125,
+          "width": 0.257053,
+          "height": 0.278125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.509927,
+          "y": 0.404687,
+          "width": 0.375131,
+          "height": 0.379688,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.380164+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 47.png",
+      "sha256": "464650dbe62b18c892c858cd1665542cea7639ed412a6664efc216981f56a3f5",
+      "width": 959,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.025026,
+          "y": 0.071094,
+          "width": 0.593326,
+          "height": 0.332813,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.223149,
+          "y": 0.446094,
+          "width": 0.561001,
+          "height": 0.107031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.058394,
+          "y": 0.624219,
+          "width": 0.593326,
+          "height": 0.332813,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 2,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_red_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.503998+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 48.png",
+      "sha256": "4de9a4455f9dbd2d32c6cfe4cc89f350856c40e2d166e9dfff00e6311b2f371c",
+      "width": 961,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.004162,
+          "y": 0.009375,
+          "width": 0.990635,
+          "height": 0.107031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.489074,
+          "y": 0.125781,
+          "width": 0.471384,
+          "height": 0.416406,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.83975,
+          "y": 0.439063,
+          "width": 0.028096,
+          "height": 0.029687,
+          "confidence": 0.667,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.028096,
+          "y": 0.578125,
+          "width": 0.932362,
+          "height": 0.133594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.028096,
+          "y": 0.7125,
+          "width": 0.943809,
+          "height": 0.244531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2,
+        "main_text": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "too_small_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.518615+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 49.png",
+      "sha256": "ec658e4eb5a23bd8d4bbf4ac098db89b17149423f0f0d3d78be2eccbe87e071a",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.045977,
+          "y": 0.029687,
+          "width": 0.924765,
+          "height": 0.23125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.105538,
+          "y": 0.061719,
+          "width": 0.821317,
+          "height": 0.126562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.043887,
+          "y": 0.253906,
+          "width": 0.92372,
+          "height": 0.59375,
+          "confidence": 0.919,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.040752,
+          "y": 0.282031,
+          "width": 0.924765,
+          "height": 0.675,
+          "confidence": 0.958,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.422153,
+          "y": 0.292187,
+          "width": 0.532915,
+          "height": 0.528906,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.003135,
+          "y": 0.328125,
+          "width": 0.397074,
+          "height": 0.408594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.040752,
+          "y": 0.842187,
+          "width": 0.924765,
+          "height": 0.114844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.065831,
+          "y": 0.848437,
+          "width": 0.821317,
+          "height": 0.097656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 4,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.80",
+        "heavy_overlap:region-7:region-8:0.76"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.357961+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 5.png",
+      "sha256": "9ae2cdafbbd61a99d93889bfa60b0859589164d587036ab18a8d829ee2a57c2a",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.042969,
+          "width": 0.998955,
+          "height": 0.910937,
+          "confidence": 0.951,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.396029,
+          "y": 0.095312,
+          "width": 0.556949,
+          "height": 0.321094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.038662,
+          "y": 0.25625,
+          "width": 0.339603,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.317659,
+          "y": 0.417187,
+          "width": 0.378265,
+          "height": 0.157812,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.396029,
+          "y": 0.617969,
+          "width": 0.556949,
+          "height": 0.308594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.038662,
+          "y": 0.75625,
+          "width": 0.320794,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2,
+        "main_text": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.833179+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 50.png",
+      "sha256": "1fd3736fd673f254be6051540a4262a233914d47e1aea0f5f038f8702a28d2ab",
+      "width": 958,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.04071,
+          "y": 0.122656,
+          "width": 0.39666,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.529228,
+          "y": 0.13125,
+          "width": 0.39666,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.152401,
+          "y": 0.432812,
+          "width": 0.631524,
+          "height": 0.126562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.04071,
+          "y": 0.65625,
+          "width": 0.39666,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.524008,
+          "y": 0.65625,
+          "width": 0.39666,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 4,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_red_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.084094+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 51.png",
+      "sha256": "4a5020269bb89f7d6977decb901ec176d2274806dc0ff62552d02f26f0438143",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.061651,
+          "y": 0.117188,
+          "width": 0.397074,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.550679,
+          "y": 0.125781,
+          "width": 0.397074,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.120167,
+          "y": 0.427344,
+          "width": 0.748171,
+          "height": 0.126562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.061651,
+          "y": 0.650781,
+          "width": 0.397074,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.545455,
+          "y": 0.650781,
+          "width": 0.397074,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 4,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_red_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.343904+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 52.png",
+      "sha256": "e2a5b62b6051bf83e0c7d11b3b900fb9b8bed9808ce74b1471ca98c2287ade1e",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.064583,
+          "y": 0.126562,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.552083,
+          "y": 0.135156,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.176042,
+          "y": 0.436719,
+          "width": 0.630208,
+          "height": 0.126562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.064583,
+          "y": 0.660156,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.546875,
+          "y": 0.660156,
+          "width": 0.395833,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 4,
+        "main_text": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_red_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.216108+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 53.png",
+      "sha256": "8b9bec39647ebe262e1c05e0fff653d838a37d9df21b1fa0dc9aa9c795cb7445",
+      "width": 959,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.044838,
+          "y": 0.135937,
+          "width": 0.396246,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.532847,
+          "y": 0.144531,
+          "width": 0.396246,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.044838,
+          "y": 0.669531,
+          "width": 0.396246,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.527633,
+          "y": 0.669531,
+          "width": 0.396246,
+          "height": 0.300781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "product_image": 4
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "broken_or_missing_red_rectangle",
+        "broken_or_missing_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.243500+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 54.png",
+      "sha256": "b69d9dd0a2fee5c60b25b2326ec7fa73d76a300275985292d857faeada9cdc41",
+      "width": 957,
+      "height": 1300,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.050157,
+          "y": 0.005385,
+          "width": 0.809822,
+          "height": 0.140769,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.050157,
+          "y": 0.139231,
+          "width": 0.809822,
+          "height": 0.590769,
+          "confidence": 0.892,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.050157,
+          "y": 0.155385,
+          "width": 0.809822,
+          "height": 0.843846,
+          "confidence": 0.924,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.049112,
+          "y": 0.173077,
+          "width": 0.516196,
+          "height": 0.11,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.119122,
+          "y": 0.309231,
+          "width": 0.427377,
+          "height": 0.400769,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.050157,
+          "y": 0.723077,
+          "width": 0.809822,
+          "height": 0.276154,
+          "confidence": 0.969,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 4,
+        "main_text": 1,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.261467+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 55.png",
+      "sha256": "48b782e9165285a006076040a9f7c445b8b5d3cba06ff84eebf01d59a489f8fa",
+      "width": 960,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.086458,
+          "y": 0.099219,
+          "width": 0.807292,
+          "height": 0.264062,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.16875,
+          "y": 0.121875,
+          "width": 0.653125,
+          "height": 0.221875,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.027083,
+          "y": 0.385156,
+          "width": 0.960417,
+          "height": 0.576562,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.048958,
+          "y": 0.408594,
+          "width": 0.916667,
+          "height": 0.365625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.086458,
+          "y": 0.775,
+          "width": 0.807292,
+          "height": 0.157031,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.286287+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 56.png",
+      "sha256": "929907552160806a1b2b435c54fc17db40eff1c52c4ef8805bb7957a3d2fbcfa",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.020899,
+          "y": 0.0125,
+          "width": 0.960293,
+          "height": 0.108594,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.041797,
+          "y": 0.03125,
+          "width": 0.901776,
+          "height": 0.067187,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.281087,
+          "y": 0.124219,
+          "width": 0.296761,
+          "height": 0.219531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.661442,
+          "y": 0.124219,
+          "width": 0.296761,
+          "height": 0.219531,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.056426,
+          "y": 0.374219,
+          "width": 0.901776,
+          "height": 0.625,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:20.297832+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 6.png",
+      "sha256": "4607a73ee8eb8104c1bcf54141a7fd9ae3d6f133eaeb5ae1ba1c24c1ac086390",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.010156,
+          "width": 0.998955,
+          "height": 0.271875,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.036573,
+          "y": 0.025781,
+          "width": 0.92163,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.037618,
+          "y": 0.103906,
+          "width": 0.92163,
+          "height": 0.164844,
+          "confidence": 0.929,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.038662,
+          "y": 0.123438,
+          "width": 0.92163,
+          "height": 0.145313,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.275,
+          "width": 0.998955,
+          "height": 0.324219,
+          "confidence": 0.95,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.299219,
+          "width": 0.998955,
+          "height": 0.330469,
+          "confidence": 0.932,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-7",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.059561,
+          "y": 0.31875,
+          "width": 0.38767,
+          "height": 0.260937,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-8",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.464995,
+          "y": 0.328906,
+          "width": 0.493208,
+          "height": 0.250781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-9",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.592187,
+          "width": 0.998955,
+          "height": 0.361719,
+          "confidence": 0.938,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-10",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.229885,
+          "y": 0.675,
+          "width": 0.515152,
+          "height": 0.260937,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-11",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.77116,
+          "y": 0.675,
+          "width": 0.165099,
+          "height": 0.250781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-12",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.038662,
+          "y": 0.685156,
+          "width": 0.165099,
+          "height": 0.250781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 4,
+        "main_text": 6,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge",
+        "duplicate_red_rectangle_edge",
+        "heavy_overlap:region-3:region-4:0.88",
+        "heavy_overlap:region-5:region-6:0.85"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.640607+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 7.png",
+      "sha256": "3743a2e4c9ee78d91e3af671943f57f5c1f3b2cf2d511552a9b18ab646871baa",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.083594,
+          "width": 0.998955,
+          "height": 0.214844,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.055381,
+          "y": 0.111719,
+          "width": 0.462905,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.500522,
+          "y": 0.197656,
+          "width": 0.462905,
+          "height": 0.085156,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.291406,
+          "width": 0.998955,
+          "height": 0.696094,
+          "confidence": 0.957,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.055381,
+          "y": 0.352344,
+          "width": 0.38767,
+          "height": 0.371094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.541275,
+          "y": 0.352344,
+          "width": 0.38767,
+          "height": 0.371094,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 2,
+        "product_image": 2
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.615765+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 8.png",
+      "sha256": "3484b0bbaa2cc8d7b14a22c013d7c39cbdb95b8e4b41d83dd8880bc460f62bed",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.026123,
+          "y": 0.025,
+          "width": 0.941484,
+          "height": 0.95,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.320794,
+          "y": 0.083594,
+          "width": 0.211076,
+          "height": 0.175,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.662487,
+          "y": 0.083594,
+          "width": 0.211076,
+          "height": 0.175,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.060606,
+          "y": 0.25625,
+          "width": 0.205852,
+          "height": 0.700781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-5",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.293626,
+          "y": 0.259375,
+          "width": 0.290491,
+          "height": 0.700781,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-6",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.623824,
+          "y": 0.259375,
+          "width": 0.290491,
+          "height": 0.697656,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 1,
+        "product_image": 2,
+        "main_text": 3
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "too_small_green_rectangle"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.626418+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    },
+    {
+      "relative_path": "Group 9.png",
+      "sha256": "9a80f773d45a278ad7f913e2e34539def4725af44bb4c238954356996b463418",
+      "width": 957,
+      "height": 1280,
+      "orientation": "portrait",
+      "regions": [
+        {
+          "id": "region-1",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.042188,
+          "width": 0.978056,
+          "height": 0.2125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-2",
+          "type": "main_text",
+          "color": "green",
+          "x": 0.088819,
+          "y": 0.079687,
+          "width": 0.825496,
+          "height": 0.154688,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-3",
+          "type": "layout_block",
+          "color": "red",
+          "x": 0.0,
+          "y": 0.247656,
+          "width": 0.978056,
+          "height": 0.601562,
+          "confidence": 0.962,
+          "annotation_source": "color_box_parser_v1"
+        },
+        {
+          "id": "region-4",
+          "type": "product_image",
+          "color": "blue",
+          "x": 0.113898,
+          "y": 0.3125,
+          "width": 0.774295,
+          "height": 0.5125,
+          "confidence": 1.0,
+          "annotation_source": "color_box_parser_v1"
+        }
+      ],
+      "region_counts": {
+        "layout_block": 2,
+        "main_text": 1,
+        "product_image": 1
+      },
+      "warnings": [
+        "unannotated_original_not_found",
+        "duplicate_red_rectangle_edge"
+      ],
+      "pairing_status": "annotated_only",
+      "source_modified_at": "2026-07-31T02:45:19.709826+00:00",
+      "annotation_created_at": "2026-07-31T03:47:59.746096+00:00"
+    }
+  ]
+}

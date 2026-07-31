@@ -202,4 +202,25 @@ npm.cmd run build
 - 当前阶段是大批量拆解、人工审核和知识沉淀，不是模型微调。
 - 正式主线仍是 `LayoutBlueprint → LayoutPattern → layout_search`，不读取 PreferenceEvent 作为正式权重。
 
+## 全品类排版拆解学习
+
+- 审核入口：`/annotation-learning`；旧的 `/annotation-learning/disinfection-cabinet` 保持兼容。
+- 通用接口：`/api/layout-annotations`、`/api/layout-annotations/few-shots` 和
+  `/api/cases/{case_id}/layout-auto-decompose`。
+- 模型优先使用“同产品分类 + company_published + 人工 verified + calibration”的证据。
+- 同品类不足时，公司其他品类只能作为 `cross_category_structure_reference`；
+  外部素材仅在显式 `evidence_mode=imitation` 时作为 `imitation_reference`。
+- 单品类至少 3 个 calibration 证据可试运行 few-shot；达到 30 张 verified 且存在
+  holdout 后才标记该品类评估就绪。
+- 通用彩框标注导入：
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe scripts\import_layout_annotations.py `
+  --source ..\Untitled1 --product-category 消毒柜
+```
+
+默认是 dry-run；人工核对统计后追加 `--execute` 才写入本地库，且所有新记录仍为
+`pending_review`，不会自动成为学习证据。
+
 Manifest 模板：`docs/templates/asset-import-manifest.csv`。
