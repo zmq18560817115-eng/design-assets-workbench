@@ -68,6 +68,8 @@ function ReviewPanel({ item, onSaved }: { item: CaseOut; onSaved: (value: CaseOu
   const [notes, setNotes] = useState(item.review_notes);
   const [keep, setKeep] = useState("");
   const [avoid, setAvoid] = useState("");
+  const [blueprintCorrect, setBlueprintCorrect] = useState(item.blueprint_correct);
+  const [businessReusable, setBusinessReusable] = useState(item.business_reusable);
   const [saving, setSaving] = useState(false);
   const lines = (value: string) => value.split("\n").map((line) => line.trim()).filter(Boolean);
   return (
@@ -88,6 +90,14 @@ function ReviewPanel({ item, onSaved }: { item: CaseOut; onSaved: (value: CaseOu
           placeholder="avoid_reasons，每行一条" className="min-h-28 rounded-xl border border-line px-3 py-2 text-sm" />
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
           placeholder="审核说明" className="min-h-24 rounded-xl border border-line px-3 py-2 text-sm md:col-span-2" />
+        <label className="flex items-center gap-2 rounded-xl border border-line p-3 text-sm">
+          <input type="checkbox" checked={blueprintCorrect} onChange={(e) => setBlueprintCorrect(e.target.checked)} />
+          blueprint_correct · AI拆解正确
+        </label>
+        <label className="flex items-center gap-2 rounded-xl border border-line p-3 text-sm">
+          <input type="checkbox" checked={businessReusable} onChange={(e) => setBusinessReusable(e.target.checked)} />
+          business_reusable · 值得业务复用
+        </label>
       </div>
       <button disabled={saving || !reviewer.trim()} onClick={() => {
         setSaving(true);
@@ -95,6 +105,8 @@ function ReviewPanel({ item, onSaved }: { item: CaseOut; onSaved: (value: CaseOu
           reviewer, trust_status: status,
           review_decision: status === "rejected" ? "reject" : "",
           review_notes: notes,
+          blueprint_correct: blueprintCorrect,
+          business_reusable: businessReusable,
           keep_reasons: lines(keep), avoid_reasons: lines(avoid),
         }).then(onSaved).finally(() => setSaving(false));
       }} className="mt-4 rounded-xl bg-ink px-4 py-2 text-sm text-white disabled:opacity-50">
@@ -122,11 +134,11 @@ export default function CaseDetail() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/cases" className="text-sm text-gray-500 hover:text-accent">
+        <Link href="/assets?tab=library" className="text-sm text-gray-500 hover:text-accent">
           ← 返回素材库
         </Link>
         <Link
-          href="/analyze"
+          href="/assets?tab=import"
           className="rounded-xl border border-line bg-white px-4 py-2 text-sm hover:border-accent"
         >
           继续上传素材
@@ -190,7 +202,7 @@ export default function CaseDetail() {
       </section>
 
       <BusinessFields item={item} onSaved={setItem} />
-      <LayoutBlueprintEditor caseId={item.id} />
+      <LayoutBlueprintEditor caseId={item.id} imageUrl={item.image?.url || ""} />
       <ReviewPanel item={item} onSaved={setItem} />
     </div>
   );

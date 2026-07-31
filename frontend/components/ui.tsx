@@ -2,17 +2,15 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import { CaseOut } from "@/lib/api";
 import { categoryByValue } from "@/lib/categories";
+import {
+  adminNavigation, configuredRole, designerNavigation,
+} from "@/lib/navigation";
 
 export function Nav() {
-  const items = [
-    { href: "/", label: "首页" },
-    { href: "/analyze", label: "上传入库" },
-    { href: "/batch", label: "批量导入" },
-    { href: "/cases", label: "素材库" },
-    { href: "/requirements", label: "业务需求" },
-    { href: "/patterns", label: "排版模式" },
-    { href: "/layout-search/evaluation", label: "检索验收" },
-  ];
+  const role = configuredRole();
+  const items = role === "admin"
+    ? [...designerNavigation, ...adminNavigation]
+    : designerNavigation;
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4 lg:px-10">
@@ -22,7 +20,7 @@ export function Nav() {
           </span>
           设计灵感资产库
         </Link>
-        <div className="flex gap-1 text-sm text-gray-600">
+        <div className="flex max-w-[72vw] gap-1 overflow-x-auto text-sm text-gray-600">
           {items.map((i) => (
             <Link
               key={i.href}

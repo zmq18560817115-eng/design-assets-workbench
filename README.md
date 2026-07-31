@@ -1,5 +1,20 @@
 # 设计灵感资产库
 
+## P3.2-C：前端主线与拆解校准
+
+正式业务主线为：素材上传 → AI 多模态拆解 → `LayoutBlueprint` → 人工校正与确认
+→ `LayoutPattern` → `BusinessRequirement` → 案例与模式检索 → 人工反馈。
+
+- 普通设计师使用 `/assets` 统一完成素材库、导入和待审核工作。
+- 管理员在 `/admin/analysis-evaluation` 运行图片拆解质量校准。
+- `/layout-search/evaluation` 只负责业务需求检索准确率验收，两套验收互不混用。
+- Calibration 可查看 Ground Truth 和诊断；Holdout 默认密封，只允许冻结版本运行一次。
+- 解封 Holdout 会将数据集标记为 `consumed`，之后不得再次作为盲测集。
+- 公司成品和外部参考是不同证据；外部素材不能代表公司业务标准。
+
+这里的“学习”是公司素材 Ground Truth、Prompt/Validator 校准、人工反馈和独立盲测，
+不是基础多模态模型微调，也不代表系统已学会未经证据支持的“公司偏好”。
+
 ## Task 4.1：冻结式检索验收
 
 Task 4.1B 已提供设计负责人可直接操作的数据集工作台：未冻结标注可新增、编辑和删除，可查看需求业务条件、案例原图与蓝图、模式证据，冻结后全部只读。完整验收包不包含原图或 API 密钥。

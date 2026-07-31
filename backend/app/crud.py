@@ -1365,6 +1365,8 @@ def serialize_case(case: models.Case) -> dict:
         "review_notes": getattr(case, "review_notes", "") or "",
         "reviewer": getattr(case, "reviewer", "") or "",
         "reviewed_at": getattr(case, "reviewed_at", None),
+        "blueprint_correct": bool(getattr(case, "blueprint_correct", False)),
+        "business_reusable": bool(getattr(case, "business_reusable", False)),
         "trust_status": getattr(case, "trust_status", "") or "ai_unverified",
         "status": getattr(case, "status", "") or "public",
         "created_at": case.created_at,
@@ -1626,6 +1628,10 @@ def review_case(
     case.review_notes = review.review_notes.strip()
     case.reviewer = review.reviewer.strip()
     case.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    if review.blueprint_correct is not None:
+        case.blueprint_correct = review.blueprint_correct
+    if review.business_reusable is not None:
+        case.business_reusable = review.business_reusable
     submitted = review.model_fields_set
     business_fields_changed = False
     for field in (
@@ -1633,8 +1639,12 @@ def review_case(
         "product_name", "content_purpose", "brief_ref",
     ):
         if field in submitted:
-            setattr(case, field, (getattr(review, field) or "").strip())
-            business_fields_changed = True
+            value = getattr(review, field)
+            # Review forms use PATCH semantics: omitted or blank fields must not
+            # erase business metadata saved by a previous workflow step.
+            if value is not None and value.strip():
+                setattr(case, field, value.strip())
+                business_fields_changed = True
     if "page_role" in submitted:
         case.page_role = review.page_role or "other"
         business_fields_changed = True
@@ -1665,6 +1675,8 @@ def review_case(
             "review_decision": case.review_decision,
             "review_notes": case.review_notes,
             "trust_status": case.trust_status,
+            "blueprint_correct": case.blueprint_correct,
+            "business_reusable": case.business_reusable,
             "keep_reasons": keep_reasons,
             "avoid_reasons": avoid_reasons,
         },

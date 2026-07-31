@@ -23,6 +23,7 @@ from fastapi import (
     HTTPException,
     Response,
     UploadFile,
+    Header,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +32,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
+    acceptance_pack, analysis_evaluation, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
+    llm, models, overlay, vlm,
     acceptance_pack, batch, concept, config, crud, imagehash, layout_blueprint, layout_patterns, layout_search,
     disinfection_annotations, llm, models, overlay, vlm,
 )
@@ -65,6 +68,14 @@ from .schemas import (
     LayoutSearchGroundTruthUpdate,
     LayoutSearchEvaluationRunInput,
     LayoutSearchDatasetCreate,
+    AnalysisDatasetCreate,
+    AnalysisDatasetItemUpsert,
+    AnalysisGroundTruthUpdate,
+    AnalysisRuntimeVersionCreate,
+    AnalysisEvaluationRunCreate,
+    AnalysisVersionFreezeInput,
+    AnalysisHoldoutUnsealInput,
+    AnalysisResultRetryInput,
     LayoutDirectionOut,
     LayoutDirectionSetOut,
     LayoutDirectionFeedbackCreate,
@@ -736,6 +747,262 @@ def health() -> dict:
         "llm_enabled": config.llm_enabled(),
         "llm_model": config.LLM_MODEL if config.llm_enabled() else "",
     }
+
+
+def _require_admin(x_workbench_role: str = Header(default="designer")) -> str:
+    """Temporary centralized role seam; replace with real auth when available."""
+    if x_workbench_role != "admin":
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+    return x_workbench_role
+
+
+@app.get("/api/analysis-evaluation/datasets")
+def list_analysis_datasets(
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    rows = (
+        db.query(models.AnalysisEvaluationDataset)
+        .order_by(models.AnalysisEvaluationDataset.created_at.desc())
+        .all()
+    )
+    return [analysis_evaluation.dataset_detail(db, row, admin=True) for row in rows]
+
+
+@app.post("/api/analysis-evaluation/datasets")
+def create_analysis_dataset(
+    payload: AnalysisDatasetCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        row = analysis_evaluation.create_dataset(db, payload.model_dump())
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.dataset_detail(db, row, admin=True)
+
+
+@app.get("/api/analysis-evaluation/datasets/{dataset_version}")
+def get_analysis_dataset(
+    dataset_version: str,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        row = analysis_evaluation.dataset_or_error(db, dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return analysis_evaluation.dataset_detail(db, row, admin=True)
+
+
+@app.post("/api/analysis-evaluation/datasets/{dataset_version}/items")
+def assign_analysis_dataset_item(
+    dataset_version: str,
+    payload: AnalysisDatasetItemUpsert,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, dataset_version)
+        row = analysis_evaluation.assign_item(db, dataset, payload.model_dump())
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.serialize_item(row, include_ground_truth=False)
+
+
+@app.put("/api/analysis-evaluation/datasets/{dataset_version}/items/{item_id}/ground-truth")
+def update_analysis_ground_truth(
+    dataset_version: str,
+    item_id: int,
+    payload: AnalysisGroundTruthUpdate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    item = db.get(models.AnalysisEvaluationItem, item_id)
+    if not item or item.dataset_id != dataset.id:
+        raise HTTPException(status_code=404, detail="数据集条目不存在")
+    try:
+        row = analysis_evaluation.save_ground_truth(
+            db, dataset, item, payload.model_dump(mode="json")
+        )
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.serialize_item(row, include_ground_truth=True)
+
+
+@app.get("/api/analysis-evaluation/public-summary")
+def analysis_evaluation_public_summary(db: Session = Depends(get_db)):
+    """Designer-safe endpoint: never returns holdout labels or ground truth."""
+    rows = db.query(models.AnalysisEvaluationDataset).all()
+    return [
+        analysis_evaluation.dataset_detail(db, row, admin=False) for row in rows
+    ]
+
+
+@app.get("/api/analysis-versions")
+def list_analysis_versions(
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    rows = (
+        db.query(models.AnalysisRuntimeVersion)
+        .order_by(models.AnalysisRuntimeVersion.created_at.desc())
+        .all()
+    )
+    return [
+        analysis_evaluation.runtime_to_dict(row, technical=True) for row in rows
+    ]
+
+
+@app.post("/api/analysis-versions")
+def create_analysis_version(
+    payload: AnalysisRuntimeVersionCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        row = analysis_evaluation.create_runtime(db, payload.model_dump())
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.runtime_to_dict(row, technical=True)
+
+
+@app.post("/api/analysis-versions/freeze")
+def freeze_analysis_version(
+    payload: AnalysisVersionFreezeInput,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, payload.dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    runtime = db.get(models.AnalysisRuntimeVersion, payload.runtime_version_id)
+    if not runtime:
+        raise HTTPException(status_code=404, detail="运行版本不存在")
+    try:
+        analysis_evaluation.freeze_runtime(db, dataset, runtime)
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "dataset": analysis_evaluation.dataset_detail(db, dataset, admin=True),
+        "runtime": analysis_evaluation.runtime_to_dict(runtime, technical=True),
+    }
+
+
+@app.post("/api/analysis-evaluation/runs")
+def run_analysis_evaluation(
+    payload: AnalysisEvaluationRunCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    try:
+        dataset = analysis_evaluation.dataset_or_error(db, payload.dataset_version)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    runtime = db.get(models.AnalysisRuntimeVersion, payload.runtime_version_id)
+    if not runtime:
+        raise HTTPException(status_code=404, detail="运行版本不存在")
+    try:
+        row = analysis_evaluation.run_evaluation(
+            db,
+            dataset,
+            runtime,
+            dataset_split=payload.dataset_split,
+            actor=payload.created_by,
+            confirm_holdout=payload.confirm_consume_holdout,
+        )
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return analysis_evaluation.run_to_dict(
+        row, include_details=payload.dataset_split == "calibration", db=db
+    )
+
+
+@app.get("/api/analysis-evaluation/runs")
+def list_analysis_evaluation_runs(
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    rows = (
+        db.query(models.AnalysisEvaluationRun)
+        .order_by(models.AnalysisEvaluationRun.created_at.desc())
+        .all()
+    )
+    return [
+        analysis_evaluation.run_to_dict(
+            row,
+            include_details=row.dataset_split == "calibration" or bool(row.unsealed_at),
+            db=db,
+        )
+        for row in rows
+    ]
+
+
+@app.get("/api/analysis-evaluation/runs/{run_id}")
+def get_analysis_evaluation_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    row = db.get(models.AnalysisEvaluationRun, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="运行记录不存在")
+    return analysis_evaluation.run_to_dict(
+        row,
+        include_details=row.dataset_split == "calibration" or bool(row.unsealed_at),
+        db=db,
+    )
+
+
+@app.post("/api/analysis-evaluation/runs/{run_id}/unseal")
+def unseal_analysis_evaluation_run(
+    run_id: int,
+    payload: AnalysisHoldoutUnsealInput,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    if not payload.confirm_consumed:
+        raise HTTPException(
+            status_code=409,
+            detail="必须确认解封后当前 Holdout 将标记为 consumed",
+        )
+    row = db.get(models.AnalysisEvaluationRun, run_id)
+    if not row or row.dataset_split != "holdout":
+        raise HTTPException(status_code=404, detail="Holdout 运行记录不存在")
+    dataset = db.get(models.AnalysisEvaluationDataset, row.dataset_id)
+    if not dataset:
+        raise HTTPException(status_code=404, detail="数据集不存在")
+    now = dt.datetime.utcnow()
+    row.unsealed_at = now
+    analysis_evaluation.mark_consumed(dataset, now=now)
+    db.commit()
+    return analysis_evaluation.run_to_dict(row, include_details=True, db=db)
+
+
+@app.post("/api/analysis-evaluation/results/{result_id}/retry")
+def retry_analysis_evaluation_result(
+    result_id: int,
+    payload: AnalysisResultRetryInput,
+    db: Session = Depends(get_db),
+    _: str = Depends(_require_admin),
+):
+    result = db.get(models.AnalysisEvaluationResult, result_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="拆解结果不存在")
+    run = db.get(models.AnalysisEvaluationRun, result.run_id)
+    if not run or run.dataset_split != "calibration":
+        raise HTTPException(status_code=409, detail="仅 Calibration 失败项允许单条重试")
+    try:
+        return analysis_evaluation.retry_result(db, result, actor=payload.actor)
+    except analysis_evaluation.EvaluationConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/api/analyze", response_model=CaseOut)

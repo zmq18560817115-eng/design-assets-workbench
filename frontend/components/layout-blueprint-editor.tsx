@@ -39,14 +39,15 @@ function asInput(item: LayoutBlueprint): LayoutBlueprintInput {
   };
 }
 
-export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
+export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: number; imageUrl?: string }) {
   const [versions, setVersions] = useState<LayoutBlueprint[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<LayoutBlueprintInput | null>(null);
   const [editor, setEditor] = useState("");
   const [patternName, setPatternName] = useState("");
-  const [showLabels, setShowLabels] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
   const [showFocalRegion, setShowFocalRegion] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -264,9 +265,15 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
               showLabels={showLabels}
               showFocalRegion={showFocalRegion}
               className="max-w-[460px]"
+              backgroundImageUrl={showOriginal ? imageUrl : ""}
+              onModuleChange={updateModule}
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-400">
+            <button type="button" onClick={() => setShowOriginal((value) => !value)}
+              className="rounded-lg border border-line px-3 py-1.5">
+              {showOriginal ? "切换为纯标注图" : "切换为原图叠加"}
+            </button>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -435,7 +442,7 @@ export function LayoutBlueprintEditor({ caseId }: { caseId: number }) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-line p-3">
+          <div className="sticky bottom-3 z-20 rounded-xl border border-line bg-white/95 p-3 shadow-lg backdrop-blur">
             <Field label="校正／确认人">
               <input
                 value={editor}

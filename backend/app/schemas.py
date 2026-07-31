@@ -165,6 +165,8 @@ class CaseOut(BaseModel):
     review_notes: str = ""
     reviewer: str = ""
     reviewed_at: dt.datetime | None = None
+    blueprint_correct: bool = False
+    business_reusable: bool = False
     trust_status: str = "ai_unverified"
     status: str = "public"
     created_at: dt.datetime
@@ -470,6 +472,65 @@ class LayoutSearchDatasetCreate(BaseModel):
     created_by: str = Field(min_length=1, max_length=120)
 
 
+class AnalysisDatasetCreate(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=180)
+    product_category: str = ""
+    description: str = ""
+    created_by: str = Field(min_length=1, max_length=120)
+
+
+class AnalysisDatasetItemUpsert(BaseModel):
+    case_id: int = Field(ge=1)
+    dataset_split: Literal["calibration", "holdout"]
+    reviewer: str = ""
+    reason: str = ""
+
+
+class AnalysisGroundTruthUpdate(BaseModel):
+    has_product: bool
+    product_regions: list[NormalizedRegion] = Field(default_factory=list)
+    primary_text_regions: list[NormalizedRegion] = Field(default_factory=list)
+    modules: list[LayoutModule] = Field(default_factory=list)
+    containment: list[dict[str, str]] = Field(default_factory=list)
+    allowed_overlaps: list[list[str]] = Field(default_factory=list)
+    reviewer: str = Field(min_length=1, max_length=120)
+    reason: str = Field(min_length=1)
+
+
+class AnalysisRuntimeVersionCreate(BaseModel):
+    model_name: str = Field(min_length=1, max_length=160)
+    model_provider: str = Field(min_length=1, max_length=80)
+    prompt_version: str = Field(min_length=1, max_length=80)
+    prompt_text: str = ""
+    validator_version: str = Field(min_length=1, max_length=80)
+    validator_config: dict[str, Any] = Field(default_factory=dict)
+    created_by: str = Field(min_length=1, max_length=120)
+
+
+class AnalysisEvaluationRunCreate(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    dataset_split: Literal["calibration", "holdout"]
+    runtime_version_id: int = Field(ge=1)
+    created_by: str = Field(min_length=1, max_length=120)
+    confirm_consume_holdout: bool = False
+
+
+class AnalysisVersionFreezeInput(BaseModel):
+    dataset_version: str = Field(min_length=1, max_length=80)
+    runtime_version_id: int = Field(ge=1)
+    actor: str = Field(min_length=1, max_length=120)
+
+
+class AnalysisHoldoutUnsealInput(BaseModel):
+    actor: str = Field(min_length=1, max_length=120)
+    confirm_consumed: bool = False
+
+
+class AnalysisResultRetryInput(BaseModel):
+    actor: str = Field(min_length=1, max_length=120)
+
+
 class BusinessRequirementCreate(BaseModel):
     title: str = Field(min_length=1, max_length=180)
     request_text: str = ""
@@ -649,6 +710,8 @@ class CaseReviewInput(BaseModel):
     ] = "verified"
     review_decision: Literal["", "adopt", "adapt", "reject"] = ""
     review_notes: str = ""
+    blueprint_correct: bool | None = None
+    business_reusable: bool | None = None
     business_line: str | None = None
     channel: str | None = None
     campaign_stage: str | None = None

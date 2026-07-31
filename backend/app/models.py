@@ -81,6 +81,8 @@ class Case(Base):
     review_notes = Column(Text, default="")
     reviewer = Column(String, default="")
     reviewed_at = Column(DateTime, nullable=True)
+    blueprint_correct = Column(Boolean, default=False, index=True)
+    business_reusable = Column(Boolean, default=False, index=True)
     trust_status = Column(String, default="ai_unverified", index=True)
     status = Column(String, default="public", index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
@@ -420,6 +422,157 @@ class LayoutSearchDataset(Base):
     created_by = Column(String, nullable=False)
     frozen_at = Column(DateTime, nullable=True, index=True)
     last_run_at = Column(DateTime, nullable=True, index=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
+class AnalysisEvaluationDataset(Base):
+    """Versioned image-decomposition dataset, separate from retrieval acceptance."""
+
+    __tablename__ = "analysis_evaluation_datasets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dataset_version = Column(String, nullable=False, unique=True, index=True)
+    name = Column(String, nullable=False)
+    product_category = Column(String, default="", index=True)
+    description = Column(Text, default="")
+    status = Column(String, default="draft", nullable=False, index=True)
+    created_by = Column(String, nullable=False)
+    sealed_at = Column(DateTime, nullable=True)
+    consumed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+    updated_at = Column(
+        DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow
+    )
+
+
+class AnalysisEvaluationItem(Base):
+    """Ground-truth assignment for one case in exactly one dataset split."""
+
+    __tablename__ = "analysis_evaluation_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id", "case_id", name="uq_analysis_dataset_case"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    dataset_id = Column(
+        Integer,
+        ForeignKey("analysis_evaluation_datasets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    case_id = Column(
+        Integer, ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    dataset_split = Column(String, nullable=False, index=True)
+    ground_truth_json = Column(Text, default="{}")
+    gt_status = Column(String, default="pending", nullable=False, index=True)
+    reviewer = Column(String, default="")
+    reason = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+    updated_at = Column(
+        DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow
+    )
+
+
+class AnalysisRuntimeVersion(Base):
+    """Immutable Prompt/Validator bundle used by calibration and holdout runs."""
+
+    __tablename__ = "analysis_runtime_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "model_name",
+            "prompt_version",
+            "validator_version",
+            name="uq_analysis_runtime_version",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String, nullable=False, index=True)
+    model_provider = Column(String, nullable=False, default="")
+    prompt_version = Column(String, nullable=False, index=True)
+    prompt_text = Column(Text, default="")
+    prompt_hash = Column(String, nullable=False, index=True)
+    validator_version = Column(String, nullable=False, index=True)
+    validator_config_json = Column(Text, default="{}")
+    validator_hash = Column(String, nullable=False, index=True)
+    status = Column(String, default="draft", nullable=False, index=True)
+    created_by = Column(String, nullable=False)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+    frozen_at = Column(DateTime, nullable=True)
+
+
+class AnalysisEvaluationRun(Base):
+    """Immutable execution and version snapshot for one dataset split."""
+
+    __tablename__ = "analysis_evaluation_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id",
+            "dataset_split",
+            "runtime_version_id",
+            "formal",
+            name="uq_analysis_formal_run_combination",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    dataset_id = Column(
+        Integer,
+        ForeignKey("analysis_evaluation_datasets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    dataset_split = Column(String, nullable=False, index=True)
+    runtime_version_id = Column(
+        Integer,
+        ForeignKey("analysis_runtime_versions.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    formal = Column(Boolean, default=False, nullable=False, index=True)
+    run_status = Column(String, default="queued", nullable=False, index=True)
+    aggregate_json = Column(Text, default="{}")
+    version_snapshot_json = Column(Text, default="{}")
+    error_code = Column(String, default="", index=True)
+    started_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+    elapsed_ms = Column(Integer, default=0)
+    unsealed_at = Column(DateTime, nullable=True)
+    created_by = Column(String, nullable=False)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
+class AnalysisEvaluationResult(Base):
+    """Per-case result. Holdout details are protected by the API boundary."""
+
+    __tablename__ = "analysis_evaluation_results"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id", "item_id", name="uq_analysis_run_item_result"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(
+        Integer,
+        ForeignKey("analysis_evaluation_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    item_id = Column(
+        Integer,
+        ForeignKey("analysis_evaluation_items.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    status = Column(String, default="pending", nullable=False, index=True)
+    error_code = Column(String, default="", index=True)
+    metrics_json = Column(Text, default="{}")
+    prediction_json = Column(Text, default="{}")
+    elapsed_ms = Column(Integer, default=0)
     created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
 
 
