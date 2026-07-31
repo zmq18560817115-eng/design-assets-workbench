@@ -1,0 +1,324 @@
+﻿{
+    "dataset_version":  "untitled1-visual-calibration-v1",
+    "dataset_split":  "calibration",
+    "holdout_executed":  false,
+    "prompt_version":  "layout-blueprint-v2",
+    "validator_version":  "visual-validator-v1",
+    "error_counts":  {
+                         "MODEL_TIMEOUT":  24
+                     },
+    "failures":  [
+                     {
+                         "asset_id":  "untitled1-11b5153fd674f9a1",
+                         "filename":  "Group 1.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30332,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-11b5153fd674f9a1.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-ae595e807d3ca089",
+                         "filename":  "Group 10.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30348,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-ae595e807d3ca089.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-70ef21d06ef89fba",
+                         "filename":  "Group 11.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30490,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-70ef21d06ef89fba.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-c4eff94932294948",
+                         "filename":  "Group 13.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30626,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-c4eff94932294948.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-2f0df5afebc156df",
+                         "filename":  "Group 15.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30517,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-2f0df5afebc156df.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-2d441f6a3d3fbe12",
+                         "filename":  "Group 16.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30298,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-2d441f6a3d3fbe12.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-06304221242481ed",
+                         "filename":  "Group 17.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30367,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-06304221242481ed.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-3f81f20df6ad7b65",
+                         "filename":  "Group 19.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30291,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-3f81f20df6ad7b65.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-e128c0ad40d614ba",
+                         "filename":  "Group 22.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30437,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-e128c0ad40d614ba.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-f601e2aeced1850d",
+                         "filename":  "Group 27.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30303,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-f601e2aeced1850d.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-0b896588983149e9",
+                         "filename":  "Group 28.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30536,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-0b896588983149e9.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-8728904be2d597bd",
+                         "filename":  "Group 29.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30531,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-8728904be2d597bd.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-6e47a2d5bd4676e8",
+                         "filename":  "Group 30.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30228,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-6e47a2d5bd4676e8.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-850c6b004fa1dc98",
+                         "filename":  "Group 34.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30308,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-850c6b004fa1dc98.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-011afa8fb0117a66",
+                         "filename":  "Group 35.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30271,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-011afa8fb0117a66.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-04875eb91024bac6",
+                         "filename":  "Group 36.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30384,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-04875eb91024bac6.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-a4446d25073edd76",
+                         "filename":  "Group 37.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30267,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-a4446d25073edd76.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-679af0f55ab389bd",
+                         "filename":  "Group 38.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30487,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-679af0f55ab389bd.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-6c571ac1ae5e5984",
+                         "filename":  "Group 39.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30366,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-6c571ac1ae5e5984.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-49d37f7344b91995",
+                         "filename":  "Group 45.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30311,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-49d37f7344b91995.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-9ae2cdafbbd61a99",
+                         "filename":  "Group 5.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30288,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-9ae2cdafbbd61a99.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-929907552160806a",
+                         "filename":  "Group 56.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30265,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-929907552160806a.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-3743a2e4c9ee78d9",
+                         "filename":  "Group 7.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30311,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-3743a2e4c9ee78d9.txt"
+                     },
+                     {
+                         "asset_id":  "untitled1-9a80f773d45a278a",
+                         "filename":  "Group 9.png",
+                         "run_status":  "failed",
+                         "elapsed_ms":  30511,
+                         "error_codes":  [
+                                             "MODEL_TIMEOUT"
+                                         ],
+                         "validation_errors":  [
+                                                   "The read operation timed out"
+                                               ],
+                         "raw_output_path":  "evaluation/visual-analysis/raw/untitled1-9a80f773d45a278a.txt"
+                     }
+                 ]
+}

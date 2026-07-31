@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image
+import httpx
+
+from . import config, vlm
+from .layout_blueprint import MODULE_TYPE_ORDER
 
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
@@ -25,6 +29,24 @@ ERROR_CODES = {
     "MODEL_TIMEOUT",
     "MODEL_PROVIDER_ERROR",
     "UNKNOWN_ANALYSIS_ERROR",
+}
+
+DEFAULT_THRESHOLDS = {
+    "region_iou": 0.5,
+    "product_iou": 0.45,
+    "maximum_sibling_overlap_ratio": 0.35,
+    "duplicate_module_iou": 0.9,
+}
+
+CALIBRATION_GATES = {
+    "task_success_rate_min": 0.95,
+    "schema_valid_rate_min": 0.98,
+    "product_detection_rate_min": 0.95,
+    "primary_text_detection_rate_min": 0.90,
+    "layout_module_recall_min": 0.90,
+    "invalid_overlap_rate_max": 0.05,
+    "timeout_rate_max": 0.05,
+    "severe_regression_count_max": 0,
 }
 
 
@@ -240,3 +262,188 @@ def write_manifest(paths: CalibrationPaths) -> Path:
         encoding="utf-8",
     )
     return target
+
+
+def _rect(region: dict[str, Any]) -> dict[str, float]:
+    if "normalized" in region:
+        region = region["normalized"]
+    return {key: float(region[key]) for key in ("x", "y", "width", "height")}
+
+
+def region_iou(left: dict[str, Any], right: dict[str, Any]) -> float:
+    a, b = _rect(left), _rect(right)
+    ax2, ay2 = a["x"] + a["width"], a["y"] + a["height"]
+    bx2, by2 = b["x"] + b["width"], b["y"] + b["height"]
+    intersection = max(0, min(ax2, bx2) - max(a["x"], b["x"])) * max(
+        0, min(ay2, by2) - max(a["y"], b["y"])
+    )
+    union = a["width"] * a["height"] + b["width"] * b["height"] - intersection
+    return intersection / union if union else 0.0
+
+
+def containment_ratio(inner: dict[str, Any], outer: dict[str, Any]) -> float:
+    a, b = _rect(inner), _rect(outer)
+    intersection = max(
+        0, min(a["x"] + a["width"], b["x"] + b["width"]) - max(a["x"], b["x"])
+    ) * max(
+        0, min(a["y"] + a["height"], b["y"] + b["height"]) - max(a["y"], b["y"])
+    )
+    area = a["width"] * a["height"]
+    return intersection / area if area else 0.0
+
+
+def _valid_region(region: dict[str, Any]) -> bool:
+    try:
+        value = _rect(region)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (
+        value["x"] >= 0 and value["y"] >= 0
+        and value["width"] > 0 and value["height"] > 0
+        and value["x"] + value["width"] <= 1.000001
+        and value["y"] + value["height"] <= 1.000001
+    )
+
+
+def _best_matches(
+    truth: list[dict[str, Any]],
+    predicted: list[dict[str, Any]],
+    threshold: float,
+) -> tuple[int, list[float]]:
+    used: set[int] = set()
+    scores: list[float] = []
+    for expected in truth:
+        choices = [
+            (region_iou(expected, candidate), index)
+            for index, candidate in enumerate(predicted)
+            if index not in used
+        ]
+        score, index = max(choices, default=(0.0, -1))
+        if score >= threshold:
+            used.add(index)
+            scores.append(score)
+    return len(scores), scores
+
+
+def validate_prediction(
+    parsed: dict[str, Any],
+    ground_truth: dict[str, Any],
+    *,
+    thresholds: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    rules = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
+    errors: list[str] = []
+    details: list[dict[str, Any]] = []
+    modules = parsed.get("blueprint_modules")
+    if not isinstance(modules, list):
+        return {
+            "schema_valid": False,
+            "error_codes": ["OUTPUT_SCHEMA_INVALID"],
+            "validation_errors": ["blueprint_modules 必须是数组"],
+            "metrics": {},
+        }
+    normalized_modules = []
+    for index, module in enumerate(modules):
+        if not isinstance(module, dict) or module.get("type") not in MODULE_TYPE_ORDER:
+            errors.append("LAYOUT_MODULE_TYPE_ERROR")
+            details.append({"index": index, "reason": "非法模块类型"})
+            continue
+        if not _valid_region(module):
+            errors.append("MODULE_OUT_OF_BOUNDS")
+            details.append({"index": index, "reason": "模块坐标越界或宽高非法"})
+            continue
+        normalized_modules.append(module)
+    products = [row for row in normalized_modules if row.get("type") == "product_image"]
+    texts = [
+        row for row in normalized_modules
+        if row.get("type") in {"main_title", "subtitle", "body_text", "selling_point"}
+    ]
+    if ground_truth["product_regions"] and not products:
+        errors.append("PRODUCT_MISSED")
+    product_hits, product_ious = _best_matches(
+        ground_truth["product_regions"], products, rules["product_iou"]
+    )
+    if products and product_hits < len(ground_truth["product_regions"]):
+        errors.append("PRODUCT_BOX_INACCURATE")
+    text_hits, _ = _best_matches(
+        ground_truth["primary_text_regions"], texts, rules["region_iou"]
+    )
+    if ground_truth["primary_text_regions"] and not text_hits:
+        errors.append("PRIMARY_TEXT_MISSED")
+    layout_hits, _ = _best_matches(
+        ground_truth["layout_modules"], normalized_modules, rules["region_iou"]
+    )
+    if layout_hits < len(ground_truth["layout_modules"]):
+        errors.append("LAYOUT_MODULE_MISSED")
+
+    invalid_overlaps = 0
+    duplicates = 0
+    allowed = {
+        tuple(sorted(pair)) for pair in ground_truth.get("allowed_overlap_relations", [])
+    }
+    for index, left in enumerate(normalized_modules):
+        for right in normalized_modules[index + 1:]:
+            pair = tuple(sorted((str(left.get("id", "")), str(right.get("id", "")))))
+            if pair in allowed:
+                continue
+            iou = region_iou(left, right)
+            if iou >= rules["duplicate_module_iou"] and left.get("type") == right.get("type"):
+                duplicates += 1
+                invalid_overlaps += 1
+            elif (
+                containment_ratio(left, right) < 0.9
+                and containment_ratio(right, left) < 0.9
+                and iou > rules["maximum_sibling_overlap_ratio"]
+            ):
+                invalid_overlaps += 1
+    if invalid_overlaps:
+        errors.append("MODULE_OVERLAP_INVALID")
+    return {
+        "schema_valid": "OUTPUT_SCHEMA_INVALID" not in errors,
+        "error_codes": sorted(set(errors)),
+        "validation_errors": details,
+        "metrics": {
+            "product_truth_count": len(ground_truth["product_regions"]),
+            "product_hit_count": product_hits,
+            "product_mean_iou": round(
+                sum(product_ious) / len(product_ious), 4
+            ) if product_ious else 0,
+            "primary_text_truth_count": len(ground_truth["primary_text_regions"]),
+            "primary_text_hit_count": text_hits,
+            "layout_truth_count": len(ground_truth["layout_modules"]),
+            "layout_hit_count": layout_hits,
+            "predicted_module_count": len(normalized_modules),
+            "invalid_overlap_count": invalid_overlaps,
+            "duplicate_module_count": duplicates,
+        },
+    }
+
+
+def run_model_once(
+    image_path: Path,
+    *,
+    additional_instructions: str = "",
+    timeout_seconds: float = 300,
+) -> tuple[dict[str, Any], str]:
+    mime = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }.get(image_path.suffix.lower(), "image/png")
+    return vlm.analyze_image_with_trace(
+        image_path.read_bytes(),
+        mime,
+        {"palette": [], "tone": "", "grid_columns": "", "modules": "", "margins": ""},
+        asset_category="layout",
+        additional_instructions=additional_instructions,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def classify_exception(error: Exception) -> str:
+    if isinstance(error, (httpx.TimeoutException, TimeoutError)):
+        return "MODEL_TIMEOUT"
+    if isinstance(error, (httpx.HTTPError, ConnectionError)):
+        return "MODEL_PROVIDER_ERROR"
+    if isinstance(error, (json.JSONDecodeError, KeyError, TypeError, ValueError)):
+        return "OUTPUT_SCHEMA_INVALID"
+    return "UNKNOWN_ANALYSIS_ERROR"
