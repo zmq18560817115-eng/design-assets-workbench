@@ -124,7 +124,8 @@ export default function BatchPage() {
           >
             <option value="company_published">公司已发布优秀作品</option>
             <option value="external_reference">外部优秀案例</option>
-            <option value="unused_internal">未采用参考方案</option>
+            <option value="rejected_company_design">未采用参考方案</option>
+            <option value="company_revision">公司修订方案</option>
           </select>
           <input
             value={productCategory}

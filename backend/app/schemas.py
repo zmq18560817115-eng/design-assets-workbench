@@ -219,7 +219,7 @@ class LayoutMargins(BaseModel):
 class LayoutModule(NormalizedRegion):
     id: str = Field(min_length=1, max_length=80)
     type: Literal[
-        "main_title", "subtitle", "body_text", "product_image", "person_image",
+        "layout_block", "main_title", "subtitle", "body_text", "product_image", "person_image",
         "scene_image", "selling_point", "feature_list", "parameter_table",
         "price", "logo", "cta", "footnote", "decoration", "background", "other",
     ]
@@ -249,6 +249,39 @@ class LayoutModule(NormalizedRegion):
         value.setdefault("priority", value.get("importance", 1))
         value.setdefault("description", value.get("content_summary", ""))
         return value
+
+
+class LayoutAnnotationRegion(NormalizedRegion):
+    id: str = Field(min_length=1, max_length=100)
+    color: Literal["red", "blue", "green"]
+    semantic_type: Literal["layout_block", "product_image", "main_text"]
+    confidence: float = Field(default=0.5, ge=0, le=1)
+
+
+class LayoutAnnotationPayload(BaseModel):
+    image_path: str
+    product_category: str = Field(min_length=1, max_length=100)
+    source_type: Literal[
+        "company_published", "external_reference",
+        "rejected_company_design", "company_revision",
+    ] = "company_published"
+    annotation_source: Literal["human_color_box_v1"] = "human_color_box_v1"
+    annotation_status: Literal["pending_review", "verified", "rejected"] = "pending_review"
+    canvas_width: int = Field(gt=0)
+    canvas_height: int = Field(gt=0)
+    canvas_ratio: str
+    orientation: Literal["portrait", "landscape", "square"]
+    regions: list[LayoutAnnotationRegion] = Field(default_factory=list)
+    detection_warnings: list[str] = Field(default_factory=list)
+    annotation_version: int = Field(default=1, ge=1)
+    created_at: str
+    reviewer: str = ""
+    history: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# Backward-compatible names for the original disinfection-cabinet workflow.
+DisinfectionAnnotationRegion = LayoutAnnotationRegion
+DisinfectionAnnotationPayload = LayoutAnnotationPayload
 
 
 class LayoutBlueprintInput(BaseModel):
@@ -616,19 +649,19 @@ class CaseReviewInput(BaseModel):
     ] = "verified"
     review_decision: Literal["", "adopt", "adapt", "reject"] = ""
     review_notes: str = ""
-    business_line: str = ""
-    channel: str = ""
-    campaign_stage: str = ""
-    business_goal: str = ""
-    product_name: str = ""
-    content_purpose: str = ""
+    business_line: str | None = None
+    channel: str | None = None
+    campaign_stage: str | None = None
+    business_goal: str | None = None
+    product_name: str | None = None
+    content_purpose: str | None = None
     page_role: Literal[
         "cover_hook", "problem_statement", "cause_explanation",
         "product_display", "function_explanation", "parameter_comparison",
         "usage_step", "service_assurance", "conclusion", "call_to_action", "other",
-    ] = "other"
+    ] | None = None
     sequence_index: int | None = Field(default=None, ge=0)
-    brief_ref: str = ""
+    brief_ref: str | None = None
     asset_category: Literal["layout", "style", "color", "photo"] | None = None
     name: str | None = None
     summary: str | None = None

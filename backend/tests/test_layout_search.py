@@ -34,6 +34,20 @@ from app.business_taxonomy import normalize_business_value, values_match
 from app.main import app
 
 
+def company_case(db, **values) -> models.Case:
+    image = models.Image(
+        url=f"/uploads/fixture-{len(db.new)}.png",
+        filename="fixture.png",
+        source_type="company_finished_asset",
+    )
+    db.add(image)
+    db.flush()
+    case = models.Case(image_id=image.id, trust_status="verified", **values)
+    db.add(case)
+    db.flush()
+    return case
+
+
 class LayoutSearchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -51,7 +65,8 @@ class LayoutSearchTest(unittest.TestCase):
         for group_index, group in enumerate(cls.groups):
             case_ids, blueprint_ids = [], []
             for index in range(4):
-                case = models.Case(
+                case = company_case(
+                    cls.db,
                     name=f"P3-{group['key']}-{index}",
                     product_category=group["product_category"],
                     channel=group["channel"],
@@ -61,8 +76,6 @@ class LayoutSearchTest(unittest.TestCase):
                     summary=f"{group['product_category']} {group['purpose']}",
                     status="public",
                 )
-                cls.db.add(case)
-                cls.db.flush()
                 modules = cls.make_modules(group["modules"], index * .002)
                 blueprint = models.LayoutBlueprint(
                     case_id=case.id,
@@ -159,9 +172,9 @@ class LayoutSearchTest(unittest.TestCase):
         cls.draft_pattern_id = draft_pattern.id
         cls.disabled_pattern_id = disabled_pattern.id
 
-        unverified_case = models.Case(name="P3-unverified-case", status="public")
-        cls.db.add(unverified_case)
-        cls.db.flush()
+        unverified_case = company_case(
+            cls.db, name="P3-unverified-case", status="public"
+        )
         modules = cls.make_modules(["main_title", "product_image"])
         cls.db.add(models.LayoutBlueprint(
             case_id=unverified_case.id, canvas_ratio="3:4",
@@ -867,3 +880,77 @@ class LayoutSearchTest(unittest.TestCase):
         payload = export_pack(self.db, "fixture-predefined-v1")
         self.assertIn("scoring_versions", payload)
         self.assertIn(SCORING_VERSION, payload["scoring_versions"])
+
+    def test_60_external_is_separate_and_rejected_is_excluded(self):
+        case_id = self.case_ids[0][0]
+        case = self.db.get(models.Case, case_id)
+        original_source = case.image.source_type
+        original_trust = case.trust_status
+        try:
+            case.image.source_type = "external_reference"
+            case.trust_status = "verified"
+            self.db.commit()
+            external = self.search()
+            self.assertNotIn(case_id, {row["id"] for row in external["cases"]})
+            self.assertIn(
+                case_id,
+                {row["id"] for row in external["external_references"]},
+            )
+            supplemental = next(
+                row for row in external["external_references"]
+                if row["id"] == case_id
+            )
+            self.assertFalse(supplemental["company_score_eligible"])
+            self.assertFalse(supplemental["acceptance_eligible"])
+            self.assertNotIn(
+                self.pattern_ids[0],
+                {row["id"] for row in external["patterns"]},
+            )
+
+            case.image.source_type = "company_published"
+            case.trust_status = "rejected"
+            self.db.commit()
+            rejected = self.search()
+            self.assertNotIn(case_id, {row["id"] for row in rejected["cases"]})
+            self.assertNotIn(
+                case_id,
+                {row["id"] for row in rejected["external_references"]},
+            )
+            self.assertNotIn(
+                self.pattern_ids[0],
+                {row["id"] for row in rejected["patterns"]},
+            )
+        finally:
+            case.image.source_type = original_source
+            case.trust_status = original_trust
+            self.db.commit()
+
+    def test_61_content_purpose_precedes_legacy_content_type(self):
+        case_id = self.case_ids[0][0]
+        case = self.db.get(models.Case, case_id)
+        requirement = self.db.get(
+            models.BusinessRequirement, self.requirement_ids[0]
+        )
+        original_content_type = case.content_type
+        original_content_purpose = case.content_purpose
+        try:
+            case.content_type = "legacy-mismatch"
+            case.content_purpose = requirement.content_purpose
+            self.db.commit()
+            matched = next(
+                row for row in self.search()["cases"] if row["id"] == case_id
+            )
+            case.content_type = requirement.content_purpose
+            case.content_purpose = "explicit-mismatch"
+            self.db.commit()
+            mismatched = next(
+                row for row in self.search()["cases"] if row["id"] == case_id
+            )
+            self.assertGreater(
+                matched["score_breakdown"]["business_scene"],
+                mismatched["score_breakdown"]["business_scene"],
+            )
+        finally:
+            case.content_type = original_content_type
+            case.content_purpose = original_content_purpose
+            self.db.commit()

@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from . import config, crud, imagehash, models
 from .agents import run_pipeline
+from .business_contract import normalize_new_source_type
 from .database import SessionLocal
 
 _db_write_lock = threading.Lock()  # 串行化 DB 写入，规避 SQLite 锁竞争
@@ -29,8 +30,22 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.UTC).replace(tzinfo=None)
 
 
-def create_batch(items: list[dict], *, background: bool = True) -> str:
+def create_batch(
+    items: list[dict],
+    *,
+    background: bool = True,
+    concurrency: int | None = None,
+    enable_vlm: bool = True,
+) -> str:
     """落库一个批次任务，起后台线程处理，返回 batch_id 供轮询进度。"""
+    normalized_items = []
+    for raw in items:
+        item = dict(raw)
+        item["source_type"] = normalize_new_source_type(
+            item.get("source_type", ""), "external_reference"
+        )
+        normalized_items.append(item)
+    concurrency = max(1, min(concurrency or config.BATCH_CONCURRENCY, 5))
     batch_id = uuid.uuid4().hex
     db = SessionLocal()
     try:
@@ -38,8 +53,8 @@ def create_batch(items: list[dict], *, background: bool = True) -> str:
             models.BatchImportJob(
                 id=batch_id,
                 status="processing",
-                total=len(items),
-                concurrency=config.BATCH_CONCURRENCY,
+                total=len(normalized_items),
+                concurrency=concurrency,
                 started_at=_now(),
             )
         )
@@ -47,9 +62,13 @@ def create_batch(items: list[dict], *, background: bool = True) -> str:
     finally:
         db.close()
     if background:
-        threading.Thread(target=_run, args=(batch_id, items), daemon=True).start()
+        threading.Thread(
+            target=_run,
+            args=(batch_id, normalized_items, concurrency, enable_vlm),
+            daemon=True,
+        ).start()
     else:
-        _run(batch_id, items)
+        _run(batch_id, normalized_items, concurrency, enable_vlm)
     return batch_id
 
 
@@ -145,7 +164,13 @@ def _finish(batch_id: str) -> None:
             db.close()
 
 
-def _run(batch_id: str, items: list[dict]) -> None:
+def _run(
+    batch_id: str,
+    items: list[dict],
+    concurrency: int | None = None,
+    enable_vlm: bool = True,
+) -> None:
+    concurrency = max(1, min(concurrency or config.BATCH_CONCURRENCY, 5))
     # 预载已入库哈希，作为去重基线
     db = SessionLocal()
     try:
@@ -182,7 +207,9 @@ def _run(batch_id: str, items: list[dict]) -> None:
                     return
 
             result = run_pipeline(
-                it["path"], asset_category=it.get("asset_category", "layout")
+                it["path"],
+                asset_category=it.get("asset_category", "layout"),
+                enable_vlm=enable_vlm,
             )
 
             with _db_write_lock:  # DB 写入串行
@@ -255,7 +282,7 @@ def _run(batch_id: str, items: list[dict]) -> None:
         except Exception as exc:  # noqa: BLE001
             _record(batch_id, failed=1, error=f"{it['filename']}: {exc}")
 
-    with ThreadPoolExecutor(max_workers=config.BATCH_CONCURRENCY) as pool:
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
         list(pool.map(worker, items))
 
     _finish(batch_id)

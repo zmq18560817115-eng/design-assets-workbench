@@ -32,6 +32,7 @@ def run_pipeline(
     asset_category: str = "layout",
     enable_vlm: bool = True,
     strict_vlm: bool = False,
+    layout_few_shots: list[dict] | None = None,
 ) -> AnalysisResult:
     asset_category = normalize_category(asset_category)
     features = analyze(image_path)
@@ -90,7 +91,13 @@ def run_pipeline(
     # 若配置了真实视觉大模型，用其语义理解增强结果（硬参数仍保留 Pillow 测量值）
     if enable_vlm and _vlm_enabled():
         try:
-            result = _augment_with_vlm(image_path, features, result, asset_category)
+            result = _augment_with_vlm(
+                image_path,
+                features,
+                result,
+                asset_category,
+                layout_few_shots=layout_few_shots,
+            )
         except Exception:
             if strict_vlm:
                 raise
@@ -101,7 +108,11 @@ def run_pipeline(
 
 
 def _augment_with_vlm(
-    image_path, features, result: AnalysisResult, asset_category: str = "layout"
+    image_path,
+    features,
+    result: AnalysisResult,
+    asset_category: str = "layout",
+    layout_few_shots: list[dict] | None = None,
 ) -> AnalysisResult:
     """用视觉大模型的语义输出覆盖启发式结果，保留 Pillow 的硬版式/色板参数。"""
     data = Path(image_path).read_bytes()
@@ -112,6 +123,7 @@ def _augment_with_vlm(
         "grid_columns": result.layout.grid_columns,
         "modules": result.layout.modules,
         "margins": result.layout.margins,
+        "layout_few_shots": layout_few_shots or [],
     }
     v = vlm.analyze_image(data, mime, hints, asset_category=asset_category)
 

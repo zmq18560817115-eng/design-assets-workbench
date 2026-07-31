@@ -17,9 +17,11 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from . import config, crud, models
+from .business_contract import is_company_evidence, is_external_reference
 from .business_taxonomy import normalize_business_value, values_match
 from .agents import run_pipeline
 from .layout_patterns import (
+    latest_verified_blueprints,
     module_type_counts,
     normalize_module_type,
     structure_similarity,
@@ -254,11 +256,15 @@ def analyze_reference(
 
 
 def _latest_case_blueprints(
-    db: Session, include_unverified: bool,
+    db: Session,
+    include_unverified: bool,
+    *,
+    evidence_scope: str = "company",
 ) -> list[tuple[models.Case, models.LayoutBlueprint, bool]]:
     rows = (
         db.query(models.LayoutBlueprint)
         .join(models.Case, models.Case.id == models.LayoutBlueprint.case_id)
+        .join(models.Image, models.Image.id == models.Case.image_id)
         .order_by(
             models.LayoutBlueprint.case_id,
             models.LayoutBlueprint.version.desc(),
@@ -269,6 +275,20 @@ def _latest_case_blueprints(
     latest_any: dict[int, models.LayoutBlueprint] = {}
     latest_verified: dict[int, models.LayoutBlueprint] = {}
     for row in rows:
+        case = row.case
+        if not case or not case.image:
+            continue
+        allowed = (
+            is_company_evidence(
+                case.image.source_type or "", case.trust_status or ""
+            )
+            if evidence_scope == "company"
+            else is_external_reference(
+                case.image.source_type or "", case.trust_status or ""
+            )
+        )
+        if not allowed:
+            continue
         latest_any.setdefault(row.case_id, row)
         if row.review_status == "verified":
             latest_verified.setdefault(row.case_id, row)
@@ -279,6 +299,50 @@ def _latest_case_blueprints(
             result.append((selected.case, selected, True))
         elif include_unverified:
             result.append((latest.case, latest, False))
+    return result
+
+
+def _formal_verified_patterns(
+    db: Session,
+) -> list[models.LayoutPattern]:
+    """Exclude historical patterns whose evidence is missing, stale, or polluted."""
+    legal_blueprints = {
+        blueprint.case_id: blueprint.id
+        for blueprint in latest_verified_blueprints(db)
+    }
+    patterns = (
+        db.query(models.LayoutPattern)
+        .filter(models.LayoutPattern.review_status == "verified")
+        .order_by(models.LayoutPattern.id)
+        .all()
+    )
+    result: list[models.LayoutPattern] = []
+    for pattern in patterns:
+        try:
+            case_ids = {
+                int(value)
+                for value in _list(
+                    pattern.evidence_case_ids_json or pattern.source_case_ids
+                )
+            }
+            blueprint_ids = {
+                int(value)
+                for value in _list(
+                    pattern.evidence_blueprint_ids_json
+                    or pattern.source_blueprint_ids
+                )
+            }
+        except (TypeError, ValueError):
+            continue
+        expected_blueprints = {
+            legal_blueprints.get(case_id) for case_id in case_ids
+        }
+        if (
+            case_ids
+            and None not in expected_blueprints
+            and blueprint_ids == expected_blueprints
+        ):
+            result.append(pattern)
     return result
 
 
@@ -311,7 +375,7 @@ def _candidate_fields(
     return {
         "product_category": case.product_category or "",
         "channel": case.channel or "",
-        "content_purpose": case.content_type or "",
+        "content_purpose": case.content_purpose or case.content_type or "",
         "campaign_stage": case.campaign_stage or case.scene or "",
         "business_goal": case.business_goal or case.summary or "",
         "target_audience": case.summary or "",
@@ -500,6 +564,8 @@ def _score_candidate(
         "related_pattern_ids": related_pattern_ids,
         "review_status": source.review_status if result_type == "pattern"
                          else blueprint.review_status,
+        "company_score_eligible": result_type != "external_reference",
+        "acceptance_eligible": result_type != "external_reference",
         "rank": 0,
     }
     return result, forbidden_hits
@@ -524,12 +590,7 @@ def run_search(
         else None
     )
 
-    verified_patterns = (
-        db.query(models.LayoutPattern)
-        .filter(models.LayoutPattern.review_status == "verified")
-        .order_by(models.LayoutPattern.id)
-        .all()
-    )
+    verified_patterns = _formal_verified_patterns(db)
     pattern_results, excluded = [], []
     for pattern in verified_patterns:
         item, forbidden = _score_candidate(
@@ -558,6 +619,22 @@ def run_search(
         )
         (excluded if forbidden else case_results).append(item)
 
+    external_results = []
+    for case, blueprint, verified in _latest_case_blueprints(
+        db, include_unverified, evidence_scope="external"
+    ):
+        item, forbidden = _score_candidate(
+            requirement,
+            result_type="external_reference",
+            source=case,
+            blueprint=blueprint,
+            verified=verified,
+            reference_blueprint=reference_blueprint,
+            related_pattern_ids=[],
+        )
+        if not forbidden:
+            external_results.append(item)
+
     def ranked(items: list[dict], limit: int) -> list[dict]:
         items.sort(key=lambda value: (-value["total_score"], value["id"]))
         selected = items[:limit]
@@ -567,6 +644,7 @@ def run_search(
 
     patterns = ranked(pattern_results, pattern_limit)
     cases = ranked(case_results, case_limit)
+    external_references = ranked(external_results, case_limit)
     excluded.sort(key=lambda value: (value["result_type"], value["id"]))
     for rank, item in enumerate(excluded, 1):
         item["rank"] = rank
@@ -582,11 +660,13 @@ def run_search(
     result_snapshot = {
         "patterns": patterns,
         "cases": cases,
+        "external_references": external_references,
         "excluded_results": excluded,
         "constraints_applied": constraints,
         "search_summary": {
             "pattern_count": len(patterns),
             "case_count": len(cases),
+            "external_reference_count": len(external_references),
             "excluded_count": len(excluded),
             "elapsed_ms": elapsed_ms,
             "reference_analysis": (
@@ -1087,21 +1167,17 @@ def evaluation(db: Session, dataset_version: str | None = None):
         row.requirement_id for row in rows if row.dataset_split == "holdout"
     }
     verified_company_case_ids = {
-        case_id for (case_id,) in db.query(models.LayoutBlueprint.case_id).join(
-            models.Case, models.Case.id == models.LayoutBlueprint.case_id
-        ).join(models.Image, models.Image.id == models.Case.image_id).filter(
-            models.LayoutBlueprint.review_status == "verified",
-            models.Image.source_type.in_(("company_published", "company_finished_asset")),
-        ).distinct().all()
+        blueprint.case_id for blueprint in latest_verified_blueprints(db)
     }
-    company_case_count = db.query(models.Case).join(
-        models.Image, models.Image.id == models.Case.image_id
-    ).filter(models.Image.source_type.in_(
-        ("company_published", "company_finished_asset")
-    )).count()
-    verified_pattern_count = db.query(models.LayoutPattern).filter(
-        models.LayoutPattern.review_status == "verified"
-    ).count()
+    company_case_count = sum(
+        is_company_evidence(
+            case.image.source_type or "", case.trust_status or ""
+        )
+        for case in db.query(models.Case)
+        .join(models.Image, models.Image.id == models.Case.image_id)
+        .all()
+    )
+    verified_pattern_count = len(_formal_verified_patterns(db))
     confirmed_requirement_count = db.query(models.BusinessRequirement).filter(
         models.BusinessRequirement.status == "confirmed"
     ).count()

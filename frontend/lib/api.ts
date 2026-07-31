@@ -368,7 +368,7 @@ export interface BusinessRequirementMatch {
 export interface LayoutSearchResult {
   id: number;
   name: string;
-  result_type: "pattern" | "case";
+  result_type: "pattern" | "case" | "external_reference";
   total_score: number;
   score_breakdown: {
     business_scene: number;
@@ -388,6 +388,8 @@ export interface LayoutSearchResult {
   source_blueprint_ids: number[];
   related_pattern_ids: number[];
   review_status: string;
+  company_score_eligible: boolean;
+  acceptance_eligible: boolean;
   rank: number;
 }
 
@@ -396,11 +398,13 @@ export interface LayoutSearchResponse {
   search_run_id: number;
   patterns: LayoutSearchResult[];
   cases: LayoutSearchResult[];
+  external_references: LayoutSearchResult[];
   excluded_results: LayoutSearchResult[];
   constraints_applied: Record<string, unknown>;
   search_summary: {
     pattern_count: number;
     case_count: number;
+    external_reference_count: number;
     excluded_count: number;
     elapsed_ms: number;
     reference_analysis: {
@@ -1026,10 +1030,15 @@ export interface CaseReviewInput {
   trust_status: "ai_unverified" | "verified" | "company_recommended" | "rejected";
   review_decision: "" | "adopt" | "adapt" | "reject";
   review_notes: string;
-  business_line: string;
-  channel: string;
-  campaign_stage: string;
-  business_goal: string;
+  business_line?: string;
+  channel?: string;
+  campaign_stage?: string;
+  business_goal?: string;
+  product_name?: string;
+  content_purpose?: string;
+  page_role?: PageRole;
+  sequence_index?: number | null;
+  brief_ref?: string;
   asset_category?: "layout" | "style" | "color" | "photo";
   name?: string;
   summary?: string;

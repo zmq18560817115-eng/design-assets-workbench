@@ -649,3 +649,87 @@ class Tag(Base):
     parent_id = Column(Integer, ForeignKey("tags.id"), nullable=True)  # 层级关系
 
     cases = relationship("Case", secondary=case_tags, back_populates="tags")
+
+
+class DisinfectionAnnotationBatch(Base):
+    """One idempotent import of annotated disinfection-cabinet artwork."""
+
+    __tablename__ = "disinfection_annotation_batches"
+
+    id = Column(String, primary_key=True)
+    source_root = Column(String, default="")
+    status = Column(String, default="pending_review", index=True)
+    scan_report_json = Column(Text, default="{}")
+    total = Column(Integer, default=0)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+
+class DisinfectionAnnotation(Base):
+    """Human-reviewable colored-box annotation; never truth until verified."""
+
+    __tablename__ = "disinfection_annotations"
+    __table_args__ = (UniqueConstraint("source_sha256", name="uq_disinfection_annotation_sha"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(String, ForeignKey("disinfection_annotation_batches.id"), index=True)
+    annotated_image_path = Column(String, default="")
+    original_image_path = Column(String, default="")
+    source_sha256 = Column(String, nullable=False, index=True)
+    source_type = Column(String, default="company_published", index=True)
+    product_category = Column(String, default="消毒柜", index=True)
+    project_key = Column(String, default="", index=True)
+    page_role = Column(String, default="other", index=True)
+    sequence_index = Column(Integer, nullable=True)
+    canvas_width = Column(Integer, default=0)
+    canvas_height = Column(Integer, default=0)
+    orientation = Column(String, default="portrait")
+    regions_json = Column(Text, default="[]")
+    warnings_json = Column(Text, default="[]")
+    status = Column(String, default="pending_review", index=True)
+    dataset_split = Column(String, default="", index=True)
+    reviewer = Column(String, default="")
+    reviewed_at = Column(DateTime, nullable=True)
+    annotation_version = Column(Integer, default=1)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+
+class DisinfectionAnnotationVersion(Base):
+    __tablename__ = "disinfection_annotation_versions"
+    __table_args__ = (
+        UniqueConstraint("annotation_id", "version", name="uq_disinfection_annotation_version"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    annotation_id = Column(
+        Integer, ForeignKey("disinfection_annotations.id", ondelete="CASCADE"), index=True
+    )
+    version = Column(Integer, nullable=False)
+    payload_json = Column(Text, default="{}")
+    source = Column(String, default="parser")
+    editor = Column(String, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class DisinfectionDecompositionRun(Base):
+    """Trace one few-shot-assisted attempt on an unannotated company image."""
+
+    __tablename__ = "disinfection_decomposition_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    blueprint_id = Column(
+        Integer, ForeignKey("layout_blueprints.id", ondelete="SET NULL"), nullable=True
+    )
+    status = Column(String, default="review_required", index=True)
+    evidence_annotation_ids_json = Column(Text, default="[]")
+    initial_ai_blueprint_json = Column(Text, default="{}")
+    final_blueprint_json = Column(Text, default="{}")
+    failure_reasons_json = Column(Text, default="[]")
+    model_name = Column(String, default="")
+    prompt_version = Column(String, default="disinfection-layout-few-shot-v1")
+    generation_mode = Column(String, default="model")
+    manual_edit_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)

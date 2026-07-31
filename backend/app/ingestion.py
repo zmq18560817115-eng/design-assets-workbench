@@ -58,6 +58,16 @@ def dry_run_summary(items: list[dict], report: ManifestReport | None) -> dict[st
     }
 
 
-def execute_items(items: list[dict]) -> dict[str, Any]:
-    batch_id = batch.create_batch(items, background=False)
+def execute_items(
+    items: list[dict],
+    *,
+    concurrency: int | None = None,
+    enable_vlm: bool = True,
+) -> dict[str, Any]:
+    batch_id = batch.create_batch(
+        items,
+        background=False,
+        concurrency=concurrency,
+        enable_vlm=enable_vlm,
+    )
     return {"batch_id": batch_id, **(batch.get_batch(batch_id) or {})}

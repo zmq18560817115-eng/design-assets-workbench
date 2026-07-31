@@ -156,6 +156,13 @@ def analyze_image(
         "其余维度仍需返回，但应简洁，并让 summary、critique、improvement、"
         "reusable_methods 与生图提示词优先服务于本仓库的拆解目标。"
     )
+    few_shots = hints.get("layout_few_shots") or []
+    if few_shots:
+        user_text += (
+            "\n\n以下仅是人工已确认的同品类排版结构证据。不得复制文案，不得把当前预测回写为新证据；"
+            "请参考其模块位置与阅读关系：\n"
+            + json.dumps(few_shots[:5], ensure_ascii=False)
+        )
 
     payload = {
         "model": config.VISION_MODEL or "gpt-4o-mini",

@@ -1,0 +1,110 @@
+{
+  "image_path": "Group 10.png",
+  "product_category": "消毒柜",
+  "source_type": "company_published",
+  "annotation_source": "human_color_box_v1",
+  "annotation_status": "pending_review",
+  "canvas_width": 957,
+  "canvas_height": 1280,
+  "canvas_ratio": "957:1280",
+  "orientation": "portrait",
+  "regions": [
+    {
+      "id": "region-1",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.316614,
+      "y": 0.148438,
+      "width": 0.218391,
+      "height": 0.178125,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-2",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.691745,
+      "y": 0.148438,
+      "width": 0.218391,
+      "height": 0.178125,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-3",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.316614,
+      "y": 0.319531,
+      "width": 0.218391,
+      "height": 0.171094,
+      "confidence": 0.891
+    },
+    {
+      "id": "region-4",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.691745,
+      "y": 0.319531,
+      "width": 0.218391,
+      "height": 0.171094,
+      "confidence": 0.891
+    },
+    {
+      "id": "region-5",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.007315,
+      "y": 0.328125,
+      "width": 0.978056,
+      "height": 0.661719,
+      "confidence": 0.998
+    },
+    {
+      "id": "region-6",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.316614,
+      "y": 0.346094,
+      "width": 0.218391,
+      "height": 0.144531,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-7",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.691745,
+      "y": 0.346094,
+      "width": 0.218391,
+      "height": 0.144531,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-8",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.039707,
+      "y": 0.502344,
+      "width": 0.920585,
+      "height": 0.475781,
+      "confidence": 1.0
+    }
+  ],
+  "detection_warnings": [
+    "unannotated_original_not_found",
+    "duplicate_red_rectangle_edge",
+    "heavy_overlap:region-3:region-6:0.84",
+    "heavy_overlap:region-4:region-7:0.84"
+  ],
+  "annotation_version": 1,
+  "created_at": "2026-07-31T03:47:59.746096+00:00",
+  "reviewer": "",
+  "history": [
+    {
+      "version": 1,
+      "source": "color_box_parser_v1",
+      "status": "pending_review",
+      "created_at": "2026-07-31T03:47:59.746096+00:00"
+    }
+  ]
+}

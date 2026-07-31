@@ -19,6 +19,20 @@ from app.layout_patterns import (
 from app.main import app
 
 
+def company_case(db, **values) -> models.Case:
+    image = models.Image(
+        url=f"/uploads/fixture-{len(db.new)}.png",
+        filename="fixture.png",
+        source_type="company_finished_asset",
+    )
+    db.add(image)
+    db.flush()
+    case = models.Case(image_id=image.id, trust_status="verified", **values)
+    db.add(case)
+    db.flush()
+    return case
+
+
 class LayoutPatternDiscoveryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -43,13 +57,12 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
         for group_index, (ratio, orientation, density, types) in enumerate(structures):
             group: list[models.LayoutBlueprint] = []
             for item_index in range(3):
-                case = models.Case(
+                case = company_case(
+                    cls.db,
                     name=f"发现测试-{group_index}-{item_index}",
                     product_category="fixture",
                     status="public",
                 )
-                cls.db.add(case)
-                cls.db.flush()
                 cls.case_ids.append(case.id)
                 modules = cls.make_modules(types, offset=item_index * 0.005)
                 if item_index == 2:
@@ -88,8 +101,9 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
             cls.group_blueprints.append(group)
 
         # Same structure but unverified: never eligible.
-        unverified_case = models.Case(name="未确认蓝图", status="public")
-        cls.db.add(unverified_case); cls.db.flush()
+        unverified_case = company_case(
+            cls.db, name="未确认蓝图", status="public"
+        )
         cls.db.add(models.LayoutBlueprint(
             case_id=unverified_case.id, canvas_ratio="3:4",
             orientation="portrait", information_density="low",
@@ -99,8 +113,9 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
             version=1, review_status="ai_generated", text_image_ratio=.5,
         ))
         # Invalid verified blueprint: validator excludes it.
-        invalid_case = models.Case(name="非法蓝图", status="public")
-        cls.db.add(invalid_case); cls.db.flush()
+        invalid_case = company_case(
+            cls.db, name="非法蓝图", status="public"
+        )
         cls.db.add(models.LayoutBlueprint(
             case_id=invalid_case.id, canvas_ratio="3:4",
             orientation="portrait", information_density="low",
@@ -112,8 +127,9 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
         ))
         # Only two valid cases in this bucket: below minimum evidence.
         for index in range(2):
-            case = models.Case(name=f"不足证据-{index}", status="public")
-            cls.db.add(case); cls.db.flush()
+            case = company_case(
+                cls.db, name=f"不足证据-{index}", status="public"
+            )
             modules = cls.make_modules(["logo"])
             cls.db.add(models.LayoutBlueprint(
                 case_id=case.id, canvas_ratio="9:16",
@@ -305,3 +321,54 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
         self.assertEqual(candidate["discovery_method"], DISCOVERY_METHOD)
         self.assertNotIn("preference", json.dumps(candidate).lower())
         self.assertNotIn("color", json.dumps(candidate).lower())
+
+    def test_21_external_and_rejected_evidence_never_form_company_pattern(self):
+        blocked_case_ids = []
+        modules = self.make_modules(["main_title", "product_image"])
+        for source_type, trust_status in (
+            ("external_reference", "verified"),
+            ("external_reference", "verified"),
+            ("external_reference", "verified"),
+            ("company_finished_asset", "rejected"),
+        ):
+            image = models.Image(
+                url=f"/uploads/blocked-{len(blocked_case_ids)}.png",
+                filename="blocked.png",
+                source_type=source_type,
+            )
+            self.db.add(image)
+            self.db.flush()
+            case = models.Case(
+                image_id=image.id,
+                name=f"blocked-{len(blocked_case_ids)}",
+                trust_status=trust_status,
+                status="public",
+            )
+            self.db.add(case)
+            self.db.flush()
+            blocked_case_ids.append(case.id)
+            self.db.add(models.LayoutBlueprint(
+                case_id=case.id,
+                canvas_ratio="4:5",
+                orientation="portrait",
+                information_density="low",
+                reading_flow="top-to-bottom",
+                grid_columns=6,
+                grid_rows=12,
+                module_count=len(modules),
+                modules_json=json.dumps(modules),
+                version=1,
+                review_status="verified",
+                text_image_ratio=.5,
+            ))
+        self.db.commit()
+        eligible_ids = {
+            blueprint.case_id for blueprint in latest_verified_blueprints(self.db)
+        }
+        self.assertFalse(eligible_ids.intersection(blocked_case_ids))
+        evidence_ids = {
+            case_id
+            for candidate in self.candidates()
+            for case_id in candidate["evidence_case_ids_json"]
+        }
+        self.assertFalse(evidence_ids.intersection(blocked_case_ids))

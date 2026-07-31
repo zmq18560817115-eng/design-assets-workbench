@@ -157,3 +157,19 @@ class LayoutBlueprintRequirementV2Test(unittest.TestCase):
             self.assertEqual(fallback.analyzed_by, "启发式规则")
             with self.assertRaisesRegex(ValueError, "非法JSON"):
                 run_pipeline(str(path), strict_vlm=True)
+
+    def test_05_upload_endpoints_reject_invalid_source_type_before_writing(self):
+        before = set(_root.joinpath("uploads").glob("*"))
+        single = self.client.post(
+            "/api/analyze",
+            files={"file": ("bad.png", image_bytes(), "image/png")},
+            data={"source_type": "unused_internal"},
+        )
+        batch = self.client.post(
+            "/api/analyze/batch",
+            files=[("files", ("bad.png", image_bytes(), "image/png"))],
+            data={"source_type": "internal_reference"},
+        )
+        self.assertEqual(single.status_code, 422, single.text)
+        self.assertEqual(batch.status_code, 422, batch.text)
+        self.assertEqual(before, set(_root.joinpath("uploads").glob("*")))

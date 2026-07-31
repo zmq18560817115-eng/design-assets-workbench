@@ -95,8 +95,6 @@ function ReviewPanel({ item, onSaved }: { item: CaseOut; onSaved: (value: CaseOu
           reviewer, trust_status: status,
           review_decision: status === "rejected" ? "reject" : "",
           review_notes: notes,
-          business_line: item.business_line, channel: item.channel,
-          campaign_stage: item.campaign_stage, business_goal: item.business_goal,
           keep_reasons: lines(keep), avoid_reasons: lines(avoid),
         }).then(onSaved).finally(() => setSaving(false));
       }} className="mt-4 rounded-xl bg-ink px-4 py-2 text-sm text-white disabled:opacity-50">

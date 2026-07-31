@@ -1,0 +1,77 @@
+{
+  "image_path": "Group 56.png",
+  "product_category": "消毒柜",
+  "source_type": "company_published",
+  "annotation_source": "human_color_box_v1",
+  "annotation_status": "pending_review",
+  "canvas_width": 957,
+  "canvas_height": 1280,
+  "canvas_ratio": "957:1280",
+  "orientation": "portrait",
+  "regions": [
+    {
+      "id": "region-1",
+      "color": "red",
+      "semantic_type": "layout_block",
+      "x": 0.020899,
+      "y": 0.0125,
+      "width": 0.960293,
+      "height": 0.108594,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-2",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.041797,
+      "y": 0.03125,
+      "width": 0.901776,
+      "height": 0.067187,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-3",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.281087,
+      "y": 0.124219,
+      "width": 0.296761,
+      "height": 0.219531,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-4",
+      "color": "blue",
+      "semantic_type": "product_image",
+      "x": 0.661442,
+      "y": 0.124219,
+      "width": 0.296761,
+      "height": 0.219531,
+      "confidence": 1.0
+    },
+    {
+      "id": "region-5",
+      "color": "green",
+      "semantic_type": "main_text",
+      "x": 0.056426,
+      "y": 0.374219,
+      "width": 0.901776,
+      "height": 0.625,
+      "confidence": 1.0
+    }
+  ],
+  "detection_warnings": [
+    "unannotated_original_not_found"
+  ],
+  "annotation_version": 1,
+  "created_at": "2026-07-31T03:47:59.746096+00:00",
+  "reviewer": "",
+  "history": [
+    {
+      "version": 1,
+      "source": "color_box_parser_v1",
+      "status": "pending_review",
+      "created_at": "2026-07-31T03:47:59.746096+00:00"
+    }
+  ]
+}

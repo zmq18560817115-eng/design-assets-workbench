@@ -1626,16 +1626,23 @@ def review_case(
     case.review_notes = review.review_notes.strip()
     case.reviewer = review.reviewer.strip()
     case.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-    case.business_line = review.business_line.strip()
-    case.channel = review.channel.strip()
-    case.campaign_stage = review.campaign_stage.strip()
-    case.business_goal = review.business_goal.strip()
-    case.product_name = review.product_name.strip()
-    case.content_purpose = review.content_purpose.strip()
-    case.page_role = review.page_role
-    case.sequence_index = review.sequence_index
-    case.brief_ref = review.brief_ref.strip()
-    case.metadata_status = "manual"
+    submitted = review.model_fields_set
+    business_fields_changed = False
+    for field in (
+        "business_line", "channel", "campaign_stage", "business_goal",
+        "product_name", "content_purpose", "brief_ref",
+    ):
+        if field in submitted:
+            setattr(case, field, (getattr(review, field) or "").strip())
+            business_fields_changed = True
+    if "page_role" in submitted:
+        case.page_role = review.page_role or "other"
+        business_fields_changed = True
+    if "sequence_index" in submitted:
+        case.sequence_index = review.sequence_index
+        business_fields_changed = True
+    if business_fields_changed:
+        case.metadata_status = "manual"
     if review.asset_category is not None:
         case.asset_category = review.asset_category
     keep_reasons = [item.strip() for item in review.keep_reasons if item.strip()]
