@@ -664,19 +664,29 @@ def evaluate_disinfection_holdout(
         "no_edit_rate": round(sum(row["no_edit"] for row in evaluated) / len(evaluated), 4),
     }
     gates = {
+        "evaluated_count_gte_5": len(evaluated) >= 5,
         "product_image_accuracy_gte_90": metrics["product_image_accuracy"] >= 0.90,
         "main_text_accuracy_gte_80": metrics["main_text_accuracy"] >= 0.80,
         "module_type_accuracy_gte_80": metrics["module_type_accuracy"] >= 0.80,
         "coordinates_legal_100": metrics["coordinate_validity"] == 1.0,
     }
+    coverage_ready = gates["evaluated_count_gte_5"]
     return {
-        "status": "passed" if all(gates.values()) else "failed",
+        "status": (
+            "not_ready" if not coverage_ready
+            else "passed" if all(gates.values())
+            else "failed"
+        ),
         "calibration_count": len(calibration),
         "holdout_count": len(holdout),
         "evaluated_count": len(evaluated),
         "metrics": metrics,
         "gates": gates,
         "items": evaluated,
+        "message": (
+            "" if coverage_ready
+            else "At least 5 successful blind holdout runs are required before pass/fail."
+        ),
         "holdout_policy": "Holdout is excluded from few-shot retrieval and must not be used for prompt iteration.",
     }
 
