@@ -412,10 +412,16 @@ def validate_prediction(
                 (
                     not rules["check_containment_exemption"]
                     or (
-                        containment_ratio(left, right)
-                        < rules["containment_exemption_ratio"]
-                        and containment_ratio(right, left)
-                        < rules["containment_exemption_ratio"]
+                        not (
+                            right.get("type") in {"layout_block", "background"}
+                            and containment_ratio(left, right)
+                            >= rules["containment_exemption_ratio"]
+                        )
+                        and not (
+                            left.get("type") in {"layout_block", "background"}
+                            and containment_ratio(right, left)
+                            >= rules["containment_exemption_ratio"]
+                        )
                     )
                 )
                 and iou > rules["maximum_sibling_overlap_ratio"]
