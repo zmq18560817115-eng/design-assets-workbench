@@ -1,0 +1,600 @@
+{
+  "report_kind": "calibration",
+  "dataset_version": "untitled1-visual-calibration-v1",
+  "dataset_split": "calibration",
+  "holdout_executed": false,
+  "model_provider": "volcengine",
+  "model_name": "ep-20260727140608-zgwnq",
+  "prompt_version": "visual-calibration-prompt-v2",
+  "validator_version": "visual-calibration-validator-v2",
+  "thresholds": {
+    "region_iou": 0.5,
+    "product_iou": 0.45,
+    "maximum_sibling_overlap_ratio": 0.35,
+    "duplicate_module_iou": 0.9,
+    "containment_exemption_ratio": 0.9,
+    "check_duplicate_modules": true,
+    "check_containment_exemption": true
+  },
+  "gates": {
+    "task_success_rate_min": 0.95,
+    "schema_valid_rate_min": 0.98,
+    "product_detection_rate_min": 0.95,
+    "primary_text_detection_rate_min": 0.9,
+    "layout_module_recall_min": 0.9,
+    "invalid_overlap_rate_max": 0.05,
+    "timeout_rate_max": 0.05,
+    "severe_regression_count_max": 0
+  },
+  "metrics": {
+    "total": 24,
+    "task_success_rate": 0.0,
+    "schema_valid_rate": 0.0,
+    "product_detection_rate": 0.0,
+    "product_missed_count": 0,
+    "primary_text_detection_rate": 0.0,
+    "layout_module_recall": 0.0,
+    "module_type_accuracy": 0.0,
+    "out_of_bounds_count": 0,
+    "invalid_overlap_count": 0,
+    "invalid_overlap_rate": 0.0,
+    "timeout_rate": 1.0,
+    "average_elapsed_ms": 15320,
+    "p95_elapsed_ms": 15379
+  },
+  "runs": [
+    {
+      "asset_id": "untitled1-11b5153fd674f9a1",
+      "filename": "Group 1.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:38:53.036028+00:00",
+      "finished_at": "2026-07-31T09:39:08.416664+00:00",
+      "elapsed_ms": 15379,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-11b5153fd674f9a1.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-ae595e807d3ca089",
+      "filename": "Group 10.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:38:53.037526+00:00",
+      "finished_at": "2026-07-31T09:39:08.401464+00:00",
+      "elapsed_ms": 15364,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-ae595e807d3ca089.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-70ef21d06ef89fba",
+      "filename": "Group 11.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:38:53.037526+00:00",
+      "finished_at": "2026-07-31T09:39:08.431278+00:00",
+      "elapsed_ms": 15394,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-70ef21d06ef89fba.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-c4eff94932294948",
+      "filename": "Group 13.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:08.401464+00:00",
+      "finished_at": "2026-07-31T09:39:23.757828+00:00",
+      "elapsed_ms": 15357,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-c4eff94932294948.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-2f0df5afebc156df",
+      "filename": "Group 15.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:08.416664+00:00",
+      "finished_at": "2026-07-31T09:39:23.781649+00:00",
+      "elapsed_ms": 15365,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-2f0df5afebc156df.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-2d441f6a3d3fbe12",
+      "filename": "Group 16.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:08.432378+00:00",
+      "finished_at": "2026-07-31T09:39:23.757828+00:00",
+      "elapsed_ms": 15326,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-2d441f6a3d3fbe12.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-06304221242481ed",
+      "filename": "Group 17.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:23.757828+00:00",
+      "finished_at": "2026-07-31T09:39:39.102307+00:00",
+      "elapsed_ms": 15345,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-06304221242481ed.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-3f81f20df6ad7b65",
+      "filename": "Group 19.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:23.757828+00:00",
+      "finished_at": "2026-07-31T09:39:39.070007+00:00",
+      "elapsed_ms": 15312,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-3f81f20df6ad7b65.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-e128c0ad40d614ba",
+      "filename": "Group 22.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:23.781649+00:00",
+      "finished_at": "2026-07-31T09:39:39.116480+00:00",
+      "elapsed_ms": 15335,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-e128c0ad40d614ba.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-f601e2aeced1850d",
+      "filename": "Group 27.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:39.070007+00:00",
+      "finished_at": "2026-07-31T09:39:54.378751+00:00",
+      "elapsed_ms": 15308,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-f601e2aeced1850d.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-0b896588983149e9",
+      "filename": "Group 28.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:39.102307+00:00",
+      "finished_at": "2026-07-31T09:39:54.395165+00:00",
+      "elapsed_ms": 15292,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-0b896588983149e9.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-8728904be2d597bd",
+      "filename": "Group 29.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:39.116480+00:00",
+      "finished_at": "2026-07-31T09:39:54.470881+00:00",
+      "elapsed_ms": 15354,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-8728904be2d597bd.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-6e47a2d5bd4676e8",
+      "filename": "Group 30.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:54.378751+00:00",
+      "finished_at": "2026-07-31T09:40:09.502956+00:00",
+      "elapsed_ms": 15124,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-6e47a2d5bd4676e8.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-850c6b004fa1dc98",
+      "filename": "Group 34.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:54.395165+00:00",
+      "finished_at": "2026-07-31T09:40:09.703800+00:00",
+      "elapsed_ms": 15309,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-850c6b004fa1dc98.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-011afa8fb0117a66",
+      "filename": "Group 35.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:39:54.470881+00:00",
+      "finished_at": "2026-07-31T09:40:09.734349+00:00",
+      "elapsed_ms": 15264,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-011afa8fb0117a66.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-04875eb91024bac6",
+      "filename": "Group 36.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:09.502956+00:00",
+      "finished_at": "2026-07-31T09:40:24.805490+00:00",
+      "elapsed_ms": 15302,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-04875eb91024bac6.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-a4446d25073edd76",
+      "filename": "Group 37.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:09.703800+00:00",
+      "finished_at": "2026-07-31T09:40:25.028558+00:00",
+      "elapsed_ms": 15324,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-a4446d25073edd76.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-679af0f55ab389bd",
+      "filename": "Group 38.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:09.734349+00:00",
+      "finished_at": "2026-07-31T09:40:25.083881+00:00",
+      "elapsed_ms": 15349,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-679af0f55ab389bd.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-6c571ac1ae5e5984",
+      "filename": "Group 39.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:24.805490+00:00",
+      "finished_at": "2026-07-31T09:40:40.093180+00:00",
+      "elapsed_ms": 15287,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-6c571ac1ae5e5984.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-49d37f7344b91995",
+      "filename": "Group 45.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:25.028558+00:00",
+      "finished_at": "2026-07-31T09:40:40.339052+00:00",
+      "elapsed_ms": 15311,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-49d37f7344b91995.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-9ae2cdafbbd61a99",
+      "filename": "Group 5.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:25.085065+00:00",
+      "finished_at": "2026-07-31T09:40:40.415312+00:00",
+      "elapsed_ms": 15331,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-9ae2cdafbbd61a99.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-929907552160806a",
+      "filename": "Group 56.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:40.093180+00:00",
+      "finished_at": "2026-07-31T09:40:55.365511+00:00",
+      "elapsed_ms": 15273,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-929907552160806a.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-3743a2e4c9ee78d9",
+      "filename": "Group 7.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:40.339052+00:00",
+      "finished_at": "2026-07-31T09:40:55.710020+00:00",
+      "elapsed_ms": 15370,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-3743a2e4c9ee78d9.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    },
+    {
+      "asset_id": "untitled1-9a80f773d45a278a",
+      "filename": "Group 9.png",
+      "model_provider": "volcengine",
+      "model_name": "ep-20260727140608-zgwnq",
+      "prompt_version": "visual-calibration-prompt-v2",
+      "validator_version": "visual-calibration-validator-v2",
+      "started_at": "2026-07-31T09:40:40.416357+00:00",
+      "finished_at": "2026-07-31T09:40:55.709008+00:00",
+      "elapsed_ms": 15294,
+      "retry_count": 0,
+      "run_status": "failed",
+      "raw_output_path": "evaluation/visual-analysis/raw/untitled1-9a80f773d45a278a.txt",
+      "parsed_output": {},
+      "validation_errors": [
+        "The read operation timed out"
+      ],
+      "error_codes": [
+        "MODEL_TIMEOUT"
+      ],
+      "schema_valid": false,
+      "metrics": {}
+    }
+  ],
+  "generated_at": "2026-07-31T09:40:55.712022+00:00"
+}

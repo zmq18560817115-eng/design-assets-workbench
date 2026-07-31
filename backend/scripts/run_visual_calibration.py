@@ -230,7 +230,11 @@ def main() -> int:
     args.output.write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    errors_path = args.output.with_name("calibration-errors.json")
+    errors_path = args.output.with_name(
+        "calibration-errors.json"
+        if args.output.name == "calibration-baseline.json"
+        else f"{args.output.stem}-errors.json"
+    )
     errors_path.write_text(
         json.dumps(
             {
