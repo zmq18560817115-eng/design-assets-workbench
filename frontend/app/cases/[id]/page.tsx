@@ -122,11 +122,11 @@ export default function CaseDetail() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/cases" className="text-sm text-gray-500 hover:text-accent">
+        <Link href="/assets?tab=library" className="text-sm text-gray-500 hover:text-accent">
           ← 返回素材库
         </Link>
         <Link
-          href="/analyze"
+          href="/assets?tab=import"
           className="rounded-xl border border-line bg-white px-4 py-2 text-sm hover:border-accent"
         >
           继续上传素材

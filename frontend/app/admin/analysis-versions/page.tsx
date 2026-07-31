@@ -8,7 +8,9 @@ export default function AnalysisVersionsPage() {
   const [versions, setVersions] = useState<AnalysisRuntimeVersion[]>([]);
   const [message, setMessage] = useState("");
   const load = () => analysisEvaluationApi.versions().then(setVersions).catch((e) => setMessage(e.message));
-  useEffect(load, []);
+  useEffect(() => {
+    void analysisEvaluationApi.versions().then(setVersions).catch((e) => setMessage(e.message));
+  }, []);
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     try {

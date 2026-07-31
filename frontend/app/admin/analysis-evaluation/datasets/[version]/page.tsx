@@ -11,7 +11,9 @@ export default function AnalysisDatasetDetailPage() {
   const [dataset, setDataset] = useState<AnalysisDataset | null>(null);
   const [message, setMessage] = useState("");
   const load = () => analysisEvaluationApi.dataset(version).then(setDataset).catch((e) => setMessage(e.message));
-  useEffect(load, [version]);
+  useEffect(() => {
+    void analysisEvaluationApi.dataset(version).then(setDataset).catch((e) => setMessage(e.message));
+  }, [version]);
   const assign = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
