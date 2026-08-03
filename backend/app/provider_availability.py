@@ -41,6 +41,7 @@ class CallPolicy:
     max_retries: int = 2
     backoff_base: float = 1
     jitter_max: float = 0.5
+    retry_read_timeout: bool = True
 
 
 class ProviderCallError(RuntimeError):
@@ -163,7 +164,82 @@ def safe_config_summary() -> dict[str, Any]:
         "batch_concurrency": config.BATCH_CONCURRENCY,
         "image_encoding": "base64 data URI; JPEG after bounded resize",
         "max_tokens": config.VISION_MAX_TOKENS,
+        "calibration": {
+            "read_timeout_seconds": config.VISION_CALIBRATION_READ_TIMEOUT,
+            "max_tokens": config.VISION_CALIBRATION_MAX_TOKENS,
+            "image_edge": config.VISION_CALIBRATION_IMAGE_EDGE,
+            "stream": True,
+            "retry_read_timeout": False,
+        },
     }
+
+
+def _read_streamed_chat_response(
+    response: httpx.Response, before_send: float
+) -> tuple[dict[str, Any], int]:
+    """Collect OpenAI-compatible SSE deltas into a normal chat response body."""
+    content: list[str] = []
+    metadata: dict[str, Any] = {}
+    finish_reason = None
+    usage = None
+    first_event_ms = 0
+    for line in response.iter_lines():
+        if not line or line.startswith(":"):
+            continue
+        if not line.startswith("data:"):
+            continue
+        data = line[5:].strip()
+        if data == "[DONE]":
+            break
+        if not first_event_ms:
+            first_event_ms = round((time.perf_counter() - before_send) * 1000)
+        try:
+            event = json.loads(data)
+        except json.JSONDecodeError as exc:
+            raise ProviderCallError(
+                "invalid_json", f"invalid provider stream event: {exc}",
+                status_code=response.status_code, entered_provider=True,
+            ) from exc
+        if isinstance(event.get("error"), dict):
+            error = event["error"]
+            raise ProviderCallError(
+                "unknown_provider_error",
+                str(error.get("message") or "provider stream returned an error"),
+                status_code=response.status_code,
+                provider_error_code=str(error.get("code") or error.get("type") or ""),
+                request_id=(
+                    response.headers.get("x-request-id")
+                    or response.headers.get("x-tt-logid")
+                    or ""
+                ),
+                entered_provider=True,
+            )
+        for key in ("id", "object", "created", "model"):
+            if event.get(key) is not None:
+                metadata[key] = event[key]
+        if event.get("usage") is not None:
+            usage = event["usage"]
+        choices = event.get("choices") or []
+        if choices:
+            delta = choices[0].get("delta") or {}
+            if isinstance(delta.get("content"), str):
+                content.append(delta["content"])
+            if choices[0].get("finish_reason") is not None:
+                finish_reason = choices[0]["finish_reason"]
+    if not content:
+        raise ProviderCallError(
+            "invalid_json", "provider stream contained no assistant content",
+            status_code=response.status_code, entered_provider=True,
+        )
+    return ({
+        **metadata,
+        "choices": [{
+            "index": 0,
+            "message": {"role": "assistant", "content": "".join(content)},
+            "finish_reason": finish_reason,
+        }],
+        **({"usage": usage} if usage is not None else {}),
+    }, first_event_ms)
 
 
 def _provider_details(response: httpx.Response) -> tuple[str, str, float | None]:
@@ -289,7 +365,6 @@ def guarded_chat_request(
                     extensions={"trace": trace},
                 ) as response:
                     first_byte_ms = round((time.perf_counter() - before_send) * 1000)
-                    raw = response.read()
                     request_id = (
                         response.headers.get("x-request-id")
                         or response.headers.get("x-tt-logid")
@@ -298,13 +373,19 @@ def guarded_chat_request(
                     )
                     if response.status_code >= 400:
                         raise classify_http_response(response)
-                    try:
-                        body = json.loads(raw)
-                    except json.JSONDecodeError as exc:
-                        raise ProviderCallError(
-                            "invalid_json", str(exc), request_id=request_id,
-                            status_code=response.status_code, entered_provider=True,
-                        ) from exc
+                    if payload.get("stream") is True:
+                        body, first_byte_ms = _read_streamed_chat_response(
+                            response, before_send
+                        )
+                    else:
+                        raw = response.read()
+                        try:
+                            body = json.loads(raw)
+                        except json.JSONDecodeError as exc:
+                            raise ProviderCallError(
+                                "invalid_json", str(exc), request_id=request_id,
+                                status_code=response.status_code, entered_provider=True,
+                            ) from exc
             total_ms = round((time.perf_counter() - started) * 1000)
             breaker.record_success()
             return {
@@ -337,7 +418,11 @@ def guarded_chat_request(
                 "elapsed_ms": round((time.perf_counter() - started) * 1000),
             })
             breaker.record_failure()
-            if not classified.retryable or attempt >= policy.max_retries or breaker.is_open:
+            retryable = classified.retryable and not (
+                classified.error_type == "read_timeout"
+                and not policy.retry_read_timeout
+            )
+            if not retryable or attempt >= policy.max_retries or breaker.is_open:
                 classified.attempts = attempts  # type: ignore[attr-defined]
                 raise classified
             delay = classified.retry_after

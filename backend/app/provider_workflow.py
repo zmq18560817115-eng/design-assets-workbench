@@ -9,7 +9,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from . import config
 from .provider_availability import safe_config_summary
+from .visual_calibration import calibration_gate_results
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 PROJECT_DIR = BACKEND_DIR.parent
@@ -67,6 +69,7 @@ def _smoke_ready(report: dict[str, Any]) -> bool:
 
 def _canary_ready(report: dict[str, Any]) -> bool:
     metrics = report.get("metrics", {})
+    quality = calibration_gate_results(metrics)
     return bool(
         report.get("report_kind") == "calibration_canary"
         and report.get("status") == "completed"
@@ -74,11 +77,13 @@ def _canary_ready(report: dict[str, Any]) -> bool:
         and metrics.get("task_success_rate") == 1
         and metrics.get("schema_valid_rate") == 1
         and report.get("fallback_count", 0) == 0
+        and all(quality.values())
     )
 
 
 def _full_ready(report: dict[str, Any]) -> bool:
     metrics = report.get("metrics", {})
+    quality = calibration_gate_results(metrics)
     return bool(
         report.get("report_kind") == "calibration"
         and report.get("status") == "completed"
@@ -86,6 +91,7 @@ def _full_ready(report: dict[str, Any]) -> bool:
         and metrics.get("task_success_rate", 0) >= .95
         and metrics.get("schema_valid_rate") == 1
         and report.get("fallback_count", 0) == 0
+        and all(quality.values())
     )
 
 
@@ -141,7 +147,8 @@ def _command(stage: str) -> list[str]:
             sys.executable, "scripts/run_provider_preflight.py",
             "--manifest", str(manifest), "--output", str(REPORTS[stage]),
             "--smoke-count", "1", "--connect-timeout", "10",
-            "--read-timeout", "120", "--max-retries", "1",
+            "--read-timeout", str(config.VISION_CALIBRATION_READ_TIMEOUT),
+            "--max-retries", "1",
             "--formal-schema", "--instructions-file", str(prompt),
         ]
     if stage == "smoke":
@@ -149,7 +156,8 @@ def _command(stage: str) -> list[str]:
             sys.executable, "scripts/run_provider_preflight.py",
             "--manifest", str(manifest), "--output", str(REPORTS[stage]),
             "--smoke-count", "3", "--connect-timeout", "10",
-            "--read-timeout", "120", "--max-retries", "1",
+            "--read-timeout", str(config.VISION_CALIBRATION_READ_TIMEOUT),
+            "--max-retries", "1",
         ]
     previous = REPORTS["smoke"] if stage == "canary" else REPORTS["canary"]
     return [
@@ -159,7 +167,8 @@ def _command(stage: str) -> list[str]:
         "--validator-version", "visual-calibration-validator-v2",
         "--instructions-file", str(prompt), "--validator-config", str(validator),
         "--stage", stage, "--readiness-report", str(previous),
-        "--workers", "1", "--timeout", "120",
+        "--workers", "1", "--timeout",
+        str(config.VISION_CALIBRATION_READ_TIMEOUT),
     ]
 
 

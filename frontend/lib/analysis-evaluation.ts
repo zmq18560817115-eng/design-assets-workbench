@@ -67,6 +67,10 @@ export interface ProviderWorkflowStatus {
     provider: string; api_key: "configured" | "missing"; base_url: string;
     region: string; model: string; batch_concurrency: number;
     timeouts: { connect_seconds: number; read_seconds: number };
+    calibration: {
+      read_timeout_seconds: number; max_tokens: number; image_edge: number;
+      stream: boolean; retry_read_timeout: boolean;
+    };
     max_retries: number; configuration_errors: string[];
   };
   gates: Record<string, boolean>;

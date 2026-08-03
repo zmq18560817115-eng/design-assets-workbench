@@ -202,7 +202,11 @@ export default function CaseDetail() {
       </section>
 
       <BusinessFields item={item} onSaved={setItem} />
-      <LayoutBlueprintEditor caseId={item.id} imageUrl={item.image?.url || ""} />
+      <LayoutBlueprintEditor
+        caseId={item.id}
+        imageUrl={item.image?.url || ""}
+        defaultReviewer={item.reviewer || "设计负责人张茗淇"}
+      />
       <ReviewPanel item={item} onSaved={setItem} />
     </div>
   );

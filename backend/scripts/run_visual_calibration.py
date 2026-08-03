@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 from app import config  # noqa: E402
 from app.visual_calibration import (  # noqa: E402
     CALIBRATION_GATES,
+    calibration_gate_results,
     classify_exception,
     run_model_once,
     resume_calibration_assets,
@@ -147,7 +148,10 @@ def main() -> int:
     parser.add_argument("--instructions-file", type=Path)
     parser.add_argument("--validator-config", type=Path)
     parser.add_argument("--workers", type=int, default=1)
-    parser.add_argument("--timeout", type=float, default=300)
+    parser.add_argument(
+        "--timeout", type=float,
+        default=config.VISION_CALIBRATION_READ_TIMEOUT,
+    )
     parser.add_argument("--stage", choices=("canary", "full"), required=True)
     parser.add_argument("--readiness-report", type=Path, required=True)
     args = parser.parse_args()
@@ -222,7 +226,42 @@ def main() -> int:
     rows = []
     if args.output.is_file():
         existing = json.loads(args.output.read_text(encoding="utf-8"))
+        expected_versions = {
+            "model_name": config.VISION_MODEL,
+            "prompt_version": args.prompt_version,
+            "validator_version": args.validator_version,
+        }
+        mismatched = [
+            key for key, value in expected_versions.items()
+            if existing.get(key) != value
+        ]
+        if mismatched:
+            raise SystemExit(
+                "拒绝混合不同运行版本，请使用新的输出文件: "
+                + ", ".join(mismatched)
+            )
         assets, rows = resume_calibration_assets(assets, existing)
+        truth_by_id = {
+            item["asset_id"]: item["ground_truth"]
+            for item in manifest["assets"]
+            if item.get("dataset_split") == "calibration"
+            and item.get("annotation_status") == "verified"
+            and "ground_truth" in item
+        }
+        for row in rows:
+            truth = truth_by_id.get(row["asset_id"])
+            if not truth:
+                continue
+            validation = validate_prediction(
+                row.get("parsed_output") or {}, truth,
+                thresholds=validator_config,
+            )
+            row.update(
+                schema_valid=validation["schema_valid"],
+                error_codes=validation["error_codes"],
+                validation_errors=validation["validation_errors"],
+                metrics=validation["metrics"],
+            )
         completed_assets = {row["asset_id"] for row in rows}
     checkpoint = {
         "report_kind": "calibration_canary" if args.stage == "canary" else "calibration",
@@ -281,6 +320,8 @@ def main() -> int:
         if consecutive_provider_failures >= 3:
             provider_blocked = True
             break
+    final_metrics = aggregate(rows)
+    quality_gates = calibration_gate_results(final_metrics)
     report = {
         "report_kind": "calibration_canary" if args.stage == "canary" else "calibration",
         "dataset_version": manifest["manifest_version"],
@@ -297,7 +338,9 @@ def main() -> int:
             **validator_config,
         },
         "gates": CALIBRATION_GATES,
-        "metrics": aggregate(rows),
+        "metrics": final_metrics,
+        "quality_gates": quality_gates,
+        "quality_passed": all(quality_gates.values()),
         "runs": sorted(rows, key=lambda row: row["filename"].casefold()),
         "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "fallback_count": 0,

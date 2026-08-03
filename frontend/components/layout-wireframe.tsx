@@ -44,6 +44,7 @@ export function LayoutWireframe({
   accent = "red",
   className = "",
   backgroundImageUrl = "",
+  onBackgroundImageError,
   onModuleChange,
 }: {
   blueprint:
@@ -59,6 +60,7 @@ export function LayoutWireframe({
   accent?: "red" | "black";
   className?: string;
   backgroundImageUrl?: string;
+  onBackgroundImageError?: () => void;
   onModuleChange?: (index: number, patch: Partial<LayoutModule>) => void;
 }) {
   const [ratioWidth, ratioHeight] = blueprint.canvas_ratio
@@ -117,13 +119,18 @@ export function LayoutWireframe({
       className={`relative mx-auto w-full overflow-hidden rounded-sm border border-gray-200 bg-white shadow-sm ${className}`}
       style={{
         aspectRatio: `${ratioWidth}/${ratioHeight}`,
-        backgroundImage: backgroundImageUrl ? `url("${backgroundImageUrl}")` : undefined,
-        backgroundSize: "contain",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
       }}
       aria-label="排版低保真框架图"
     >
+      {backgroundImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={backgroundImageUrl}
+          alt="案例原始成品图"
+          className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+          onError={onBackgroundImageError}
+        />
+      )}
       {showFocalRegion && blueprint.focal_region && (
         <div
           className="pointer-events-none absolute border border-dashed border-violet-400"

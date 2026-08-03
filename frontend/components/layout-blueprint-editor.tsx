@@ -39,15 +39,50 @@ function asInput(item: LayoutBlueprint): LayoutBlueprintInput {
   };
 }
 
-export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: number; imageUrl?: string }) {
+const orientationLabels: Record<string, string> = {
+  portrait: "竖版",
+  landscape: "横版",
+  square: "方形",
+};
+
+const densityLabels: Record<string, string> = {
+  low: "低（留白较多）",
+  medium: "中（信息适中）",
+  high: "高（信息较多）",
+};
+
+const alignmentLabels: Record<string, string> = {
+  left: "左对齐",
+  center: "居中对齐",
+  right: "右对齐",
+  mixed: "混合对齐",
+};
+
+const readingFlowLabels: Record<string, string> = {
+  "top-to-bottom": "从上到下",
+  "left-to-right": "从左到右",
+  "z-pattern": "Z 形浏览",
+  "f-pattern": "F 形浏览",
+};
+
+export function LayoutBlueprintEditor({
+  caseId,
+  imageUrl = "",
+  defaultReviewer = "",
+}: {
+  caseId: number;
+  imageUrl?: string;
+  defaultReviewer?: string;
+}) {
   const [versions, setVersions] = useState<LayoutBlueprint[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [draft, setDraft] = useState<LayoutBlueprintInput | null>(null);
-  const [editor, setEditor] = useState("");
+  const [editor, setEditor] = useState(defaultReviewer);
   const [patternName, setPatternName] = useState("");
   const [showLabels, setShowLabels] = useState(true);
   const [showFocalRegion, setShowFocalRegion] = useState(false);
   const [showOriginal, setShowOriginal] = useState(true);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -80,6 +115,10 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
+
+  useEffect(() => {
+    if (defaultReviewer && !editor) setEditor(defaultReviewer);
+  }, [defaultReviewer, editor]);
 
   const updateModule = (index: number, patch: Partial<LayoutModule>) => {
     if (!draft) return;
@@ -232,12 +271,10 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
     <section className="rounded-2xl border border-indigo-500/30 bg-panel p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">
-            Layout blueprint
-          </div>
-          <h2 className="mt-1 text-lg font-semibold">排版低保真骨架校正</h2>
-          <p className="mt-1 text-xs leading-5 text-gray-400">
-            只用框体表达模块位置、大小和层级。坐标范围为 0～1，保存会新建版本。
+          <div className="text-xs font-semibold text-indigo-400">步骤 2 · 人工审核</div>
+          <h2 className="mt-1 text-lg font-semibold">确认 AI 拆解是否正确</h2>
+          <p className="mt-1 text-sm leading-6 text-gray-400">
+            系统已完成初步识别。你只需对照原图检查模块框；发现错误时再拖动、缩放或修改。
           </p>
         </div>
         <div className="flex max-w-full flex-wrap gap-2">
@@ -257,7 +294,23 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
         </div>
       </div>
 
-      <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(300px,0.85fr)_1.15fr]">
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {[
+          ["1", "对照原图", "检查产品、标题和卖点框"],
+          ["2", "有错才修改", "拖动框体或调整模块类型"],
+          ["3", "提交结论", "正确则确认，修改后保存"],
+        ].map(([step, title, description]) => (
+          <div key={step} className="rounded-xl border border-line bg-ink p-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs text-white">{step}</span>
+              {title}
+            </div>
+            <p className="mt-1 pl-8 text-xs leading-5 text-gray-400">{description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(360px,0.95fr)_1.05fr]">
         <div>
           <div className="rounded-xl bg-[#f4f5f8] p-5">
             <LayoutWireframe
@@ -266,13 +319,19 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
               showFocalRegion={showFocalRegion}
               className="max-w-[460px]"
               backgroundImageUrl={showOriginal ? imageUrl : ""}
+              onBackgroundImageError={() => setImageLoadError(true)}
               onModuleChange={updateModule}
             />
           </div>
+          {(!imageUrl || imageLoadError) && (
+            <div className="mt-3 rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-xs leading-5 text-amber-200">
+              原图暂未加载，当前只能看到拆解框。请先检查案例图片地址或重新导入原图，再执行最终确认。
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-400">
             <button type="button" onClick={() => setShowOriginal((value) => !value)}
               className="rounded-lg border border-line px-3 py-1.5">
-              {showOriginal ? "切换为纯标注图" : "切换为原图叠加"}
+              {showOriginal ? "隐藏原图，只看框体" : "显示原图并对照"}
             </button>
             <label className="flex items-center gap-2">
               <input
@@ -291,19 +350,48 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
               显示焦点区
             </label>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
-            <div>画布：{draft.canvas_ratio}</div>
-            <div>方向：{draft.orientation}</div>
-            <div>栅格：{draft.grid_columns} × {draft.grid_rows}</div>
-            <div>模块：{draft.modules_json.length}</div>
-            <div className="col-span-2">
-              来源：{selected.model_name} · {selected.prompt_version}
+          <div className="mt-3 rounded-xl border border-line p-3">
+            <div className="text-xs font-semibold text-gray-300">颜色说明</div>
+            <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
+              <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-blue-600" />产品图</span>
+              <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-green-600" />文字信息</span>
+              <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-red-500" />其他模块</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-line p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">系统自动识别</h3>
+                <p className="mt-1 text-xs text-gray-400">以下内容由系统生成，通常不需要你录入。</p>
+              </div>
+              <span className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-[11px] text-indigo-300">无需填写</span>
+            </div>
+            <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+              {[
+                ["画面方向", orientationLabels[draft.orientation] || draft.orientation],
+                ["画布比例", draft.canvas_ratio],
+                ["信息密度", densityLabels[draft.information_density] || draft.information_density],
+                ["对齐方式", alignmentLabels[draft.alignment] || draft.alignment],
+                ["阅读顺序", readingFlowLabels[draft.reading_flow] || draft.reading_flow],
+                ["图文占比", `文字约 ${Math.round(draft.text_image_ratio * 100)}%`],
+                ["模块数量", `${draft.modules_json.length} 个`],
+                ["识别来源", `${selected.model_name} · ${selected.prompt_version}`],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg bg-ink px-3 py-2">
+                  <dt className="text-[11px] text-gray-500">{label}</dt>
+                  <dd className="mt-0.5 text-sm text-gray-200">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <details className="rounded-xl border border-line p-4">
+            <summary className="cursor-pointer text-sm font-semibold">高级参数（仅识别错误时修改）</summary>
+            <p className="mt-1 text-xs leading-5 text-gray-400">这些是系统内部排版参数，日常审核可以跳过。</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="画布比例">
               <input
                 value={draft.canvas_ratio}
@@ -379,13 +467,17 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
                 className="field"
               />
             </Field>
-          </div>
+            </div>
+          </details>
 
-          <div>
+          <div className="rounded-xl border border-line p-4">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold">模块位置与比例</h3>
+              <div>
+                <h3 className="text-sm font-semibold">需要你确认：模块框是否准确</h3>
+                <p className="mt-1 text-xs leading-5 text-gray-400">重点检查产品、标题、卖点是否框对，有无遗漏或越界。</p>
+              </div>
               <button onClick={addModule} className="rounded-lg border border-line px-3 py-1.5 text-xs">
-                增加模块
+                补充遗漏模块
               </button>
             </div>
             <div className="space-y-2">
@@ -413,22 +505,25 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
                       className="rounded-lg border border-line bg-panel px-2 py-1.5 text-xs"
                     />
                   </div>
-                  <div className="mt-2 grid grid-cols-4 gap-1.5">
-                    {(["x", "y", "width", "height"] as const).map((key) => (
-                      <label key={key} className="text-[10px] text-gray-500">
-                        {key}
-                        <input
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={module[key]}
-                          onChange={(event) => updateModule(index, { [key]: Number(event.target.value) })}
-                          className="mt-1 w-full rounded border border-line bg-panel px-1.5 py-1 text-xs text-white"
-                        />
-                      </label>
-                    ))}
-                  </div>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] text-gray-500">精确坐标（通常无需修改）</summary>
+                    <div className="mt-2 grid grid-cols-4 gap-1.5">
+                      {(["x", "y", "width", "height"] as const).map((key) => (
+                        <label key={key} className="text-[10px] text-gray-500">
+                          {{ x: "左边距", y: "上边距", width: "宽度", height: "高度" }[key]}
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={module[key]}
+                            onChange={(event) => updateModule(index, { [key]: Number(event.target.value) })}
+                            className="mt-1 w-full rounded border border-line bg-panel px-1.5 py-1 text-xs text-white"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </details>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-[10px] text-gray-500">
                       ID：{module.id} · 优先级 {module.priority}
@@ -442,33 +537,41 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
             </div>
           </div>
 
-          <div className="sticky bottom-3 z-20 rounded-xl border border-line bg-white/95 p-3 shadow-lg backdrop-blur">
-            <Field label="校正／确认人">
+          <div className="rounded-xl border border-indigo-400/30 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">提交本次审核</h3>
+                <p className="mt-1 text-xs text-gray-500">审核人是唯一必填项；系统识别正确时直接确认。</p>
+              </div>
+              <span className="rounded-full bg-rose-50 px-2 py-1 text-[11px] text-rose-600">需人工操作</span>
+            </div>
+            <Field label="审核人（必填）">
               <input
                 value={editor}
                 onChange={(event) => setEditor(event.target.value)}
-                placeholder="填写设计师姓名"
+                placeholder="例如：设计负责人张茗淇"
                 className="field"
               />
             </Field>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <button onClick={saveRevision} disabled={saving} className="rounded-lg bg-indigo-500 px-3 py-2 text-xs text-white disabled:opacity-50">
-                保存校正
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <button onClick={verify} disabled={saving || !editor.trim() || !imageUrl || imageLoadError} className="rounded-lg bg-emerald-500 px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50">
+                拆解正确，确认通过
               </button>
-              <button onClick={verify} disabled={saving} className="rounded-lg bg-emerald-500 px-3 py-2 text-xs text-white disabled:opacity-50">
-                确认此版
+              <button onClick={saveRevision} disabled={saving || !editor.trim()} className="rounded-lg bg-indigo-500 px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50">
+                我已修改，保存新版
               </button>
-              <button onClick={regenerate} disabled={saving} className="rounded-lg border border-line px-3 py-2 text-xs disabled:opacity-50">
-                重新生成
+              <button onClick={regenerate} disabled={saving} className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-700 disabled:opacity-50">
+                错误较多，重新分析
               </button>
             </div>
+            {(!imageUrl || imageLoadError) && <p className="mt-2 text-xs text-rose-600">原图不可见，暂不能确认通过。</p>}
             {message && <p className="mt-3 text-xs leading-5 text-amber-300">{message}</p>}
           </div>
 
-          <div className="rounded-xl border border-line p-3">
-            <div className="text-xs font-semibold text-gray-300">沉淀到排版模式库</div>
+          <details className="rounded-xl border border-line p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-gray-300">后续操作：加入排版模式候选</summary>
             <p className="mt-1 text-[11px] leading-5 text-gray-500">
-              只有人工确认版本可以成为模式证据，来源案例和骨架版本会自动保留。
+              这不是本次审核必填项。只有人工确认版本可以成为模式证据。
             </p>
             <div className="mt-3 flex gap-2">
               <input
@@ -485,7 +588,7 @@ export function LayoutBlueprintEditor({ caseId, imageUrl = "" }: { caseId: numbe
                 沉淀模式
               </button>
             </div>
-          </div>
+          </details>
         </div>
       </div>
     </section>

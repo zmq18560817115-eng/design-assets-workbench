@@ -44,6 +44,15 @@ VISION_CONNECT_TIMEOUT = float(os.getenv("VISION_CONNECT_TIMEOUT", "10"))
 VISION_READ_TIMEOUT = float(os.getenv("VISION_READ_TIMEOUT", "120"))
 VISION_MAX_RETRIES = max(0, min(int(os.getenv("VISION_MAX_RETRIES", "2")), 2))
 VISION_MAX_TOKENS = max(8, int(os.getenv("VISION_MAX_TOKENS", "1400")))
+VISION_CALIBRATION_READ_TIMEOUT = float(
+    os.getenv("VISION_CALIBRATION_READ_TIMEOUT", "180")
+)
+VISION_CALIBRATION_MAX_TOKENS = max(
+    512, int(os.getenv("VISION_CALIBRATION_MAX_TOKENS", "768"))
+)
+VISION_CALIBRATION_IMAGE_EDGE = max(
+    512, min(int(os.getenv("VISION_CALIBRATION_IMAGE_EDGE", "768")), 1600)
+)
 
 
 def vlm_enabled() -> bool:

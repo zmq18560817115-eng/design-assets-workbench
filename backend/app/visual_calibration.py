@@ -59,6 +59,26 @@ CALIBRATION_GATES = {
 }
 
 
+def calibration_gate_results(metrics: dict[str, Any]) -> dict[str, bool]:
+    """Evaluate service and business-quality gates from aggregate metrics."""
+    return {
+        "task_success_rate": metrics.get("task_success_rate", 0)
+        >= CALIBRATION_GATES["task_success_rate_min"],
+        "schema_valid_rate": metrics.get("schema_valid_rate", 0)
+        >= CALIBRATION_GATES["schema_valid_rate_min"],
+        "product_detection_rate": metrics.get("product_detection_rate", 0)
+        >= CALIBRATION_GATES["product_detection_rate_min"],
+        "primary_text_detection_rate": metrics.get("primary_text_detection_rate", 0)
+        >= CALIBRATION_GATES["primary_text_detection_rate_min"],
+        "layout_module_recall": metrics.get("layout_module_recall", 0)
+        >= CALIBRATION_GATES["layout_module_recall_min"],
+        "invalid_overlap_rate": metrics.get("invalid_overlap_rate", 1)
+        <= CALIBRATION_GATES["invalid_overlap_rate_max"],
+        "timeout_rate": metrics.get("timeout_rate", 1)
+        <= CALIBRATION_GATES["timeout_rate_max"],
+    }
+
+
 def resume_calibration_assets(
     assets: list[dict[str, Any]], existing_report: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -75,14 +95,14 @@ def resume_calibration_assets(
     )
 
 CALIBRATION_OUTPUT_PROMPT = """
-分析这张消毒柜公司成品图的真实排版，仅返回一个 JSON 对象：
+分析这张消毒柜公司成品图的真实排版，仅返回一个紧凑 JSON 对象：
 {{"blueprint_modules":[
-{{"id":"module-1","type":"product_image","label":"产品主体",
-"x":0.1,"y":0.1,"width":0.4,"height":0.5,
-"importance":1,"alignment":"center","content_summary":"","confidence":0.9}}
+{{"id":"m1","type":"product_image","x":0.1,"y":0.1,
+"width":0.4,"height":0.5,"confidence":0.9}}
 ]}}
 type 只能是：{module_types}。
 坐标均为相对整张原图的 0 到 1 数值。只输出实际可见模块。
+不要输出分析过程、Markdown、可选空字段或 JSON 之外的文字。
 """.strip()
 
 
@@ -345,12 +365,21 @@ def _best_matches(
     truth: list[dict[str, Any]],
     predicted: list[dict[str, Any]],
     threshold: float,
+    *,
+    allow_child_containment: bool = False,
 ) -> tuple[int, list[float]]:
     used: set[int] = set()
     scores: list[float] = []
     for expected in truth:
         choices = [
-            (region_iou(expected, candidate), index)
+            (
+                max(
+                    region_iou(expected, candidate),
+                    containment_ratio(candidate, expected)
+                    if allow_child_containment else 0,
+                ),
+                index,
+            )
             for index, candidate in enumerate(predicted)
             if index not in used
         ]
@@ -402,12 +431,16 @@ def validate_prediction(
     if products and product_hits < len(ground_truth["product_regions"]):
         errors.append("PRODUCT_BOX_INACCURATE")
     text_hits, _ = _best_matches(
-        ground_truth["primary_text_regions"], texts, rules["region_iou"]
+        ground_truth["primary_text_regions"], texts, rules["region_iou"],
+        allow_child_containment=True,
     )
     if ground_truth["primary_text_regions"] and not text_hits:
         errors.append("PRIMARY_TEXT_MISSED")
+    layout_blocks = [
+        row for row in normalized_modules if row.get("type") == "layout_block"
+    ]
     layout_hits, _ = _best_matches(
-        ground_truth["layout_modules"], normalized_modules, rules["region_iou"]
+        ground_truth["layout_modules"], layout_blocks, rules["region_iou"]
     )
     if layout_hits < len(ground_truth["layout_modules"]):
         errors.append("LAYOUT_MODULE_MISSED")
@@ -476,8 +509,12 @@ def run_model_once(
     image_path: Path,
     *,
     additional_instructions: str = "",
-    timeout_seconds: float = 300,
+    timeout_seconds: float | None = None,
 ) -> tuple[dict[str, Any], str]:
+    timeout_seconds = (
+        config.VISION_CALIBRATION_READ_TIMEOUT
+        if timeout_seconds is None else timeout_seconds
+    )
     mime = {
         ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
         ".webp": "image/webp",
@@ -492,7 +529,10 @@ def run_model_once(
         prompt_override=CALIBRATION_OUTPUT_PROMPT.format(
             module_types=", ".join(MODULE_TYPE_ORDER)
         ),
-        max_tokens=1400,
+        max_tokens=config.VISION_CALIBRATION_MAX_TOKENS,
+        image_max_edge=config.VISION_CALIBRATION_IMAGE_EDGE,
+        stream=True,
+        retry_read_timeout=False,
     )
 
 

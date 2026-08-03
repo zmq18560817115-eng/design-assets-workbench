@@ -82,7 +82,12 @@ class ProviderWorkflowTest(unittest.TestCase):
         self.write_ready_prerequisites()
         self.write("canary", {
             "report_kind": "calibration_canary", "status": "completed",
-            "metrics": {"total": 3, "task_success_rate": 1, "schema_valid_rate": 1},
+            "metrics": {
+                "total": 3, "task_success_rate": 1, "schema_valid_rate": 1,
+                "product_detection_rate": 1, "primary_text_detection_rate": 1,
+                "layout_module_recall": 1, "invalid_overlap_rate": 0,
+                "timeout_rate": 0,
+            },
             "fallback_count": 0,
         })
         self.assertTrue(provider_workflow.workflow_status()["actions"]["full"])
@@ -91,12 +96,22 @@ class ProviderWorkflowTest(unittest.TestCase):
         self.write_ready_prerequisites()
         self.write("canary", {
             "report_kind": "calibration_canary", "status": "completed",
-            "metrics": {"total": 3, "task_success_rate": 1, "schema_valid_rate": 1},
+            "metrics": {
+                "total": 3, "task_success_rate": 1, "schema_valid_rate": 1,
+                "product_detection_rate": 1, "primary_text_detection_rate": 1,
+                "layout_module_recall": 1, "invalid_overlap_rate": 0,
+                "timeout_rate": 0,
+            },
             "fallback_count": 0,
         })
         self.write("full", {
             "report_kind": "calibration", "status": "completed",
-            "metrics": {"total": 24, "task_success_rate": .96, "schema_valid_rate": 1},
+            "metrics": {
+                "total": 24, "task_success_rate": .96, "schema_valid_rate": 1,
+                "product_detection_rate": 1, "primary_text_detection_rate": 1,
+                "layout_module_recall": 1, "invalid_overlap_rate": 0,
+                "timeout_rate": 0,
+            },
             "fallback_count": 0,
         })
         status = provider_workflow.workflow_status()
@@ -113,6 +128,22 @@ class ProviderWorkflowTest(unittest.TestCase):
         status = provider_workflow.workflow_status()
         self.assertFalse(status["gates"]["full_calibration_ready"])
         self.assertEqual(status["status"], "blocked_by_provider_availability")
+
+    def test_low_quality_canary_does_not_unlock_full(self):
+        self.write_ready_prerequisites()
+        self.write("canary", {
+            "report_kind": "calibration_canary", "status": "completed",
+            "metrics": {
+                "total": 3, "task_success_rate": 1, "schema_valid_rate": 1,
+                "product_detection_rate": 1, "primary_text_detection_rate": 0,
+                "layout_module_recall": .4286, "invalid_overlap_rate": 0,
+                "timeout_rate": 0,
+            },
+            "fallback_count": 0,
+        })
+        status = provider_workflow.workflow_status()
+        self.assertFalse(status["gates"]["canary_three_ready"])
+        self.assertFalse(status["actions"]["full"])
 
     def test_command_tree_contains_no_holdout_stage(self):
         self.assertEqual(set(provider_workflow.REPORTS), {"provider_probe", "smoke", "canary", "full"})

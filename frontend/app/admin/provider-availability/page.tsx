@@ -8,7 +8,7 @@ import { Card } from "@/components/ui";
 const stages: { key: ProviderStage; title: string; description: string }[] = [
   { key: "provider_probe", title: "单张正式预检", description: "依次检查配置、网络、最小文本、最小图片和单张正式 Schema。" },
   { key: "smoke", title: "连续 3 次冒烟", description: "三次最小文本与最小图片请求必须全部成功。" },
-  { key: "canary", title: "3 张 Calibration Canary", description: "简单、中等、复杂各一张，禁止 fallback。" },
+  { key: "canary", title: "3 张 Calibration Canary", description: "简单、中等、复杂各一张；调用、Schema 与业务质量门禁必须全部通过，禁止 fallback。" },
   { key: "full", title: "24 张完整 Calibration", description: "成功率至少 95%，Schema 和坐标合法率必须为 100%。" },
 ];
 
@@ -73,6 +73,10 @@ export default function ProviderAvailabilityPage() {
         <div><span className="text-gray-500">最大重试</span><div>{config.max_retries}</div></div>
         <div><span className="text-gray-500">并发</span><div>{config.batch_concurrency}</div></div>
         <div><span className="text-gray-500">Holdout</span><div>{status.holdout.sealed ? "保持封存" : "异常"}</div></div>
+        <div><span className="text-gray-500">正式调用方式</span><div>{config.calibration.stream ? "流式接收" : "非流式"}</div></div>
+        <div><span className="text-gray-500">正式输出上限</span><div>{config.calibration.max_tokens} tokens</div></div>
+        <div><span className="text-gray-500">正式图片边长</span><div>{config.calibration.image_edge}px</div></div>
+        <div><span className="text-gray-500">正式读取超时</span><div>{config.calibration.read_timeout_seconds}s</div></div>
       </div>
     </Card>
 

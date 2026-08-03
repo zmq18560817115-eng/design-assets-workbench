@@ -19,7 +19,7 @@ from app.provider_availability import (
     guarded_chat_request, is_real_model_success, run_preflight,
     safe_config_summary,
 )
-from app.visual_calibration import resume_calibration_assets
+from app.visual_calibration import resume_calibration_assets, run_model_once
 
 
 class FakeClient:
@@ -190,6 +190,70 @@ class ProviderAvailabilityTest(unittest.TestCase):
             encoded = json.dumps(safe_config_summary(), ensure_ascii=False)
         self.assertNotIn("super-secret-value", encoded)
         self.assertIn("configured", encoded)
+
+    def test_14_streaming_chat_is_reassembled_as_normal_response(self):
+        stream = (
+            'data: {"id":"chat-1","choices":[{"delta":{"content":"{\\"blueprint_"}}]}\n\n'
+            'data: {"choices":[{"delta":{"content":"modules\\":[]}"},"finish_reason":"stop"}]}\n\n'
+            "data: [DONE]\n\n"
+        )
+        calls = []
+        events = [
+            httpx.Response(
+                200,
+                content=stream.encode(),
+                headers={"content-type": "text/event-stream"},
+                request=httpx.Request(
+                    "POST", "https://provider.invalid/v1/chat/completions"
+                ),
+            )
+        ]
+        factory = lambda **kwargs: FakeClient(events, calls, **kwargs)
+        result = guarded_chat_request(
+            {"model": "endpoint", "stream": True},
+            policy=CallPolicy(max_retries=0),
+            breaker=CircuitBreaker(),
+            client_factory=factory,
+        )
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            result["body"]["choices"][0]["message"]["content"],
+            '{"blueprint_modules":[]}',
+        )
+        self.assertEqual(
+            result["body"]["choices"][0]["finish_reason"], "stop"
+        )
+
+    def test_15_formal_policy_does_not_duplicate_read_timeout(self):
+        calls = []
+        factory = lambda **kwargs: FakeClient(
+            [httpx.ReadTimeout("read"), response(200)], calls, **kwargs
+        )
+        with self.assertRaises(ProviderCallError):
+            guarded_chat_request(
+                {"model": "endpoint", "stream": True},
+                policy=CallPolicy(
+                    max_retries=1,
+                    retry_read_timeout=False,
+                ),
+                breaker=CircuitBreaker(),
+                client_factory=factory,
+                sleeper=lambda _seconds: None,
+            )
+        self.assertEqual(len(calls), 1)
+
+    def test_16_calibration_uses_bounded_streaming_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image_path = Path(directory) / "sample.png"
+            Image.new("RGB", (1600, 1600), "white").save(image_path)
+            with patch("app.visual_calibration.vlm.analyze_image_with_trace") as call:
+                call.return_value = ({"blueprint_modules": []}, "{}")
+                run_model_once(image_path)
+        kwargs = call.call_args.kwargs
+        self.assertTrue(kwargs["stream"])
+        self.assertFalse(kwargs["retry_read_timeout"])
+        self.assertEqual(kwargs["max_tokens"], config.VISION_CALIBRATION_MAX_TOKENS)
+        self.assertEqual(kwargs["image_max_edge"], config.VISION_CALIBRATION_IMAGE_EDGE)
 
 
 if __name__ == "__main__":

@@ -154,9 +154,14 @@ def analyze_image_with_trace(
     timeout_seconds: float = 300,
     prompt_override: str = "",
     max_tokens: int | None = None,
+    image_max_edge: int = 1600,
+    stream: bool = False,
+    retry_read_timeout: bool = True,
 ) -> tuple[dict, str]:
     """Return parsed JSON and the unmodified provider text for calibration."""
-    image_bytes, mime = _model_image_payload(image_bytes, mime)
+    image_bytes, mime = _model_image_payload(
+        image_bytes, mime, max_edge=image_max_edge
+    )
     b64 = base64.b64encode(image_bytes).decode()
     data_uri = f"data:{mime or 'image/png'};base64,{b64}"
 
@@ -201,6 +206,7 @@ def analyze_image_with_trace(
             },
         ],
         "temperature": 0.3,
+        "stream": stream,
     }
     if max_tokens is not None:
         payload["max_tokens"] = max_tokens
@@ -210,6 +216,7 @@ def analyze_image_with_trace(
             connect_timeout=min(config.VISION_CONNECT_TIMEOUT, timeout_seconds),
             read_timeout=timeout_seconds,
             max_retries=config.VISION_MAX_RETRIES,
+            retry_read_timeout=retry_read_timeout,
         ),
     )
     content = response["body"]["choices"][0]["message"]["content"]

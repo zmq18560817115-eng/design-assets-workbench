@@ -156,6 +156,26 @@ class VisualCalibrationWorkflowTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 module.load_calibration(path)
 
+    def test_14_primary_text_child_counts_inside_reviewed_text_group(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("main_title", .3, .07, .4, .05, "title"),
+            ]},
+            truth(product=False, text=True),
+        )
+        self.assertEqual(result["metrics"]["primary_text_hit_count"], 1)
+        self.assertNotIn("PRIMARY_TEXT_MISSED", result["error_codes"])
+
+    def test_15_product_box_cannot_impersonate_layout_block(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("product_image", .05, .05, .9, .9, "product"),
+            ]},
+            truth(product=False, layout=True),
+        )
+        self.assertEqual(result["metrics"]["layout_hit_count"], 0)
+        self.assertIn("LAYOUT_MODULE_MISSED", result["error_codes"])
+
 
 if __name__ == "__main__":
     unittest.main()
