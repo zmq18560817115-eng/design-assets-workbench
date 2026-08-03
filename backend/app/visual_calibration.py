@@ -58,6 +58,14 @@ CALIBRATION_GATES = {
     "severe_regression_count_max": 0,
 }
 
+CANARY_GATES = {
+    **CALIBRATION_GATES,
+    "task_success_rate_min": 1.0,
+    "schema_valid_rate_min": 1.0,
+    "product_detection_rate_min": 1.0,
+    "timeout_rate_max": 0.0,
+}
+
 
 def calibration_gate_results(metrics: dict[str, Any]) -> dict[str, bool]:
     """Evaluate service and business-quality gates from aggregate metrics."""
@@ -76,6 +84,26 @@ def calibration_gate_results(metrics: dict[str, Any]) -> dict[str, bool]:
         <= CALIBRATION_GATES["invalid_overlap_rate_max"],
         "timeout_rate": metrics.get("timeout_rate", 1)
         <= CALIBRATION_GATES["timeout_rate_max"],
+    }
+
+
+def canary_gate_results(metrics: dict[str, Any]) -> dict[str, bool]:
+    """Apply stricter three-image Canary gates before full Calibration."""
+    return {
+        "task_success_rate": metrics.get("task_success_rate", 0)
+        >= CANARY_GATES["task_success_rate_min"],
+        "schema_valid_rate": metrics.get("schema_valid_rate", 0)
+        >= CANARY_GATES["schema_valid_rate_min"],
+        "product_detection_rate": metrics.get("product_detection_rate", 0)
+        >= CANARY_GATES["product_detection_rate_min"],
+        "primary_text_detection_rate": metrics.get("primary_text_detection_rate", 0)
+        >= CANARY_GATES["primary_text_detection_rate_min"],
+        "layout_module_recall": metrics.get("layout_module_recall", 0)
+        >= CANARY_GATES["layout_module_recall_min"],
+        "invalid_overlap_rate": metrics.get("invalid_overlap_rate", 1)
+        <= CANARY_GATES["invalid_overlap_rate_max"],
+        "timeout_rate": metrics.get("timeout_rate", 1)
+        <= CANARY_GATES["timeout_rate_max"],
     }
 
 
@@ -368,26 +396,37 @@ def _best_matches(
     *,
     allow_child_containment: bool = False,
 ) -> tuple[int, list[float]]:
-    used: set[int] = set()
-    scores: list[float] = []
-    for expected in truth:
-        choices = [
-            (
-                max(
-                    region_iou(expected, candidate),
-                    containment_ratio(candidate, expected)
-                    if allow_child_containment else 0,
-                ),
-                index,
+    # Select global best edges so one prediction can never satisfy two truths.
+    candidates: list[tuple[float, int, int]] = []
+    for truth_index, expected in enumerate(truth):
+        for prediction_index, candidate in enumerate(predicted):
+            score = max(
+                region_iou(expected, candidate),
+                containment_ratio(candidate, expected)
+                if allow_child_containment else 0,
             )
-            for index, candidate in enumerate(predicted)
-            if index not in used
-        ]
-        score, index = max(choices, default=(0.0, -1))
-        if score >= threshold:
-            used.add(index)
-            scores.append(score)
+            if score >= threshold:
+                candidates.append((score, truth_index, prediction_index))
+    used_truth: set[int] = set()
+    used_predictions: set[int] = set()
+    scores: list[float] = []
+    for score, truth_index, prediction_index in sorted(candidates, reverse=True):
+        if truth_index in used_truth or prediction_index in used_predictions:
+            continue
+        used_truth.add(truth_index)
+        used_predictions.add(prediction_index)
+        scores.append(score)
     return len(scores), scores
+
+
+def _best_ious(
+    truth: list[dict[str, Any]], predicted: list[dict[str, Any]]
+) -> list[float]:
+    """Diagnostic best IoU per truth box; it does not affect matching."""
+    return [
+        round(max((region_iou(expected, row) for row in predicted), default=0.0), 4)
+        for expected in truth
+    ]
 
 
 def validate_prediction(
@@ -430,7 +469,7 @@ def validate_prediction(
     )
     if products and product_hits < len(ground_truth["product_regions"]):
         errors.append("PRODUCT_BOX_INACCURATE")
-    text_hits, _ = _best_matches(
+    text_hits, text_ious = _best_matches(
         ground_truth["primary_text_regions"], texts, rules["region_iou"],
         allow_child_containment=True,
     )
@@ -439,7 +478,7 @@ def validate_prediction(
     layout_blocks = [
         row for row in normalized_modules if row.get("type") == "layout_block"
     ]
-    layout_hits, _ = _best_matches(
+    layout_hits, layout_ious = _best_matches(
         ground_truth["layout_modules"], layout_blocks, rules["region_iou"]
     )
     if layout_hits < len(ground_truth["layout_modules"]):
@@ -484,6 +523,12 @@ def validate_prediction(
                 invalid_overlaps += 1
     if invalid_overlaps:
         errors.append("MODULE_OVERLAP_INVALID")
+    evaluable_module_count = (
+        len(ground_truth["product_regions"])
+        + len(ground_truth["primary_text_regions"])
+        + len(ground_truth["layout_modules"])
+    )
+    matched_type_count = product_hits + text_hits + layout_hits
     return {
         "schema_valid": "OUTPUT_SCHEMA_INVALID" not in errors,
         "error_codes": sorted(set(errors)),
@@ -494,10 +539,26 @@ def validate_prediction(
             "product_mean_iou": round(
                 sum(product_ious) / len(product_ious), 4
             ) if product_ious else 0,
+            "product_best_ious": _best_ious(
+                ground_truth["product_regions"], products
+            ),
             "primary_text_truth_count": len(ground_truth["primary_text_regions"]),
             "primary_text_hit_count": text_hits,
+            "primary_text_match_ious": [round(value, 4) for value in text_ious],
+            "primary_text_best_ious": _best_ious(
+                ground_truth["primary_text_regions"], texts
+            ),
             "layout_truth_count": len(ground_truth["layout_modules"]),
             "layout_hit_count": layout_hits,
+            "layout_match_ious": [round(value, 4) for value in layout_ious],
+            "layout_best_ious": _best_ious(
+                ground_truth["layout_modules"], layout_blocks
+            ),
+            "product_prediction_count": len(products),
+            "primary_text_prediction_count": len(texts),
+            "layout_prediction_count": len(layout_blocks),
+            "matched_type_count": matched_type_count,
+            "evaluable_module_count": evaluable_module_count,
             "predicted_module_count": len(normalized_modules),
             "invalid_overlap_count": invalid_overlaps,
             "duplicate_module_count": duplicates,

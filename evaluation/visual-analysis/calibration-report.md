@@ -1,5 +1,57 @@
 # 真实素材 Calibration 报告
 
+## P3.2-C2 v3 Canary（2026-08-03）
+
+### 结论
+
+- v3 将 `layout_module_recall` 从 0% 修正到 100%，证明“无真实边框也可构成逻辑版块”的合同有效。
+- `primary_text_detection_rate` 仍为 66.67%，未达到 90% 门禁。
+- 失败集中在 `Group 34.png`：人工将左右下方两个完整文字信息组标为 `main_text`，模型输出为 `feature_list`；按冻结合同，`feature_list` 不能冒充 `main_text`。
+- 这属于 Prompt 语义覆盖不足与模型类型选择问题，不是评测器漏算。未降低 IoU 阈值。
+- 最终状态：`calibration_quality_blocked`。未运行24张完整 Calibration；Holdout 未读取、未运行。
+
+### v2 / v3 汇总
+
+| 指标 | v2 | v3 |
+|---|---:|---:|
+| task_success_rate | 100% | 100% |
+| schema_valid_rate | 100% | 100% |
+| product_detection_rate | 100% | 100% |
+| primary_text_detection_rate | 66.67% | 66.67% |
+| layout_module_recall | 0% | 100% |
+| module_type_accuracy | 旧算法误报100% | 88.89% |
+| invalid_overlap_rate | 0% | 0% |
+| timeout_rate | 0% | 0% |
+| 平均耗时 | 221941 ms | 188394 ms |
+| 输出模块总数 | 23 | 30 |
+
+### 逐图诊断
+
+| 图片 | 版本 | 产品 GT/预测/最佳IoU | 主文字 GT/预测/逐框最佳IoU | 版块 GT/预测/逐框最佳IoU | 实际输出类型 | 诊断 |
+|---|---|---|---|---|---|---|
+| Group 13.png | v2 | 2/2/0.8470,0.8428 | 2/3/0.2955,0.2607 | 2/0/0,0 | product_image×2, subtitle×2, selling_point, other×2 | 可见边框规则导致版块全漏；文字框偏小，但位于人工完整文字组内，按包含关系命中。Prompt定义冲突，不是评测器错误。 |
+| Group 13.png | v3 | 2/2/0.8734,0.8428 | 2/3/0.2533,0.2235 | 2/2/0.9612,0.9419 | layout_block×2, product_image×2, main_title×2, selling_point, scene_image×2 | 逻辑上下分区准确；文字仍偏小但被人工组包含，合同允许命中。 |
+| Group 16.png | v2 | 1/1/0.6586 | 1/2/0.4332 | 2/0/0,0 | main_title, selling_point, product_image, decoration, person_image, footnote | 版块全漏源于Prompt定义冲突；标题组被拆小，包含关系命中。 |
+| Group 16.png | v3 | 1/1/0.6750 | 1/2/0.3991 | 2/3/0.8268,0.8032 | layout_block×3, main_title, body_text, product_image, person_image, footnote | 顶部和主体分区命中；额外底部逻辑块不影响一对一召回。文字组边界仍小于人工框。 |
+| Group 34.png | v2 | 2/2/0.7647,0.7921 | 3/6/0.4909,0,0 | 3/0/0,0,0 | main_title, subtitle, selling_point×4, product_image×2, feature_list×2 | 版块全漏；左右底部人工文字组被输出成 feature_list，按合同不能匹配 main_text。 |
+| Group 34.png | v3 | 2/2/0.8044,0.8014 | 3/5/0.8429,0,0 | 3/3/0.8671,0.8268,0.8268 | layout_block×3, main_title, subtitle×2, selling_point×2, product_image×2, feature_list×2, decoration | 标题与三大逻辑分区准确；两个底部主要文字组仍被分为 feature_list，是Prompt语义覆盖不足/模型类型选择问题。 |
+
+逐图数量均来自相同3张 Calibration 原图。最佳 IoU 是每个人工框与同评测类别预测框的空间 IoU；主文字的正式命中还允许预测文字框被人工完整文字组包含，但仍保持一对一匹配。
+
+### v3 合同
+
+- `layout_block` 是由留白、背景、对齐、堆叠、分栏、内容组合、层级和视觉中心形成的逻辑版块，不要求存在真实边框；优先输出2—5个主要分区，并允许包含产品和文字子模块。
+- `main_text` 是视觉完整的主要文字组。模型使用 `main_title`、`subtitle`、`selling_point`、`body_text` 表达，空间上必须与人工文字组匹配；装饰小字、页码和不可读背景字不计入。
+
+### 评测器与门禁修正
+
+- 四种标准文字类型统一映射到人工 `main_text`，仍按空间关系匹配。
+- 产品、文字、layout_block 分组一对一匹配，单个预测框不能重复命中多个人工框。
+- `module_type_accuracy` 改为匹配类型数/可评估人工模块数；零匹配时为0，不再出现版块召回0但类型准确率100%的误导。
+- 父 layout_block 包含子模块继续视为合法重叠；重复同类块仍拒绝。
+- 完整 Calibration 必须同时满足 `quality_passed=true`、全部 quality gates、业务指标门槛且无 fallback，否则命令直接返回 `calibration_quality_blocked`。
+- v3 使用独立报告与 raw 目录，不覆盖 v2；所有运行均声明 `verified_write_count=0`。
+
 ## M1 恢复复核（2026-08-03）
 
 - 正式 Schema 单次请求成功，连续 3 次最小冒烟全部成功。

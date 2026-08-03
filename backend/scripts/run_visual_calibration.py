@@ -14,8 +14,10 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from app import config  # noqa: E402
 from app.visual_calibration import (  # noqa: E402
+    CANARY_GATES,
     CALIBRATION_GATES,
     calibration_gate_results,
+    canary_gate_results,
     classify_exception,
     run_model_once,
     resume_calibration_assets,
@@ -30,6 +32,29 @@ def percentile(values: list[int], fraction: float) -> int:
     return ordered[min(len(ordered) - 1, math.ceil(len(ordered) * fraction) - 1)]
 
 
+def full_calibration_ready(readiness: dict) -> bool:
+    """Full Calibration is gated by Canary business quality, not transport only."""
+    metrics = readiness.get("metrics", {})
+    quality_gates = readiness.get("quality_gates", {})
+    return (
+        readiness.get("report_kind") == "calibration_canary"
+        and readiness.get("dataset_split") == "calibration"
+        and not readiness.get("holdout_executed", False)
+        and metrics.get("total") == 3
+        and metrics.get("task_success_rate") == 1
+        and metrics.get("schema_valid_rate") == 1
+        and readiness.get("quality_passed") is True
+        and bool(quality_gates)
+        and all(quality_gates.values())
+        and all(canary_gate_results(metrics).values())
+        and not readiness.get("fallback_count", 0)
+    )
+
+
+def report_versions_match(existing: dict, expected: dict) -> bool:
+    return all(existing.get(key) == value for key, value in expected.items())
+
+
 def aggregate(rows: list[dict]) -> dict:
     total = len(rows) or 1
     completed = [row for row in rows if row["run_status"] == "completed"]
@@ -39,6 +64,12 @@ def aggregate(rows: list[dict]) -> dict:
     truth_products = sum(row["metrics"].get("product_truth_count", 0) for row in completed)
     truth_text = sum(row["metrics"].get("primary_text_truth_count", 0) for row in completed)
     truth_layout = sum(row["metrics"].get("layout_truth_count", 0) for row in completed)
+    matched_types = sum(
+        row["metrics"].get("matched_type_count", 0) for row in completed
+    )
+    evaluable_modules = sum(
+        row["metrics"].get("evaluable_module_count", 0) for row in completed
+    )
     elapsed = [row["elapsed_ms"] for row in rows]
     return {
         "total": len(rows),
@@ -60,8 +91,10 @@ def aggregate(rows: list[dict]) -> dict:
             / max(1, truth_layout), 4
         ),
         "module_type_accuracy": round(
-            sum("LAYOUT_MODULE_TYPE_ERROR" not in row["error_codes"] for row in completed)
-            / max(1, len(completed)), 4
+            matched_types / evaluable_modules, 4
+        ) if evaluable_modules else 0.0,
+        "output_module_count": sum(
+            row["metrics"].get("predicted_module_count", 0) for row in completed
         ),
         "out_of_bounds_count": sum(
             "MODULE_OUT_OF_BOUNDS" in row["error_codes"] for row in rows
@@ -84,16 +117,16 @@ def aggregate(rows: list[dict]) -> dict:
 
 def evaluate_one(
     asset: dict,
-    output_root: Path,
+    raw_root: Path,
+    report_root: Path,
     instructions: str,
     timeout: float,
     validator_config: dict,
 ) -> dict:
     started = dt.datetime.now(dt.UTC)
     begin = time.perf_counter()
-    raw_dir = output_root / "raw"
-    raw_dir.mkdir(parents=True, exist_ok=True)
-    raw_path = raw_dir / f"{asset['asset_id']}.txt"
+    raw_root.mkdir(parents=True, exist_ok=True)
+    raw_path = raw_root / f"{asset['asset_id']}.txt"
     error_codes: list[str] = []
     parsed: dict = {}
     validation = {"schema_valid": False, "validation_errors": [], "metrics": {}}
@@ -130,7 +163,7 @@ def evaluate_one(
         "elapsed_ms": round((time.perf_counter() - begin) * 1000),
         "retry_count": 0,
         "run_status": status,
-        "raw_output_path": raw_path.relative_to(output_root.parent.parent).as_posix(),
+        "raw_output_path": raw_path.relative_to(report_root).as_posix(),
         "parsed_output": parsed,
         "validation_errors": validation["validation_errors"],
         "error_codes": error_codes,
@@ -177,17 +210,10 @@ def main() -> int:
                 "blocked_by_provider_availability: 需要连续3次成功的服务预检"
             )
     else:
-        metrics = readiness.get("metrics", {})
-        ready = (
-            readiness.get("report_kind") == "calibration_canary"
-            and metrics.get("total") == 3
-            and metrics.get("task_success_rate") == 1
-            and metrics.get("schema_valid_rate") == 1
-            and not readiness.get("fallback_count", 0)
-        )
+        ready = full_calibration_ready(readiness)
         if not ready:
             raise SystemExit(
-                "blocked_by_provider_availability: 需要3张Canary全部成功且无fallback"
+                "calibration_quality_blocked: Canary全部业务质量门禁通过后才能运行完整Calibration"
             )
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     instructions = (
@@ -231,10 +257,8 @@ def main() -> int:
             "prompt_version": args.prompt_version,
             "validator_version": args.validator_version,
         }
-        mismatched = [
-            key for key, value in expected_versions.items()
-            if existing.get(key) != value
-        ]
+        mismatched = [key for key, value in expected_versions.items()
+                      if existing.get(key) != value]
         if mismatched:
             raise SystemExit(
                 "拒绝混合不同运行版本，请使用新的输出文件: "
@@ -277,9 +301,11 @@ def main() -> int:
     consecutive_provider_failures = 0
     provider_blocked = False
     provider_block_reason = ""
+    raw_root = args.output.parent / f"{args.output.stem}-raw"
+    report_root = args.output.parent.parent.parent
     for index, asset in enumerate(assets, 1):
         rows.append(evaluate_one(
-            asset, args.output.parent, instructions, args.timeout,
+            asset, raw_root, report_root, instructions, args.timeout,
             validator_config,
         ))
         provider_errors = {
@@ -321,7 +347,10 @@ def main() -> int:
             provider_blocked = True
             break
     final_metrics = aggregate(rows)
-    quality_gates = calibration_gate_results(final_metrics)
+    quality_gates = (
+        canary_gate_results(final_metrics)
+        if args.stage == "canary" else calibration_gate_results(final_metrics)
+    )
     report = {
         "report_kind": "calibration_canary" if args.stage == "canary" else "calibration",
         "dataset_version": manifest["manifest_version"],
@@ -337,13 +366,14 @@ def main() -> int:
             ).DEFAULT_THRESHOLDS,
             **validator_config,
         },
-        "gates": CALIBRATION_GATES,
+        "gates": CANARY_GATES if args.stage == "canary" else CALIBRATION_GATES,
         "metrics": final_metrics,
         "quality_gates": quality_gates,
         "quality_passed": all(quality_gates.values()),
         "runs": sorted(rows, key=lambda row: row["filename"].casefold()),
         "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "fallback_count": 0,
+        "verified_write_count": 0,
         "resume_skipped_success_count": len(completed_assets),
         "status": (
             "blocked_by_provider_availability"

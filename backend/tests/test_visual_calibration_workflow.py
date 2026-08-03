@@ -176,6 +176,116 @@ class VisualCalibrationWorkflowTest(unittest.TestCase):
         self.assertEqual(result["metrics"]["layout_hit_count"], 0)
         self.assertIn("LAYOUT_MODULE_MISSED", result["error_codes"])
 
+    def test_16_all_supported_text_types_match_main_text(self):
+        for text_type in ("main_title", "subtitle", "selling_point", "body_text"):
+            with self.subTest(text_type=text_type):
+                result = validate_prediction(
+                    {"blueprint_modules": [
+                        region(text_type, .1, .05, .8, .1, text_type),
+                    ]},
+                    truth(product=False, text=True),
+                )
+                self.assertEqual(result["metrics"]["primary_text_hit_count"], 1)
+
+    def test_17_one_prediction_cannot_match_two_truth_boxes(self):
+        ground_truth = truth(product=False)
+        ground_truth["primary_text_regions"] = [
+            {"type": "main_text", "normalized": {"x": .1, "y": .05, "width": .8, "height": .1}},
+            {"type": "main_text", "normalized": {"x": .1, "y": .08, "width": .8, "height": .1}},
+        ]
+        result = validate_prediction(
+            {"blueprint_modules": [region("main_title", .1, .05, .8, .13)]},
+            ground_truth,
+        )
+        self.assertEqual(result["metrics"]["primary_text_hit_count"], 1)
+
+    def test_18_zero_layout_recall_cannot_report_perfect_type_accuracy(self):
+        module_path = ROOT / "backend" / "scripts" / "run_visual_calibration.py"
+        spec = importlib.util.spec_from_file_location("run_visual_calibration", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        row = {
+            "run_status": "completed", "schema_valid": True,
+            "elapsed_ms": 1, "error_codes": ["LAYOUT_MODULE_MISSED"],
+            "metrics": {
+                "product_truth_count": 0, "product_hit_count": 0,
+                "primary_text_truth_count": 0, "primary_text_hit_count": 0,
+                "layout_truth_count": 2, "layout_hit_count": 0,
+                "matched_type_count": 0, "evaluable_module_count": 2,
+            },
+        }
+        metrics = module.aggregate([row])
+        self.assertEqual(metrics["layout_module_recall"], 0)
+        self.assertEqual(metrics["module_type_accuracy"], 0)
+
+    def test_19_failed_canary_quality_blocks_full_calibration(self):
+        module_path = ROOT / "backend" / "scripts" / "run_visual_calibration.py"
+        spec = importlib.util.spec_from_file_location("run_visual_calibration_gate", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        metrics = {
+            "total": 3, "task_success_rate": 1, "schema_valid_rate": 1,
+            "product_detection_rate": 1, "primary_text_detection_rate": .66,
+            "layout_module_recall": 0, "invalid_overlap_rate": 0,
+            "timeout_rate": 0,
+        }
+        report = {
+            "report_kind": "calibration_canary", "dataset_split": "calibration",
+            "holdout_executed": False, "metrics": metrics,
+            "quality_gates": {"primary_text_detection_rate": False},
+            "quality_passed": False, "fallback_count": 0,
+        }
+        self.assertFalse(module.full_calibration_ready(report))
+
+    def test_20_v2_and_v3_reports_cannot_mix(self):
+        module_path = ROOT / "backend" / "scripts" / "run_visual_calibration.py"
+        spec = importlib.util.spec_from_file_location("run_visual_calibration_versions", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        self.assertFalse(module.report_versions_match(
+            {"prompt_version": "visual-calibration-prompt-v2",
+             "validator_version": "visual-calibration-validator-v2"},
+            {"prompt_version": "visual-calibration-prompt-v3",
+             "validator_version": "visual-calibration-validator-v3"},
+        ))
+
+    def test_21_v3_contract_defines_logical_unbordered_blocks(self):
+        prompt = (ROOT / "evaluation" / "visual-analysis" /
+                  "prompt-visual-calibration-v3.txt").read_text(encoding="utf-8")
+        self.assertIn("不要求真实边框", prompt)
+        self.assertIn("可包含产品和文字", prompt)
+        self.assertIn("相同类型高度重合的框只保留一个", prompt)
+
+    def test_22_calibration_runner_has_no_holdout_stage(self):
+        source = (ROOT / "backend" / "scripts" /
+                  "run_visual_calibration.py").read_text(encoding="utf-8")
+        self.assertIn('choices=("canary", "full")', source)
+        self.assertNotIn('choices=("canary", "full", "holdout")', source)
+
+    def test_23_validation_does_not_mutate_verified_ground_truth(self):
+        ground_truth = truth(product=False, text=True, layout=True)
+        before = json.dumps(ground_truth, sort_keys=True)
+        validate_prediction(
+            {"blueprint_modules": [
+                region("main_title", .1, .05, .8, .1),
+                region("layout_block", .05, .05, .9, .9),
+            ]}, ground_truth,
+        )
+        self.assertEqual(json.dumps(ground_truth, sort_keys=True), before)
+
+    def test_24_canary_requires_perfect_product_detection(self):
+        from app.visual_calibration import canary_gate_results
+        metrics = {
+            "task_success_rate": 1, "schema_valid_rate": 1,
+            "product_detection_rate": .95, "primary_text_detection_rate": 1,
+            "layout_module_recall": 1, "invalid_overlap_rate": 0,
+            "timeout_rate": 0,
+        }
+        self.assertFalse(canary_gate_results(metrics)["product_detection_rate"])
+
 
 if __name__ == "__main__":
     unittest.main()

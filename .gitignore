@@ -32,6 +32,10 @@ evaluation/provider-availability/formal-schema-latest.json
 evaluation/provider-availability/smoke-3.json
 evaluation/provider-availability/calibration-canary.json
 evaluation/provider-availability/calibration-full.json
+evaluation/provider-availability/calibration-canary*.json
+evaluation/provider-availability/calibration-canary*-raw/
+evaluation/provider-availability/calibration-full*.json
+evaluation/provider-availability/calibration-full*-raw/
 evaluation/provider-availability/*.raw.txt
 evaluation/provider-availability/raw/
 evaluation/provider-availability/*-errors.json
