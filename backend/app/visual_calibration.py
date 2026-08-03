@@ -18,6 +18,13 @@ from .layout_blueprint import MODULE_TYPE_ORDER
 
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+PRIMARY_TEXT_MODULE_TYPES = frozenset({
+    "main_title",
+    "subtitle",
+    "selling_point",
+    "body_text",
+    "feature_list",
+})
 ERROR_CODES = {
     "PRODUCT_MISSED",
     "PRODUCT_BOX_INACCURATE",
@@ -396,27 +403,58 @@ def _best_matches(
     *,
     allow_child_containment: bool = False,
 ) -> tuple[int, list[float]]:
+    matches = _match_regions(
+        truth, predicted, threshold,
+        allow_child_containment=allow_child_containment,
+    )
+    return len(matches), [item["score"] for item in matches]
+
+
+def _match_regions(
+    truth: list[dict[str, Any]],
+    predicted: list[dict[str, Any]],
+    threshold: float,
+    *,
+    allow_child_containment: bool = False,
+) -> list[dict[str, Any]]:
+    """Return deterministic one-to-one spatial matches with audit evidence."""
     # Select global best edges so one prediction can never satisfy two truths.
-    candidates: list[tuple[float, int, int]] = []
+    candidates: list[tuple[float, int, int, float, float]] = []
     for truth_index, expected in enumerate(truth):
         for prediction_index, candidate in enumerate(predicted):
-            score = max(
-                region_iou(expected, candidate),
+            iou = region_iou(expected, candidate)
+            containment = (
                 containment_ratio(candidate, expected)
-                if allow_child_containment else 0,
+                if allow_child_containment else 0.0
+            )
+            score = max(
+                iou,
+                containment,
             )
             if score >= threshold:
-                candidates.append((score, truth_index, prediction_index))
+                candidates.append(
+                    (score, truth_index, prediction_index, iou, containment)
+                )
     used_truth: set[int] = set()
     used_predictions: set[int] = set()
-    scores: list[float] = []
-    for score, truth_index, prediction_index in sorted(candidates, reverse=True):
+    matches: list[dict[str, Any]] = []
+    for score, truth_index, prediction_index, iou, containment in sorted(
+        candidates, reverse=True
+    ):
         if truth_index in used_truth or prediction_index in used_predictions:
             continue
         used_truth.add(truth_index)
         used_predictions.add(prediction_index)
-        scores.append(score)
-    return len(scores), scores
+        matches.append({
+            "truth_index": truth_index,
+            "prediction_index": prediction_index,
+            "prediction_type": predicted[prediction_index].get("type"),
+            "iou": round(iou, 4),
+            "containment_ratio": round(containment, 4),
+            "score": round(score, 4),
+            "match_basis": "iou" if iou >= containment else "containment",
+        })
+    return sorted(matches, key=lambda item: item["truth_index"])
 
 
 def _best_ious(
@@ -460,7 +498,7 @@ def validate_prediction(
     products = [row for row in normalized_modules if row.get("type") == "product_image"]
     texts = [
         row for row in normalized_modules
-        if row.get("type") in {"main_title", "subtitle", "body_text", "selling_point"}
+        if row.get("type") in PRIMARY_TEXT_MODULE_TYPES
     ]
     if ground_truth["product_regions"] and not products:
         errors.append("PRODUCT_MISSED")
@@ -469,10 +507,12 @@ def validate_prediction(
     )
     if products and product_hits < len(ground_truth["product_regions"]):
         errors.append("PRODUCT_BOX_INACCURATE")
-    text_hits, text_ious = _best_matches(
+    text_matches = _match_regions(
         ground_truth["primary_text_regions"], texts, rules["region_iou"],
         allow_child_containment=True,
     )
+    text_hits = len(text_matches)
+    text_ious = [item["score"] for item in text_matches]
     if ground_truth["primary_text_regions"] and not text_hits:
         errors.append("PRIMARY_TEXT_MISSED")
     layout_blocks = [
@@ -529,6 +569,44 @@ def validate_prediction(
         + len(ground_truth["layout_modules"])
     )
     matched_type_count = product_hits + text_hits + layout_hits
+    matched_text_truth = {item["truth_index"] for item in text_matches}
+    primary_text_prediction_type_counts = {
+        module_type: sum(row.get("type") == module_type for row in texts)
+        for module_type in sorted(PRIMARY_TEXT_MODULE_TYPES)
+    }
+    primary_text_matched_type_counts = {
+        module_type: sum(
+            item["prediction_type"] == module_type for item in text_matches
+        )
+        for module_type in sorted(PRIMARY_TEXT_MODULE_TYPES)
+    }
+    unmatched_primary_text = []
+    for truth_index, expected in enumerate(ground_truth["primary_text_regions"]):
+        if truth_index in matched_text_truth:
+            continue
+        candidates = [
+            {
+                "prediction_type": candidate.get("type"),
+                "iou": round(region_iou(expected, candidate), 4),
+                "containment_ratio": round(
+                    containment_ratio(candidate, expected), 4
+                ),
+            }
+            for candidate in texts
+        ]
+        best = max(
+            candidates,
+            key=lambda item: max(item["iou"], item["containment_ratio"]),
+            default=None,
+        )
+        unmatched_primary_text.append({
+            "truth_index": truth_index,
+            "best_candidate": best,
+            "reason": (
+                "no_primary_text_prediction"
+                if best is None else "spatial_threshold_not_met_or_prediction_used"
+            ),
+        })
     return {
         "schema_valid": "OUTPUT_SCHEMA_INVALID" not in errors,
         "error_codes": sorted(set(errors)),
@@ -545,6 +623,12 @@ def validate_prediction(
             "primary_text_truth_count": len(ground_truth["primary_text_regions"]),
             "primary_text_hit_count": text_hits,
             "primary_text_match_ious": [round(value, 4) for value in text_ious],
+            "primary_text_matches": text_matches,
+            "unmatched_primary_text": unmatched_primary_text,
+            "primary_text_prediction_type_counts": (
+                primary_text_prediction_type_counts
+            ),
+            "primary_text_matched_type_counts": primary_text_matched_type_counts,
             "primary_text_best_ious": _best_ious(
                 ground_truth["primary_text_regions"], texts
             ),

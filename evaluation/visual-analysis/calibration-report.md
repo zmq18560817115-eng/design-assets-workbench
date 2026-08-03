@@ -1,5 +1,63 @@
 # 真实素材 Calibration 报告
 
+## P3.2-C3 Validator v4（2026-08-03）
+
+### 合同结论
+
+人工绿色 `main_text` 是粗粒度空间标注；系统继续保留细粒度语义类型。Calibration 的主要文字区域检测允许以下类型参与一对一空间匹配：
+
+- `main_title`
+- `subtitle`
+- `selling_point`
+- `body_text`
+- `feature_list`
+
+该映射只影响 Calibration 指标，不会把正式 LayoutBlueprint 中的 `feature_list` 改写成 `selling_point`。`logo`、`price`、`cta`、`footnote`、`decoration`、`background`、图片类、`layout_block` 和 `parameter_table` 均不属于该集合。
+
+### v3输出离线复评
+
+- 源报告：`evaluation/provider-availability/calibration-canary-v3-live.json`
+- 源 Prompt：`visual-calibration-prompt-v3`
+- 源 Validator：`visual-calibration-validator-v3`
+- 复评 Validator：`visual-calibration-validator-v4`
+- `model_recalled=false`
+- `holdout_read=false`，`holdout_executed=false`
+- 离线复评全部门禁通过；主文字识别率由66.67%修正为100%。
+
+| 图片 | 人工main_text | 预测主要文字子类型 | 命中 | 匹配证据 |
+|---|---:|---|---:|---|
+| Group 13.png | 2 | main_title×2, selling_point×1 | 2 | 两个 main_title 均由包含关系一对一命中，包含比例100% |
+| Group 16.png | 1 | main_title×1, body_text×1 | 1 | main_title 包含比例95.67% |
+| Group 34.png | 3 | main_title×1, subtitle×2, selling_point×2, feature_list×2 | 3 | 标题IoU 0.8429；左右 feature_list IoU 0.9135/0.9040，包含比例0.9165/0.9116 |
+
+Group 34 两个 `feature_list` 分别命中两个底部绿色框，没有单个预测框重复命中多个 Ground Truth，也没有未命中文字框。
+
+### Validator v4真实Canary
+
+使用相同3张 Calibration 原图重新调用模型，Prompt保持v3，Validator使用v4：
+
+| 指标 | 结果 | 门禁 |
+|---|---:|---:|
+| task_success_rate | 100% | 100% |
+| schema_valid_rate | 100% | 100% |
+| product_detection_rate | 100% | 100% |
+| primary_text_detection_rate | 100% | ≥90% |
+| layout_module_recall | 100% | ≥90% |
+| module_type_accuracy | 100% | — |
+| invalid_overlap_rate | 33.33% | ≤5% |
+| timeout_rate | 0% | 0% |
+| fallback_count | 0 | 0 |
+| output_module_count | 29 | — |
+| average_elapsed_ms | 185784 | — |
+
+文字子类型输出分布为：`main_title=2`、`subtitle=2`、`selling_point=6`、`body_text=0`、`feature_list=2`。成功匹配人工 `main_text` 的类型为：`main_title=2`、`subtitle=2`、`feature_list=2`。
+
+### 阻断原因
+
+`Group 16.png` 中模型把 `decoration` 完全放入 `product_image`，二者 IoU 为0.7012。该关系不是允许的 layout/background 父容器包含关系，因此产生1个 `MODULE_OVERLAP_INVALID`。三张中一张失败使非法重叠率为33.33%。这属于模型输出不稳定/无效兄弟重叠，不是文字类型映射缺失，也不得通过放宽重叠规则制造通过。
+
+因此未运行24张完整 Calibration，失败案例仅 `Group 16.png`（1张）；未运行Holdout。最终状态：`calibration_quality_blocked`。
+
 ## P3.2-C2 v3 Canary（2026-08-03）
 
 ### 结论

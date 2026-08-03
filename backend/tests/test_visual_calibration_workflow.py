@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image
 
 from app import vlm
-from app.visual_calibration import validate_prediction
+from app.visual_calibration import PRIMARY_TEXT_MODULE_TYPES, validate_prediction
 
 
 ROOT = Path(__file__).parents[2]
@@ -285,6 +285,110 @@ class VisualCalibrationWorkflowTest(unittest.TestCase):
             "timeout_rate": 0,
         }
         self.assertFalse(canary_gate_results(metrics)["product_detection_rate"])
+
+    def test_25_feature_list_spatial_match_counts_as_main_text(self):
+        parsed = {"blueprint_modules": [
+            region("feature_list", .1, .05, .8, .1, "features"),
+        ]}
+        result = validate_prediction(parsed, truth(product=False, text=True))
+        self.assertEqual(result["metrics"]["primary_text_hit_count"], 1)
+        self.assertEqual(
+            result["metrics"]["primary_text_matches"][0]["prediction_type"],
+            "feature_list",
+        )
+        self.assertEqual(parsed["blueprint_modules"][0]["type"], "feature_list")
+
+    def test_26_feature_list_without_spatial_match_does_not_count(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("feature_list", .1, .7, .8, .1, "features"),
+            ]},
+            truth(product=False, text=True),
+        )
+        self.assertEqual(result["metrics"]["primary_text_hit_count"], 0)
+
+    def test_27_one_feature_list_cannot_match_two_main_text_boxes(self):
+        ground_truth = truth(product=False)
+        ground_truth["primary_text_regions"] = [
+            {"type": "main_text", "normalized": {"x": .1, "y": .05, "width": .8, "height": .1}},
+            {"type": "main_text", "normalized": {"x": .1, "y": .08, "width": .8, "height": .1}},
+        ]
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("feature_list", .1, .05, .8, .13, "features"),
+            ]}, ground_truth,
+        )
+        self.assertEqual(result["metrics"]["primary_text_hit_count"], 1)
+
+    def test_28_non_primary_types_never_match_main_text(self):
+        excluded = {
+            "logo", "price", "cta", "footnote", "decoration", "background",
+            "product_image", "person_image", "scene_image", "layout_block",
+            "parameter_table",
+        }
+        self.assertTrue(excluded.isdisjoint(PRIMARY_TEXT_MODULE_TYPES))
+        for module_type in excluded:
+            with self.subTest(module_type=module_type):
+                result = validate_prediction(
+                    {"blueprint_modules": [
+                        region(module_type, .1, .05, .8, .1, module_type),
+                    ]}, truth(product=False, text=True),
+                )
+                self.assertEqual(result["metrics"]["primary_text_hit_count"], 0)
+
+    def test_29_offline_revalidation_records_no_model_recall(self):
+        module_path = ROOT / "backend" / "scripts" / "revalidate_visual_calibration.py"
+        spec = importlib.util.spec_from_file_location("offline_revalidation", module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        asset = next(
+            item for item in self.manifest["assets"]
+            if item.get("dataset_split") == "calibration"
+            and "ground_truth" in item
+        )
+        gt = asset["ground_truth"]
+        modules = []
+        for index, item in enumerate(gt["product_regions"]):
+            modules.append({"id": f"p{index}", "type": "product_image", **item["normalized"]})
+        for index, item in enumerate(gt["primary_text_regions"]):
+            modules.append({"id": f"t{index}", "type": "feature_list", **item["normalized"]})
+        for index, item in enumerate(gt["layout_modules"]):
+            modules.append({"id": f"l{index}", "type": "layout_block", **item["normalized"]})
+        source = {
+            "dataset_split": "calibration", "holdout_executed": False,
+            "prompt_version": "visual-calibration-prompt-v3",
+            "validator_version": "visual-calibration-validator-v3",
+            "runs": [{
+                "asset_id": asset["asset_id"], "filename": asset["filename"],
+                "run_status": "completed", "elapsed_ms": 1,
+                "parsed_output": {"blueprint_modules": modules},
+            }],
+        }
+        report = module.revalidate(
+            source, {"assets": [asset]}, {}, source_path="source-v3.json",
+            validator_version="visual-calibration-validator-v4",
+        )
+        self.assertFalse(report["model_recalled"])
+        self.assertFalse(report["holdout_read"])
+        self.assertEqual(report["source_validator_version"], "visual-calibration-validator-v3")
+        self.assertEqual(report["revalidation_validator_version"], "visual-calibration-validator-v4")
+
+    def test_30_validator_v3_remains_unchanged_and_v4_is_separate(self):
+        v3 = ROOT / "evaluation" / "visual-analysis" / "validator-visual-calibration-v3.json"
+        v4 = ROOT / "evaluation" / "visual-analysis" / "validator-visual-calibration-v4.json"
+        self.assertNotEqual(v3.resolve(), v4.resolve())
+        self.assertNotIn("primary_text_taxonomy", json.loads(v3.read_text(encoding="utf-8")))
+        self.assertEqual(
+            json.loads(v4.read_text(encoding="utf-8"))["primary_text_taxonomy"],
+            "PRIMARY_TEXT_MODULE_TYPES",
+        )
+
+    def test_31_offline_revalidation_does_not_overwrite_source_report(self):
+        module_path = ROOT / "backend" / "scripts" / "revalidate_visual_calibration.py"
+        source = module_path.read_text(encoding="utf-8")
+        self.assertIn("离线复评必须使用独立输出文件", source)
+        self.assertNotIn("source_report.write_text", source)
 
 
 if __name__ == "__main__":

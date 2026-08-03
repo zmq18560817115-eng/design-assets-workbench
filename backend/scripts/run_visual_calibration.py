@@ -71,6 +71,27 @@ def aggregate(rows: list[dict]) -> dict:
         row["metrics"].get("evaluable_module_count", 0) for row in completed
     )
     elapsed = [row["elapsed_ms"] for row in rows]
+    text_types = (
+        "main_title", "subtitle", "selling_point", "body_text", "feature_list"
+    )
+    subtype_predictions = {
+        module_type: sum(
+            row["metrics"].get("primary_text_prediction_type_counts", {}).get(
+                module_type, 0
+            )
+            for row in completed
+        )
+        for module_type in text_types
+    }
+    subtype_matches = {
+        module_type: sum(
+            row["metrics"].get("primary_text_matched_type_counts", {}).get(
+                module_type, 0
+            )
+            for row in completed
+        )
+        for module_type in text_types
+    }
     return {
         "total": len(rows),
         "task_success_rate": rate(len(completed)),
@@ -96,6 +117,15 @@ def aggregate(rows: list[dict]) -> dict:
         "output_module_count": sum(
             row["metrics"].get("predicted_module_count", 0) for row in completed
         ),
+        "primary_text_subtype_distribution": subtype_predictions,
+        "primary_text_subtype_match_count": subtype_matches,
+        "primary_text_subtype_match_accuracy": {
+            module_type: (
+                round(subtype_matches[module_type] / count, 4)
+                if count else 0.0
+            )
+            for module_type, count in subtype_predictions.items()
+        },
         "out_of_bounds_count": sum(
             "MODULE_OUT_OF_BOUNDS" in row["error_codes"] for row in rows
         ),
