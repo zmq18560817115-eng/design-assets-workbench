@@ -9,7 +9,7 @@ type Region = {
   x: number; y: number; width: number; height: number; confidence: number;
 };
 type Annotation = {
-  id: number; filename: string; image_url: string; status: string; reviewer: string;
+  id: number; filename: string; image_url: string; original_image_url: string; status: string; reviewer: string;
   source_type: string; product_category: string; regions: Region[]; warnings: string[];
   canvas_width: number; canvas_height: number; project_key: string; page_role: string;
   dataset_split: string; annotation_version: number;
@@ -29,6 +29,7 @@ export default function AnnotationLearningPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [category, setCategory] = useState("");
   const [sourceType, setSourceType] = useState("");
+  const [reviewStatus, setReviewStatus] = useState("pending_review");
   const [reviewer, setReviewer] = useState("设计负责人张茗淇");
   const [notice, setNotice] = useState("");
   const [regions, setRegions] = useState<Region[]>([]);
@@ -41,13 +42,14 @@ export default function AnnotationLearningPage() {
     const params = new URLSearchParams();
     if (category) params.set("product_category", category);
     if (sourceType) params.set("source_type", sourceType);
+    if (reviewStatus) params.set("status", reviewStatus);
     const response = await fetch(`/api/layout-annotations?${params}`, { cache: "no-store" });
     const data = await response.json();
     setItems(data.items ?? []);
     const summaryParams = category ? `?product_category=${encodeURIComponent(category)}` : "";
     const summaryResponse = await fetch(`/api/layout-annotations/report/summary${summaryParams}`, { cache: "no-store" });
     setSummary(await summaryResponse.json());
-  }, [category, sourceType]);
+  }, [category, sourceType, reviewStatus]);
   useEffect(() => { void load(); }, [load]);
 
   const selected = useMemo(
@@ -80,8 +82,11 @@ export default function AnnotationLearningPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reviewer }),
     });
-    setNotice(response.ok ? "已确认：这张公司成品可进入该品类的学习证据。" : await response.text());
-    if (response.ok) await load();
+    setNotice(response.ok ? "已确认，已从默认待审核队列移除并切换到下一条。" : await response.text());
+    if (response.ok) {
+      setSelectedId(null);
+      await load();
+    }
   }
   function updateRegion(index: number, field: keyof Region, value: string) {
     setRegions((current) => current.map((region, currentIndex) => (
@@ -103,6 +108,14 @@ export default function AnnotationLearningPage() {
             <option value="external_reference">外部参考</option>
           </select>
         </label>
+        <label>审核状态
+          <select value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value)}>
+            <option value="pending_review">待审核</option>
+            <option value="verified">已确认</option>
+            <option value="rejected">已拒绝</option>
+            <option value="">全部</option>
+          </select>
+        </label>
       </div>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "16px 0" }}>
         {[
@@ -110,7 +123,7 @@ export default function AnnotationLearningPage() {
           ["已人工确认", summary.verified ?? 0],
           ["待审核", summary.pending_review ?? 0],
           ["正式门槛", summary.readiness_threshold ?? 30],
-          ["评估状态", summary.evaluation_ready ? "已就绪" : "未就绪"],
+          ["人工数据集", summary.evaluation_ready ? "已就绪" : "未就绪"],
         ].map(([label, value]) => (
           <div key={String(label)} style={{ minWidth: 120, padding: 12, border: "1px solid #dfe3eb", borderRadius: 8, background: "white" }}>
             <small style={{ color: "#687386" }}>{String(label)}</small>
@@ -138,9 +151,16 @@ export default function AnnotationLearningPage() {
         </aside>
         {selected ? <>
           <section>
-            <h2>业务成品图</h2>
+            <h2>无彩框公司成品原图</h2>
+            {selected.original_image_url ? (
+              <Image src={selected.original_image_url} alt={`${selected.filename} 对应原图`} width={selected.canvas_width}
+                height={selected.canvas_height} unoptimized style={{ width: "100%", height: "auto", maxHeight: "32vh", objectFit: "contain" }} />
+            ) : (
+              <p style={{ padding: 12, background: "#fff5e8", color: "#8a4b08" }}>尚未人工确认无彩框原图配对，不能执行 verified。</p>
+            )}
+            <h2>彩框标注图</h2>
             <Image src={selected.image_url} alt={selected.filename} width={selected.canvas_width}
-              height={selected.canvas_height} unoptimized style={{ width: "100%", height: "auto", maxHeight: "68vh", objectFit: "contain" }} />
+              height={selected.canvas_height} unoptimized style={{ width: "100%", height: "auto", maxHeight: "32vh", objectFit: "contain" }} />
           </section>
           <section>
             <h2>结构蓝图</h2>
@@ -178,7 +198,9 @@ export default function AnnotationLearningPage() {
             <label>审核人 <input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></label>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               <button onClick={save}>保存修订</button>
-              <button onClick={verify} disabled={selected.source_type !== "company_published"}>确认公司标准</button>
+              <button onClick={verify} disabled={selected.source_type !== "company_published" || !selected.original_image_url || !projectKey.trim()}>
+                确认并查看下一条
+              </button>
             </div>
             <p>{notice}</p>
           </section>

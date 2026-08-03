@@ -3,6 +3,7 @@ export type WorkbenchRole = "designer" | "admin";
 export const designerNavigation = [
   { href: "/", label: "工作台" },
   { href: "/assets", label: "素材中心" },
+  { href: "/annotation-learning", label: "标注审核" },
   { href: "/patterns", label: "排版知识" },
   { href: "/requirements", label: "业务检索" },
 ];

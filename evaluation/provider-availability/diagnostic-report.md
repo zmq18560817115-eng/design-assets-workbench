@@ -1,11 +1,11 @@
 # 多模态服务可用性诊断
 
-## 当前状态
+## 当前状态（2026-08-03 M1 复核）
 
-- Calibration 状态：`blocked_by_provider_availability`
-- 质量结论：未执行新的质量评估，不能标记为 `failed_quality_evaluation`
-- Holdout：继续封存，未读取 Ground Truth，未执行模型调用
-- 24 张完整 Calibration：禁止运行
+- 服务状态：正式 Schema 单次请求成功，连续 3 次最小冒烟全部成功。
+- Calibration 状态：服务可用，但 3 张 Canary 未通过业务质量门禁。
+- Holdout：继续封存，未读取 Ground Truth，未执行模型调用。
+- 24 张完整 Calibration：因 Canary 质量未达标而禁止运行。
 
 ## 已确认配置
 
@@ -46,20 +46,33 @@
 - 已进入服务端：是
 - 结论：部署点具备视觉输入能力，但图片请求延迟波动明显；此前 30 秒读取阈值会产生确定性或临界超时
 
-### 单张正式 Schema 请求
+### 单张正式 Schema 请求（M1）
 
-- 使用同一张 Calibration 图片
-- 并发：1
-- read timeout：120 秒
-- 有限重试：1 次
-- 第一次：`read_timeout`，约 120.2 秒
-- 第二次：`read_timeout`，约 120.2 秒
-- HTTP 状态、服务商错误码、request_id：响应头返回前超时，因此不可得
-- 未写入 verified、未覆盖人工结果
+- 北京时间窗口：2026-08-03 10:03–10:07。
+- 使用 Calibration 图片，并发 1，流式响应，读超时不重试。
+- HTTP：200；request_id：`0217857226165725630b2fa661ac131412e72f6bdd3759fbf0e1b`。
+- 首个流式事件：3.978 秒；完整响应：222.871 秒。
+- Schema 合法，5 个模块，未写入 verified、未覆盖人工结果。
+- 业务校验仍报告 `LAYOUT_MODULE_MISSED`。
+
+### 连续 3 次最小冒烟
+
+- 3/3 成功，无 fallback。
+- 最小文本总耗时：3.967 秒、2.695 秒、3.417 秒。
+- 最小图片总耗时：44.940 秒、25.178 秒、38.260 秒。
+
+### 3 张 Calibration Canary
+
+- task_success_rate：100%；schema_valid_rate：100%；timeout_rate：0%。
+- product_detection_rate：100%；module_type_accuracy：100%。
+- primary_text_detection_rate：66.67%（门槛 90%）。
+- layout_module_recall：0%（门槛 90%）。
+- 结论：服务恢复，但业务质量门禁失败，不允许运行 24 张 Calibration。
 
 ## 根因结论
 
-已确认直接故障类型为服务端响应前的 `read_timeout`，不是笼统的模型超时，也不是图片拆解质量失败。
+此前服务端响应前的 `read_timeout` 已通过流式正式合同恢复。当前阻断已从
+“服务不可用”转为可度量的拆解质量不足，主要是主文字漏检和排版容器漏检。
 
 已排除：
 
@@ -82,11 +95,12 @@
 
 ## 下一项最小验证动作
 
-由管理员在火山方舟控制台按上述成功请求的 request_id 和正式请求时间窗检查部署点日志、容量、排队和配额。服务端确认健康后，只运行连续 3 次最小预检；全部成功后才运行 3 张 Calibration Canary。Canary 未全部通过前不得运行 24 张 Calibration。
+仅使用 Calibration 修正 `main_text` 与 `layout_block` 的输出合同或识别策略，重新
+运行同一 3 张 Canary。不得读取 Holdout，不得在 Canary 达标前运行 24 张完整集。
 
 ## 门禁
 
-- 连续 3 次最小冒烟：未执行（正式 Schema 仍失败）
-- 3 张 Calibration Canary：未执行
+- 连续 3 次最小冒烟：通过
+- 3 张 Calibration Canary：服务与 Schema 通过，业务质量未通过
 - 24 张 Calibration：不允许
 - Holdout：继续封存

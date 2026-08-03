@@ -85,6 +85,12 @@ def main() -> int:
                 .first()
             )
             if record:
+                # The source folder may have been moved after the first import.
+                # A SHA match identifies the same annotated file, so refreshing
+                # only its path and batch link is safe even for verified rows.
+                # Never rewrite verified regions, warnings or review fields.
+                record.annotated_image_path = str(source / item["relative_path"])
+                record.batch_id = batch_id
                 next_regions = json.dumps(item["regions"], ensure_ascii=False)
                 next_warnings = json.dumps(item["warnings"], ensure_ascii=False)
                 if (

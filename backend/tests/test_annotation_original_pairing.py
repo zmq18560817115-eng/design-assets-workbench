@@ -7,10 +7,19 @@ from types import SimpleNamespace
 
 from PIL import Image, ImageDraw
 
-from scripts.pair_layout_annotation_originals import pair
+from scripts.pair_layout_annotation_originals import _meaningful_warnings, pair
 
 
 class AnnotationOriginalPairingTests(unittest.TestCase):
+    def test_missing_original_warning_is_not_a_layout_ambiguity(self):
+        self.assertEqual(
+            ["broken_or_missing_red_rectangle"],
+            _meaningful_warnings(
+                '["unannotated_original_not_found", '
+                '"broken_or_missing_red_rectangle"]'
+            ),
+        )
+
     def test_colored_boxes_do_not_hide_correct_original(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

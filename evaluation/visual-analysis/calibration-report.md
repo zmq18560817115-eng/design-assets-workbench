@@ -1,5 +1,14 @@
 # 真实素材 Calibration 报告
 
+## M1 恢复复核（2026-08-03）
+
+- 正式 Schema 单次请求成功，连续 3 次最小冒烟全部成功。
+- 3 张 Canary 服务成功率和 Schema 合法率均为 100%，无超时、无 fallback。
+- 主文字识别率为 66.67%，布局模块召回率为 0%，均未达到 90% 门槛。
+- 因此未运行新的 24 张完整 Calibration；下方 24/24 timeout 为历史基线，
+  不能当作本次恢复后的新结果。
+- Holdout 继续封存，未读取答案，未执行模型调用。
+
 - 数据集：`untitled1-visual-calibration-v1`
 - 范围：仅 Calibration；未读取、未运行 Holdout Ground Truth
 - 结论：未通过，不得冻结候选版本或运行 Holdout

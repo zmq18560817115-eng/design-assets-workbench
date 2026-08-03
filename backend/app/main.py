@@ -117,6 +117,10 @@ def _annotation_dict(row: models.DisinfectionAnnotation) -> dict:
         "filename": Path(row.annotated_image_path).name,
         "original_image_path": row.original_image_path,
         "image_url": f"/api/layout-annotations/{row.id}/image",
+        "original_image_url": (
+            f"/api/layout-annotations/{row.id}/original-image"
+            if row.original_image_path else ""
+        ),
         "source_type": row.source_type,
         "product_category": row.product_category,
         "project_key": row.project_key,
@@ -200,8 +204,28 @@ def get_disinfection_annotation_image(
         (workspace / "Untitled").resolve(),
         (workspace / "Untitled1").resolve(),
     }
-    if not any(root in path.parents for root in allowed_roots) or not path.is_file():
+    batch = db.get(models.DisinfectionAnnotationBatch, row.batch_id) if row.batch_id else None
+    if batch and batch.source_root:
+        allowed_roots.add(Path(batch.source_root).resolve())
+    if not any(root == path or root in path.parents for root in allowed_roots) or not path.is_file():
         raise HTTPException(404, "annotation image unavailable")
+    return FileResponse(path)
+
+
+@app.get("/api/layout-annotations/{annotation_id}/original-image")
+@app.get("/api/disinfection-annotations/{annotation_id}/original-image")
+def get_disinfection_annotation_original_image(
+    annotation_id: int,
+    db: Session = Depends(get_db),
+):
+    row = db.get(models.DisinfectionAnnotation, annotation_id)
+    if not row or not row.original_image_path:
+        raise HTTPException(404, "paired original image unavailable")
+    path = Path(row.original_image_path).resolve()
+    workspace = Path(__file__).resolve().parents[2]
+    allowed_root = (workspace / "公司成品素材").resolve()
+    if allowed_root not in path.parents or not path.is_file():
+        raise HTTPException(404, "paired original image unavailable")
     return FileResponse(path)
 
 
