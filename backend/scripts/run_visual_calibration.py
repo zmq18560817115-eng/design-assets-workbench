@@ -132,6 +132,40 @@ def aggregate(rows: list[dict]) -> dict:
         "invalid_overlap_count": sum(
             row["metrics"].get("invalid_overlap_count", 0) for row in completed
         ),
+        "cross_type_duplicate_count": sum(
+            row["metrics"].get("cross_type_duplicate_count", 0)
+            for row in completed
+        ),
+        "decoration_count": sum(
+            row["metrics"].get("decoration_count", 0) for row in completed
+        ),
+        "legal_overlay_count": sum(
+            row["metrics"].get("legal_overlay_count", 0) for row in completed
+        ),
+        "illegal_overlay_count": sum(
+            row["metrics"].get("illegal_overlay_count", 0) for row in completed
+        ),
+        "decoration_host_type_distribution": {
+            host_type: sum(
+                row["metrics"].get("decoration_host_type_counts", {}).get(
+                    host_type, 0
+                )
+                for row in completed
+            )
+            for host_type in sorted({
+                host_type
+                for row in completed
+                for host_type in row["metrics"].get(
+                    "decoration_host_type_counts", {}
+                )
+            })
+        },
+        "module_count_by_asset": {
+            row.get("asset_id", row.get("filename", "unknown")): row["metrics"].get(
+                "predicted_module_count", 0
+            )
+            for row in completed
+        },
         "invalid_overlap_rate": rate(sum(
             "MODULE_OVERLAP_INVALID" in row["error_codes"] for row in rows
         )),

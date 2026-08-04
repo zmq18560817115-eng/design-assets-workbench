@@ -14,7 +14,7 @@ import httpx
 
 from . import config, vlm
 from .provider_availability import ProviderCallError
-from .layout_blueprint import MODULE_TYPE_ORDER
+from .layout_blueprint import MODULE_TYPE_ORDER, OVERLAY_TYPES
 
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
@@ -33,6 +33,7 @@ ERROR_CODES = {
     "LAYOUT_MODULE_TYPE_ERROR",
     "MODULE_OUT_OF_BOUNDS",
     "MODULE_OVERLAP_INVALID",
+    "CROSS_TYPE_DUPLICATE",
     "OUTPUT_SCHEMA_INVALID",
     "MODEL_TIMEOUT",
     "MODEL_PROVIDER_ERROR",
@@ -50,6 +51,10 @@ DEFAULT_THRESHOLDS = {
     "maximum_sibling_overlap_ratio": 0.35,
     "duplicate_module_iou": 0.9,
     "containment_exemption_ratio": 0.9,
+    "overlay_containment_ratio": 0.9,
+    "overlay_max_area_ratio": 0.85,
+    "cross_type_duplicate_iou": 0.9,
+    "allow_overlay_containment": False,
     "check_duplicate_modules": True,
     "check_containment_exemption": True,
 }
@@ -63,6 +68,7 @@ CALIBRATION_GATES = {
     "invalid_overlap_rate_max": 0.05,
     "timeout_rate_max": 0.05,
     "severe_regression_count_max": 0,
+    "cross_type_duplicate_count_max": 0,
 }
 
 CANARY_GATES = {
@@ -91,6 +97,9 @@ def calibration_gate_results(metrics: dict[str, Any]) -> dict[str, bool]:
         <= CALIBRATION_GATES["invalid_overlap_rate_max"],
         "timeout_rate": metrics.get("timeout_rate", 1)
         <= CALIBRATION_GATES["timeout_rate_max"],
+        "cross_type_duplicate_count": metrics.get(
+            "cross_type_duplicate_count", 0
+        ) <= CALIBRATION_GATES["cross_type_duplicate_count_max"],
     }
 
 
@@ -111,6 +120,9 @@ def canary_gate_results(metrics: dict[str, Any]) -> dict[str, bool]:
         <= CANARY_GATES["invalid_overlap_rate_max"],
         "timeout_rate": metrics.get("timeout_rate", 1)
         <= CANARY_GATES["timeout_rate_max"],
+        "cross_type_duplicate_count": metrics.get(
+            "cross_type_duplicate_count", 0
+        ) <= CANARY_GATES["cross_type_duplicate_count_max"],
     }
 
 
@@ -526,15 +538,76 @@ def validate_prediction(
 
     invalid_overlaps = 0
     duplicates = 0
+    cross_type_duplicates = 0
+    legal_overlay_count = 0
+    illegal_overlay_count = 0
+    decoration_host_type_counts: dict[str, int] = {}
+    overlap_relations: list[dict[str, Any]] = []
     allowed = {
         tuple(sorted(pair)) for pair in ground_truth.get("allowed_overlap_relations", [])
     }
+    container_types = {"layout_block"} | (OVERLAY_TYPES & {"background"})
+    legal_overlay_pairs: dict[tuple[str, str], dict[str, Any]] = {}
+    decorations_with_legal_host: set[str] = set()
+    if rules["allow_overlay_containment"]:
+        for decoration in normalized_modules:
+            if decoration.get("type") != "decoration":
+                continue
+            decoration_area = (
+                _rect(decoration)["width"] * _rect(decoration)["height"]
+            )
+            candidates = []
+            for host in normalized_modules:
+                if host is decoration or host.get("type") in (
+                    container_types | {"decoration"}
+                ):
+                    continue
+                host_area = _rect(host)["width"] * _rect(host)["height"]
+                area_ratio = decoration_area / host_area if host_area else 0.0
+                containment = containment_ratio(decoration, host)
+                iou = region_iou(decoration, host)
+                if (
+                    containment >= rules["overlay_containment_ratio"]
+                    and iou < rules["cross_type_duplicate_iou"]
+                    and area_ratio <= rules["overlay_max_area_ratio"]
+                ):
+                    candidates.append((containment, -host_area, host, iou, area_ratio))
+            if candidates:
+                containment, _, host, iou, area_ratio = max(
+                    candidates, key=lambda item: (item[0], item[1])
+                )
+                pair_key = tuple(sorted((
+                    str(decoration.get("id", "")), str(host.get("id", ""))
+                )))
+                legal_overlay_pairs[pair_key] = {
+                    "decoration": decoration,
+                    "host": host,
+                    "containment": containment,
+                    "iou": iou,
+                    "area_ratio": area_ratio,
+                }
+                decorations_with_legal_host.add(str(decoration.get("id", "")))
     for index, left in enumerate(normalized_modules):
         for right in normalized_modules[index + 1:]:
             pair = tuple(sorted((str(left.get("id", "")), str(right.get("id", "")))))
             if pair in allowed:
                 continue
             iou = region_iou(left, right)
+            left_in_right = containment_ratio(left, right)
+            right_in_left = containment_ratio(right, left)
+            left_area = _rect(left)["width"] * _rect(left)["height"]
+            right_area = _rect(right)["width"] * _rect(right)["height"]
+            intersection_exists = iou > 0
+            relation = {
+                "left_id": str(left.get("id", "")),
+                "left_type": left.get("type"),
+                "right_id": str(right.get("id", "")),
+                "right_type": right.get("type"),
+                "iou": round(iou, 4),
+                "left_in_right": round(left_in_right, 4),
+                "right_in_left": round(right_in_left, 4),
+                "classification": "no_overlap" if not intersection_exists else "overlap",
+            }
             if (
                 rules["check_duplicate_modules"]
                 and iou >= rules["duplicate_module_iou"]
@@ -542,27 +615,84 @@ def validate_prediction(
             ):
                 duplicates += 1
                 invalid_overlaps += 1
+                relation["classification"] = "same_type_duplicate"
             elif (
-                (
-                    not rules["check_containment_exemption"]
-                    or (
-                        not (
-                            right.get("type") in {"layout_block", "background"}
-                            and containment_ratio(left, right)
-                            >= rules["containment_exemption_ratio"]
-                        )
-                        and not (
-                            left.get("type") in {"layout_block", "background"}
-                            and containment_ratio(right, left)
-                            >= rules["containment_exemption_ratio"]
-                        )
+                left.get("type") != right.get("type")
+                and iou >= rules["cross_type_duplicate_iou"]
+            ):
+                cross_type_duplicates += 1
+                invalid_overlaps += 1
+                relation["classification"] = "cross_type_duplicate"
+            else:
+                container_exempt = (
+                    rules["check_containment_exemption"]
+                    and (
+                        right.get("type") in container_types
+                        and left_in_right >= rules["containment_exemption_ratio"]
+                        or left.get("type") in container_types
+                        and right_in_left >= rules["containment_exemption_ratio"]
                     )
                 )
-                and iou > rules["maximum_sibling_overlap_ratio"]
-            ):
-                invalid_overlaps += 1
+                decoration = None
+                host = None
+                decoration_containment = 0.0
+                decoration_area = 0.0
+                host_area = 0.0
+                if left.get("type") == "decoration" and right.get("type") != "decoration":
+                    decoration, host = left, right
+                    decoration_containment = left_in_right
+                    decoration_area, host_area = left_area, right_area
+                elif right.get("type") == "decoration" and left.get("type") != "decoration":
+                    decoration, host = right, left
+                    decoration_containment = right_in_left
+                    decoration_area, host_area = right_area, left_area
+                area_ratio = decoration_area / host_area if host_area else 0.0
+                pair_key = tuple(sorted((
+                    str(left.get("id", "")), str(right.get("id", ""))
+                )))
+                overlay_evidence = legal_overlay_pairs.get(pair_key)
+                overlay_exempt = overlay_evidence is not None
+                if container_exempt:
+                    relation["classification"] = "legal_container_containment"
+                elif overlay_exempt:
+                    legal_overlay_count += 1
+                    host = overlay_evidence["host"]
+                    host_type = str(host.get("type"))
+                    decoration_host_type_counts[host_type] = (
+                        decoration_host_type_counts.get(host_type, 0) + 1
+                    )
+                    relation.update(
+                        classification="legal_decoration_overlay",
+                        decoration_containment_ratio=round(
+                            overlay_evidence["containment"], 4
+                        ),
+                        decoration_host_area_ratio=round(
+                            overlay_evidence["area_ratio"], 4
+                        ),
+                    )
+                elif (
+                    decoration is not None
+                    and str(decoration.get("id", ""))
+                    not in decorations_with_legal_host
+                    and intersection_exists
+                ):
+                    illegal_overlay_count += 1
+                    invalid_overlaps += 1
+                    relation.update(
+                        classification="illegal_decoration_overlay",
+                        decoration_containment_ratio=round(
+                            decoration_containment, 4
+                        ),
+                        decoration_host_area_ratio=round(area_ratio, 4),
+                    )
+                elif not container_exempt and iou > rules["maximum_sibling_overlap_ratio"]:
+                    invalid_overlaps += 1
+                    relation["classification"] = "illegal_sibling_overlap"
+            overlap_relations.append(relation)
     if invalid_overlaps:
         errors.append("MODULE_OVERLAP_INVALID")
+    if cross_type_duplicates:
+        errors.append("CROSS_TYPE_DUPLICATE")
     evaluable_module_count = (
         len(ground_truth["product_regions"])
         + len(ground_truth["primary_text_regions"])
@@ -646,6 +776,14 @@ def validate_prediction(
             "predicted_module_count": len(normalized_modules),
             "invalid_overlap_count": invalid_overlaps,
             "duplicate_module_count": duplicates,
+            "cross_type_duplicate_count": cross_type_duplicates,
+            "decoration_count": sum(
+                row.get("type") == "decoration" for row in normalized_modules
+            ),
+            "legal_overlay_count": legal_overlay_count,
+            "illegal_overlay_count": illegal_overlay_count,
+            "decoration_host_type_counts": decoration_host_type_counts,
+            "overlap_relations": overlap_relations,
         },
     }
 

@@ -1,5 +1,55 @@
 # 真实素材 Calibration 报告
 
+## P3.2-C4 Overlay语义与Validator v5（2026-08-03）
+
+### Group 16证据与路线
+
+- 本地诊断预览：`C:/Users/bu/AppData/Local/Temp/design-assets-c4/group16-overlay-diagnostic.png`
+- 蓝框 `product_image` 覆盖灯珠托盘产品主体；紫框 `decoration` 覆盖画面中独立可见的红色圈注与1—9编号贴纸。
+- 原关系：IoU 0.7012、decoration包含率1.0000、decoration/宿主面积比0.7012。
+- 两框类型不同、不是近似复制、面积比低于0.85、不会重复计算产品主体。
+- 判断：A，合法装饰叠加；采用路线A。Prompt继续使用v3，仅新增Validator v5。
+
+### 正式Overlay合同
+
+Calibration直接复用正式 `layout_blueprint.OVERLAY_TYPES={decoration, background}`，不再维护冲突列表：
+
+1. 同类型IoU达到0.90继续判非法重复。
+2. `layout_block` 或 `background` 以至少0.90包含子模块时合法。
+3. `decoration` 仅在至少0.90位于唯一宿主内、跨类型IoU低于0.90、面积比不高于0.85时合法。
+4. 不同类型IoU达到0.90标记 `CROSS_TYPE_DUPLICATE`，即使其中一个是容器也不得绕过。
+5. 没有合法宿主的部分交叉decoration判非法；已确定合法宿主后，与其他模块仅按普通兄弟重叠门槛检查。
+
+### 离线复评
+
+- 源报告：Validator v4真实Canary；复评：Validator v5。
+- `model_recalled=false`，`holdout_read=false`，`holdout_executed=false`。
+- 29个模块、135对关系全部记录；Group 13为21对、Group 16为36对、Group 34为78对。
+- Group 16原非法关系在v5下成为 `legal_decoration_overlay`：包含率1.0、面积比0.7012、IoU 0.7012、跨类型重复false。
+- 合法overlay 1、非法overlay 0、跨类型重复0、普通非法重叠0；另外两张结果保持。
+- 离线全部Canary门禁通过，因此允许执行一次真实v5 Canary。
+
+### 真实v5 Canary
+
+| 指标 | 结果 | 门禁 |
+|---|---:|---:|
+| task_success_rate | 100% | 100% |
+| schema_valid_rate | 100% | 100% |
+| product_detection_rate | 100% | 100% |
+| primary_text_detection_rate | 100% | ≥90% |
+| layout_module_recall | 100% | ≥90% |
+| module_type_accuracy | 100% | — |
+| invalid_overlap_rate | 33.33% | ≤5% |
+| cross_type_duplicate_count | 1 | 0 |
+| timeout_rate | 0% | 0% |
+| fallback_count | 0 | 0 |
+| output_module_count | 29 | — |
+| average_elapsed_ms | 202372 | — |
+
+Overlay结果：`decoration=1`、合法overlay=1、非法overlay=0，宿主类型为 `product_image`。但模型本次在 Group 16 新输出的 `layout_block(l2)` 与 `product_image(m1)` IoU为0.9322，product完全位于layout_block内，构成跨类型近重复。失败分类为模型输出不稳定/跨类型重复，不是Overlay规则错误。
+
+因此真实Canary未通过，未运行24张完整Calibration，未运行Holdout，最终状态为 `calibration_quality_blocked`。
+
 ## P3.2-C3 Validator v4（2026-08-03）
 
 ### 合同结论

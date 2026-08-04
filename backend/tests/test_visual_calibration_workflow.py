@@ -390,6 +390,82 @@ class VisualCalibrationWorkflowTest(unittest.TestCase):
         self.assertIn("离线复评必须使用独立输出文件", source)
         self.assertNotIn("source_report.write_text", source)
 
+    def test_32_reasonable_contained_decoration_is_legal_overlay(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("product_image", .1, .1, .8, .8, "host"),
+                region("decoration", .2, .2, .5, .5, "overlay"),
+            ]}, truth(product=False),
+            thresholds={"allow_overlay_containment": True},
+        )
+        self.assertNotIn("MODULE_OVERLAP_INVALID", result["error_codes"])
+        self.assertEqual(result["metrics"]["legal_overlay_count"], 1)
+        self.assertEqual(
+            result["metrics"]["decoration_host_type_counts"],
+            {"product_image": 1},
+        )
+
+    def test_33_partially_crossing_decoration_is_illegal(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("product_image", .1, .1, .5, .5, "host"),
+                region("decoration", .5, .5, .3, .3, "overlay"),
+            ]}, truth(product=False),
+            thresholds={"allow_overlay_containment": True},
+        )
+        self.assertIn("MODULE_OVERLAP_INVALID", result["error_codes"])
+        self.assertEqual(result["metrics"]["illegal_overlay_count"], 1)
+
+    def test_34_cross_type_near_duplicate_is_illegal(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("product_image", .1, .1, .8, .8, "host"),
+                region("decoration", .1, .1, .8, .8, "overlay"),
+            ]}, truth(product=False),
+            thresholds={"allow_overlay_containment": True},
+        )
+        self.assertIn("CROSS_TYPE_DUPLICATE", result["error_codes"])
+        self.assertIn("MODULE_OVERLAP_INVALID", result["error_codes"])
+        self.assertEqual(result["metrics"]["cross_type_duplicate_count"], 1)
+
+    def test_35_background_parent_containment_remains_legal(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("background", .05, .05, .9, .9, "parent"),
+                region("product_image", .2, .2, .3, .4, "child"),
+            ]}, truth(product=False),
+        )
+        self.assertNotIn("MODULE_OVERLAP_INVALID", result["error_codes"])
+
+    def test_36_calibration_reuses_formal_overlay_types(self):
+        from app import layout_blueprint, visual_calibration
+        self.assertIs(visual_calibration.OVERLAY_TYPES, layout_blueprint.OVERLAY_TYPES)
+        self.assertEqual(visual_calibration.OVERLAY_TYPES, {"decoration", "background"})
+
+    def test_37_validator_v5_keeps_strict_thresholds(self):
+        v4 = json.loads((ROOT / "evaluation" / "visual-analysis" /
+                         "validator-visual-calibration-v4.json").read_text(encoding="utf-8"))
+        v5 = json.loads((ROOT / "evaluation" / "visual-analysis" /
+                         "validator-visual-calibration-v5.json").read_text(encoding="utf-8"))
+        for key in ("region_iou", "product_iou", "maximum_sibling_overlap_ratio",
+                    "duplicate_module_iou", "containment_exemption_ratio"):
+            self.assertEqual(v5[key], v4[key])
+        self.assertEqual(v5["cross_type_duplicate_iou"], .9)
+        self.assertEqual(v5["overlay_max_area_ratio"], .85)
+
+    def test_38_legal_overlay_uses_one_host_and_other_overlap_stays_ordinary(self):
+        result = validate_prediction(
+            {"blueprint_modules": [
+                region("product_image", .1, .1, .8, .8, "host"),
+                region("decoration", .2, .2, .5, .5, "overlay"),
+                region("person_image", .0, .6, .3, .3, "person"),
+            ]}, truth(product=False),
+            thresholds={"allow_overlay_containment": True},
+        )
+        self.assertNotIn("MODULE_OVERLAP_INVALID", result["error_codes"])
+        self.assertEqual(result["metrics"]["legal_overlay_count"], 1)
+        self.assertEqual(result["metrics"]["illegal_overlay_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
