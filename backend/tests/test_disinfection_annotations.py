@@ -7,7 +7,9 @@ from types import SimpleNamespace
 from PIL import Image, ImageDraw
 
 from app.disinfection_annotations import (
+    annotation_is_verified,
     assign_dataset_splits,
+    eligible_for_company_pattern,
     evaluate_regions,
     parse_colored_rectangles,
     scan_directory,
@@ -66,6 +68,8 @@ class DisinfectionAnnotationParserTests(unittest.TestCase):
         base = dict(
             orientation="portrait", page_role="product_display",
             canvas_width=900, canvas_height=1200,
+            annotation_verified=True, company_recommended=True,
+            recommendation_confirmed_by_lead=True,
         )
         rows = [
             SimpleNamespace(id=1, status="verified", source_type="company_published", dataset_split="calibration", **base),
@@ -78,6 +82,35 @@ class DisinfectionAnnotationParserTests(unittest.TestCase):
             [1],
             [row.id for row in select_few_shot_annotations(rows, orientation="portrait")],
         )
+
+    def test_annotation_accuracy_and_company_recommendation_are_independent(self):
+        accurate_negative = SimpleNamespace(
+            status="verified", annotation_verified=True,
+            source_type="company_published", company_recommended=False,
+            recommendation_confirmed_by_lead=True,
+        )
+        recommended_unverified = SimpleNamespace(
+            status="pending_review", annotation_verified=False,
+            source_type="company_published", company_recommended=True,
+            recommendation_confirmed_by_lead=True,
+        )
+        complete_positive = SimpleNamespace(
+            status="verified", annotation_verified=True,
+            source_type="company_published", company_recommended=True,
+            recommendation_confirmed_by_lead=True,
+        )
+        self.assertTrue(annotation_is_verified(accurate_negative))
+        self.assertFalse(eligible_for_company_pattern(accurate_negative))
+        self.assertFalse(eligible_for_company_pattern(recommended_unverified))
+        self.assertTrue(eligible_for_company_pattern(complete_positive))
+
+    def test_external_reference_never_enters_company_pattern(self):
+        row = SimpleNamespace(
+            status="verified", annotation_verified=True,
+            source_type="external_reference", company_recommended=True,
+            recommendation_confirmed_by_lead=True,
+        )
+        self.assertFalse(eligible_for_company_pattern(row))
 
     def test_unverified_is_excluded_from_statistics(self):
         region = json.dumps([{

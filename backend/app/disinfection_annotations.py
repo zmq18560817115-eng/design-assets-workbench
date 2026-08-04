@@ -316,6 +316,22 @@ def assign_dataset_splits(rows: list[Any]) -> dict[int, str]:
     }
 
 
+def annotation_is_verified(row: Any) -> bool:
+    """Existing status=verified rows remain valid decomposition evidence."""
+    return bool(getattr(row, "annotation_verified", None)) or row.status == "verified"
+
+
+def eligible_for_company_pattern(row: Any) -> bool:
+    """Only explicitly confirmed positive company evidence enters pattern learning."""
+    return (
+        row.source_type == "company_published"
+        and row.status == "verified"
+        and getattr(row, "annotation_verified", None) is True
+        and getattr(row, "company_recommended", None) is True
+        and getattr(row, "recommendation_confirmed_by_lead", False) is True
+    )
+
+
 def select_few_shot_annotations(
     rows: list[Any],
     *,
@@ -335,10 +351,10 @@ def select_few_shot_annotations(
         raise ValueError("evidence_mode must be company or imitation")
     eligible = [
         row for row in rows
-        if row.status == "verified"
+        if annotation_is_verified(row)
         and row.dataset_split == "calibration"
         and (
-            row.source_type == "company_published"
+            eligible_for_company_pattern(row)
             or (
                 evidence_mode == "imitation"
                 and row.source_type == "external_reference"
@@ -370,7 +386,7 @@ def verified_statistics(
 ) -> dict[str, Any]:
     verified = [
         row for row in rows
-        if row.status == "verified" and row.source_type == "company_published"
+        if eligible_for_company_pattern(row)
         and (not product_category or row.product_category == product_category)
     ]
     if not verified:

@@ -175,6 +175,34 @@ def _auto_migrate():
                 conn.execute(
                     text("ALTER TABLE batch_import_jobs ADD COLUMN fallback INTEGER DEFAULT 0")
                 )
+    if "disinfection_annotations" in tables:
+        annotation_cols = {
+            c["name"] for c in inspector.get_columns("disinfection_annotations")
+        }
+        annotation_fields = {
+            "annotation_verified": ("INTEGER", None),
+            "company_recommended": ("INTEGER", None),
+            "recommendation_status": ("TEXT", "unknown"),
+            "not_recommended_reason": ("TEXT", ""),
+            "avoid_reasons_json": ("TEXT", "[]"),
+            "keep_reasons_json": ("TEXT", "[]"),
+            "recommendation_reviewer": ("TEXT", ""),
+            "recommendation_confirmed_by_lead": ("INTEGER", "0"),
+        }
+        for col, (col_type, default) in annotation_fields.items():
+            if col not in annotation_cols:
+                default_sql = "" if default is None else f" DEFAULT '{default}'"
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        f"ALTER TABLE disinfection_annotations ADD COLUMN {col} "
+                        f"{col_type}{default_sql}"
+                    ))
+        if "recommendation_reviewed_at" not in annotation_cols:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE disinfection_annotations "
+                    "ADD COLUMN recommendation_reviewed_at DATETIME"
+                ))
     if "layout_blueprints" in tables:
         blueprint_cols = {
             c["name"] for c in inspector.get_columns("layout_blueprints")

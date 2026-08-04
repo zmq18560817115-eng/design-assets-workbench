@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image as PILImage
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -16,7 +17,9 @@ from app.main import (
     _find_annotation_original_case,
     auto_decompose_disinfection_case,
     finalize_disinfection_decomposition_run,
+    set_disinfection_annotation_recommendation,
     update_disinfection_annotation,
+    verify_disinfection_annotation,
 )
 
 
@@ -47,6 +50,10 @@ class DisinfectionWorkflowTests(unittest.TestCase):
                 source_sha256=f"sha-{index}",
                 source_type="company_published",
                 status="verified",
+                annotation_verified=True,
+                company_recommended=True,
+                recommendation_status="recommended",
+                recommendation_confirmed_by_lead=True,
                 dataset_split="calibration",
                 canvas_width=600,
                 canvas_height=800,
@@ -173,6 +180,63 @@ class DisinfectionWorkflowTests(unittest.TestCase):
             .one()
         )
         self.assertEqual(initial, json.dumps(json.loads(history.payload_json)["regions"], ensure_ascii=False))
+
+    def test_accurate_but_not_recommended_can_be_verified(self):
+        regions = [
+            {"id": "layout", "type": "layout_block", "x": .05, "y": .05, "width": .9, "height": .9},
+            {"id": "product", "type": "product_image", "x": .1, "y": .25, "width": .4, "height": .4},
+            {"id": "text", "type": "main_text", "x": .1, "y": .1, "width": .6, "height": .1},
+        ]
+        row = models.DisinfectionAnnotation(
+            source_sha256="accurate-negative", source_type="company_published",
+            status="pending_review", product_category="吸奶器",
+            project_key="历史项目待补充", page_role="other",
+            original_image_path=str(self.uploads / "case.png"),
+            regions_json=json.dumps(regions),
+        )
+        self.db.add(row); self.db.commit()
+        set_disinfection_annotation_recommendation(row.id, {
+            "decision": "not_recommended", "reviewer": "设计负责人",
+            "not_recommended_reason": "信息层级混乱",
+            "avoid_reasons": ["标题过小"], "keep_reasons": ["产品图清晰"],
+        }, self.db)
+        result = verify_disinfection_annotation(row.id, {
+            "reviewer": "设计负责人", "pairing_confirmed": True,
+            "boxes_confirmed": True, "page_role_confirmed": True,
+            "reading_order": ["layout", "text", "product"],
+        }, self.db)
+        self.assertTrue(result["annotation_verified"])
+        self.assertFalse(result["company_recommended"])
+        self.assertEqual("历史项目待补充", self.db.get(models.DisinfectionAnnotation, row.id).project_key)
+
+    def test_needs_box_fix_cannot_be_verified(self):
+        row = models.DisinfectionAnnotation(
+            source_sha256="missing-boxes", source_type="company_published",
+            status="pending_review", product_category="吸奶器",
+            project_key="历史项目待补充", page_role="other",
+            original_image_path=str(self.uploads / "case.png"),
+            regions_json=json.dumps([{"id": "product", "type": "product_image", "x": .1, "y": .2, "width": .5, "height": .5}]),
+        )
+        self.db.add(row); self.db.commit()
+        with self.assertRaises(HTTPException) as error:
+            verify_disinfection_annotation(row.id, {
+                "reviewer": "设计负责人", "pairing_confirmed": True,
+                "boxes_confirmed": True, "page_role_confirmed": True,
+                "reading_order": ["product"],
+            }, self.db)
+        self.assertIn("needs_box_fix", str(error.exception.detail))
+
+    def test_external_reference_cannot_be_company_recommended(self):
+        row = models.DisinfectionAnnotation(
+            source_sha256="external-reference", source_type="external_reference",
+            status="verified", product_category="吸奶器",
+        )
+        self.db.add(row); self.db.commit()
+        with self.assertRaises(HTTPException):
+            set_disinfection_annotation_recommendation(row.id, {
+                "decision": "recommended", "reviewer": "设计负责人",
+                "lead_confirmed": True,
+            }, self.db)
 
 
 if __name__ == "__main__":

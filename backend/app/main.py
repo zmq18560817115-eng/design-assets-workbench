@@ -132,6 +132,15 @@ def _annotation_dict(row: models.DisinfectionAnnotation) -> dict:
         "regions": json.loads(row.regions_json or "[]"),
         "warnings": json.loads(row.warnings_json or "[]"),
         "status": row.status,
+        "annotation_verified": bool(row.annotation_verified) or row.status == "verified",
+        "annotation_verified_explicit": row.annotation_verified,
+        "company_recommended": row.company_recommended,
+        "recommendation_status": row.recommendation_status or "unknown",
+        "not_recommended_reason": row.not_recommended_reason or "",
+        "avoid_reasons": json.loads(row.avoid_reasons_json or "[]"),
+        "keep_reasons": json.loads(row.keep_reasons_json or "[]"),
+        "recommendation_reviewer": row.recommendation_reviewer or "",
+        "recommendation_confirmed_by_lead": bool(row.recommendation_confirmed_by_lead),
         "dataset_split": row.dataset_split,
         "reviewer": row.reviewer,
         "reviewed_at": row.reviewed_at,
@@ -204,6 +213,24 @@ def get_disinfection_annotation_image(
         (workspace / "Untitled").resolve(),
         (workspace / "Untitled1").resolve(),
     }
+
+
+def _annotation_quality_blockers(row: models.DisinfectionAnnotation) -> list[str]:
+    regions = json.loads(row.regions_json or "[]")
+    required = set(disinfection_annotations.COLOR_TYPES.values())
+    blockers = [f"missing:{kind}" for kind in sorted(required - {r.get("type") for r in regions})]
+    for index, region in enumerate(regions):
+        x, y = float(region.get("x", -1)), float(region.get("y", -1))
+        width, height = float(region.get("width", -1)), float(region.get("height", -1))
+        area = width * height
+        if min(x, y, width, height) < 0 or x + width > 1.000001 or y + height > 1.000001:
+            blockers.append(f"out_of_bounds:{region.get('id', index)}")
+        if area < 0.00045 or area > 0.98:
+            blockers.append(f"abnormal_area:{region.get('id', index)}")
+        for other in regions[index + 1:]:
+            if region.get("type") == other.get("type") and disinfection_annotations._iou(region, other) > 0.88:
+                blockers.append(f"duplicate:{region.get('id')}:{other.get('id')}")
+    return blockers
     batch = db.get(models.DisinfectionAnnotationBatch, row.batch_id) if row.batch_id else None
     if batch and batch.source_root:
         allowed_roots.add(Path(batch.source_root).resolve())
@@ -299,8 +326,24 @@ def verify_disinfection_annotation(
     reviewer = str(payload.get("reviewer") or "").strip()
     if not reviewer:
         raise HTTPException(422, "reviewer is required")
-    if row.source_type != "company_published":
-        raise HTTPException(422, "only company_published evidence can be verified")
+    if payload.get("pairing_confirmed") is not True:
+        raise HTTPException(422, "pairing confirmation is required")
+    if payload.get("boxes_confirmed") is not True:
+        raise HTTPException(422, "red/blue/green box confirmation is required")
+    if payload.get("page_role_confirmed") is not True:
+        raise HTTPException(422, "page_role confirmation is required")
+    reading_order = payload.get("reading_order")
+    if not isinstance(reading_order, list) or not reading_order or any(
+        not str(item).strip() for item in reading_order
+    ):
+        raise HTTPException(422, "reading_order is required")
+    region_ids = [str(region.get("id") or "").strip() for region in json.loads(row.regions_json or "[]")]
+    normalized_order = [str(item).strip() for item in reading_order]
+    if len(normalized_order) != len(set(normalized_order)) or set(normalized_order) != set(region_ids):
+        raise HTTPException(422, "reading_order must contain every region exactly once")
+    quality_blockers = _annotation_quality_blockers(row)
+    if quality_blockers:
+        raise HTTPException(422, f"needs_box_fix: {', '.join(quality_blockers)}")
     if not (row.project_key or "").strip():
         raise HTTPException(
             422,
@@ -308,12 +351,20 @@ def verify_disinfection_annotation(
         )
     row.reviewer = reviewer
     row.status = "verified"
+    row.annotation_verified = True
     row.reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     row.annotation_version += 1
+    verified_snapshot = _annotation_dict(row)
+    verified_snapshot["manual_confirmation"] = {
+        "pairing_confirmed": True,
+        "boxes_confirmed": True,
+        "reading_order": normalized_order,
+        "page_role": row.page_role,
+    }
     db.add(models.DisinfectionAnnotationVersion(
         annotation_id=row.id,
         version=row.annotation_version,
-        payload_json=json.dumps(_annotation_dict(row), ensure_ascii=False, default=str),
+        payload_json=json.dumps(verified_snapshot, ensure_ascii=False, default=str),
         source="verify",
         editor=reviewer,
     ))
@@ -322,8 +373,8 @@ def verify_disinfection_annotation(
         db.query(models.DisinfectionAnnotation)
         .filter(
             models.DisinfectionAnnotation.status == "verified",
-            models.DisinfectionAnnotation.source_type == "company_published",
             models.DisinfectionAnnotation.product_category == row.product_category,
+            models.DisinfectionAnnotation.source_type == row.source_type,
         )
         .all()
     )
@@ -331,6 +382,53 @@ def verify_disinfection_annotation(
         verified_row.dataset_split = disinfection_annotations.assign_dataset_splits(
             verified_rows
         )[verified_row.id]
+    db.commit()
+    db.refresh(row)
+    return _annotation_dict(row)
+
+
+@app.post("/api/layout-annotations/{annotation_id}/recommendation")
+def set_disinfection_annotation_recommendation(
+    annotation_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+) -> dict:
+    row = db.get(models.DisinfectionAnnotation, annotation_id)
+    if not row:
+        raise HTTPException(404, "annotation not found")
+    decision = str(payload.get("decision") or "").strip()
+    if decision not in {"recommended", "not_recommended", "pending_lead"}:
+        raise HTTPException(422, "invalid recommendation decision")
+    reviewer = str(payload.get("reviewer") or "").strip()
+    if not reviewer:
+        raise HTTPException(422, "reviewer is required")
+    lead_confirmed = payload.get("lead_confirmed") is True
+    if decision == "recommended":
+        if row.source_type != "company_published":
+            raise HTTPException(422, "external evidence cannot be company_recommended")
+        if not lead_confirmed:
+            raise HTTPException(422, "design lead confirmation is required")
+        row.company_recommended = True
+    elif decision == "not_recommended":
+        row.company_recommended = False
+    else:
+        row.company_recommended = None
+    row.recommendation_status = decision
+    row.not_recommended_reason = str(payload.get("not_recommended_reason") or "").strip()
+    row.avoid_reasons_json = json.dumps(payload.get("avoid_reasons") or [], ensure_ascii=False)
+    row.keep_reasons_json = json.dumps(payload.get("keep_reasons") or [], ensure_ascii=False)
+    row.recommendation_reviewer = reviewer
+    row.recommendation_confirmed_by_lead = lead_confirmed
+    row.recommendation_reviewed_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    row.annotation_version += 1
+    snapshot = _annotation_dict(row)
+    db.add(models.DisinfectionAnnotationVersion(
+        annotation_id=row.id,
+        version=row.annotation_version,
+        payload_json=json.dumps(snapshot, ensure_ascii=False, default=str),
+        source="recommendation",
+        editor=reviewer,
+    ))
     db.commit()
     db.refresh(row)
     return _annotation_dict(row)
@@ -349,7 +447,12 @@ def disinfection_annotation_summary(
     ]
     verified = [
         row for row in scoped
-        if row.status == "verified" and row.source_type == "company_published"
+        if disinfection_annotations.annotation_is_verified(row)
+        and row.source_type == "company_published"
+    ]
+    pattern_evidence = [
+        row for row in scoped
+        if disinfection_annotations.eligible_for_company_pattern(row)
     ]
     statistics = disinfection_annotations.verified_statistics(
         rows, product_category=product_category, readiness_threshold=30
@@ -360,13 +463,16 @@ def disinfection_annotation_summary(
         "total": len(scoped),
         "pending_review": sum(row.status == "pending_review" for row in scoped),
         "verified": len(verified),
-        "few_shot_ready": sum(row.dataset_split == "calibration" for row in verified) >= 3,
+        "annotation_verified": len(verified),
+        "company_recommended": len(pattern_evidence),
+        "recommendation_unknown": sum((row.recommendation_status or "unknown") == "unknown" for row in scoped),
+        "few_shot_ready": sum(row.dataset_split == "calibration" for row in pattern_evidence) >= 3,
         "evaluation_ready": len(verified) >= 30 and any(row.dataset_split == "holdout" for row in verified),
         "readiness_threshold": 30,
         "calibration": sum(row.dataset_split == "calibration" for row in verified),
         "holdout": sum(row.dataset_split == "holdout" for row in verified),
         "statistics": statistics,
-        "message": "Only human-verified company_published annotations are counted as learning evidence.",
+        "message": "Verified decomposition evidence is separate from lead-confirmed company pattern evidence.",
     }
 
 
