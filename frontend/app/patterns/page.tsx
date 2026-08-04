@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LayoutWireframe } from "@/components/layout-wireframe";
 import { Card, Tag } from "@/components/ui";
@@ -9,6 +10,16 @@ import {
   LayoutPattern,
   LayoutPatternCandidate,
 } from "@/lib/api";
+
+type AiCandidate = {
+  candidate_id: string; pattern_name_suggestion: string; category: string;
+  case_count: number; representative_ids: number[]; evidence_annotation_ids: number[];
+  product_position: string; title_position: string; reading_order: string;
+  average_information_density: string; average_whitespace_ratio: number;
+  suitable_pages: string[]; unsuitable_pages: string[]; reusable_parts: string[];
+  risks: string[]; review_status: string; suggestion_status: string;
+  human_review_status?: string; model_analysis?: Record<string, unknown>;
+};
 
 export default function LayoutPatternsPage() {
   const [items, setItems] = useState<LayoutPattern[]>([]);
@@ -19,6 +30,24 @@ export default function LayoutPatternsPage() {
   const [confidence, setConfidence] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiCandidates, setAiCandidates] = useState<AiCandidate[]>([]);
+  const [aiCategory, setAiCategory] = useState("");
+  const [candidateNames, setCandidateNames] = useState<Record<string, string>>({});
+
+  function loadAiCandidates() {
+    return fetch("/api/ai-layout-candidates", { cache: "no-store" })
+      .then(response => response.ok ? response.json() : { candidates: [] })
+      .then(data => setAiCandidates(data.candidates ?? []));
+  }
+
+  async function updateAiCandidate(candidate: AiCandidate, action: "rename" | "confirm" | "reject") {
+    const response = await fetch("/api/ai-layout-candidates", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate_id: candidate.candidate_id, action, name: candidateNames[candidate.candidate_id] }),
+    });
+    setMessage(response.ok ? "候选模式审核结果已保存；尚未创建正式LayoutPattern。" : await response.text());
+    if (response.ok) await loadAiCandidates();
+  }
 
   function load() {
     return api.layoutPatterns({
@@ -37,6 +66,7 @@ export default function LayoutPatternsPage() {
       confidence_level: confidence,
     }).then(setItems).catch((error) => setMessage(error.message));
   }, [status, orientation, canvasRatio, confidence]);
+  useEffect(() => { void loadAiCandidates(); }, []);
 
   async function discover() {
     setLoading(true);
@@ -82,6 +112,42 @@ export default function LayoutPatternsPage() {
       </div>
 
       {message && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm">{message}</p>}
+
+      <section className="mt-7 rounded-3xl border border-sky-200 bg-sky-50/60 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">AI候选排版模式</h2>
+            <p className="mt-1 text-xs text-gray-500">本地结构分组生成，统一为candidate / ai_suggested / unverified；确认候选不会绕过正式模式证据门禁。</p>
+          </div>
+          <select value={aiCategory} onChange={event => setAiCategory(event.target.value)} className="rounded-xl border border-line bg-white px-3 py-2 text-sm">
+            <option value="">全部品类</option><option value="恒温杯">恒温杯</option><option value="吸奶器">吸奶器</option><option value="羊脂膏">羊脂膏</option>
+          </select>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {aiCandidates.filter(item => !aiCategory || item.category === aiCategory).map(candidate => (
+            <Card key={candidate.candidate_id}>
+              <div className="grid grid-cols-2 gap-2">
+                {candidate.representative_ids.map(id => (
+                  <div key={id} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-white">
+                    <Image src={`/api/layout-annotations/${id}/original-image`} alt={`代表案例 ${id}`} fill unoptimized className="object-contain" />
+                  </div>
+                ))}
+              </div>
+              <input value={candidateNames[candidate.candidate_id] ?? candidate.pattern_name_suggestion} onChange={event => setCandidateNames(current => ({...current, [candidate.candidate_id]: event.target.value}))} className="mt-3 w-full rounded-lg border border-line px-3 py-2 font-semibold" />
+              <div className="mt-2 flex flex-wrap gap-2"><Tag>{candidate.category}</Tag><Tag>案例 {candidate.case_count}</Tag><Tag>{candidate.review_status}</Tag><Tag>{candidate.human_review_status ?? "待审核"}</Tag></div>
+              <p className="mt-3 text-xs leading-5 text-gray-600">共性：产品多位于{candidate.product_position}，主要文字位于{candidate.title_position}；{candidate.reading_order}。信息密度{candidate.average_information_density}，留白约{Math.round(candidate.average_whitespace_ratio * 100)}%。</p>
+              <p className="mt-2 text-xs text-gray-500">适用：{candidate.suitable_pages.join("、")}；不适用：{candidate.unsuitable_pages.join("、")}</p>
+              <p className="mt-2 text-xs text-amber-700">风险：{candidate.risks.join("、")}</p>
+              <details className="mt-3 text-xs"><summary>查看全部证据</summary><p className="mt-2 break-words">{candidate.evidence_annotation_ids.join("、")}</p></details>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={() => updateAiCandidate(candidate, "rename")} className="rounded-lg border px-3 py-2 text-xs">修改模式名称</button>
+                <button onClick={() => updateAiCandidate(candidate, "confirm")} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs text-white">确认模式</button>
+                <button onClick={() => updateAiCandidate(candidate, "reject")} className="rounded-lg bg-rose-600 px-3 py-2 text-xs text-white">拒绝模式</button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       {preview.length > 0 && (
         <section className="mt-7 rounded-3xl border border-accent/20 bg-lilac/40 p-5">

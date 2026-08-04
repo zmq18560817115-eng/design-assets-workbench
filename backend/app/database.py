@@ -188,6 +188,11 @@ def _auto_migrate():
             "keep_reasons_json": ("TEXT", "[]"),
             "recommendation_reviewer": ("TEXT", ""),
             "recommendation_confirmed_by_lead": ("INTEGER", "0"),
+            "curator_selected_good": ("INTEGER", "0"),
+            "curator_selection_reason": ("TEXT", ""),
+            "structure_review_status": ("TEXT", ""),
+            "structure_review_json": ("TEXT", "{}"),
+            "structure_cluster_key": ("TEXT", ""),
         }
         for col, (col_type, default) in annotation_fields.items():
             if col not in annotation_cols:
