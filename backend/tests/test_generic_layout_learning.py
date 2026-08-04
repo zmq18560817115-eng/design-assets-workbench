@@ -19,7 +19,10 @@ def row(
     return SimpleNamespace(
         id=identifier,
         status=status,
+        annotation_verified=status == "verified",
         source_type=source_type,
+        company_recommended=True,
+        recommendation_confirmed_by_lead=True,
         dataset_split="calibration",
         product_category=category,
         orientation="portrait",
