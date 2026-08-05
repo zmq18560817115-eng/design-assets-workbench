@@ -38,6 +38,11 @@ class HumanConfirmedEvidenceTest(unittest.TestCase):
             with plan.open("w", encoding="utf-8-sig", newline="") as handle:
                 writer = csv.writer(handle); writer.writerow(["category", "original", "annotation", "status", "source", "reviewer"])
                 writer.writerow(["羊脂膏", "公司成品素材/羊脂膏/target.png", "羊脂膏/box.png", "pair_confirmed", "human_confirmed", "张茗淇"])
+        # The older manual plan calls the reviewed source "confirmed"; the full
+        # authoritative plan carries the explicit human_confirmed value.
+        with service.PLAN_PATHS[0].open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.writer(handle); writer.writerow(["category", "original", "annotation", "status", "source", "reviewer"])
+            writer.writerow(["羊脂膏", "公司成品素材/羊脂膏/target.png", "羊脂膏/box.png", "pair_confirmed", "confirmed", "张茗淇"])
         project = models.Project(id=6, name="公司成品·羊脂膏", business_line="羊脂膏")
         self.db.add(project)
         annotation = models.DisinfectionAnnotation(

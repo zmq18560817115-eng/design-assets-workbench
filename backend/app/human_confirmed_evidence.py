@@ -47,6 +47,7 @@ def _latest_pairing(db: Session, annotation_id: int) -> dict[str, Any]:
 
 def _plan_evidence(original_relative: str, annotation_relative: str, reviewer: str) -> list[str]:
     matched = []
+    has_explicit_human_confirmation = False
     for plan in PLAN_PATHS:
         if not plan.is_file():
             raise EvidenceRepairError(f"配对计划不存在: {plan.name}")
@@ -56,8 +57,9 @@ def _plan_evidence(original_relative: str, annotation_relative: str, reviewer: s
         for row in rows:
             values = [str(value or "").replace("\\", "/") for value in row.values()]
             if original_relative in values and annotation_relative in values:
-                if "pair_confirmed" not in values or "human_confirmed" not in values:
+                if "pair_confirmed" not in values or not ({"human_confirmed", "confirmed"} & set(values)):
                     raise EvidenceRepairError(f"配对计划状态不一致: {plan.name}")
+                has_explicit_human_confirmation |= "human_confirmed" in values
                 if reviewer not in "\n".join(values):
                     raise EvidenceRepairError(f"配对计划审核人不一致: {plan.name}")
                 found = True
@@ -65,6 +67,8 @@ def _plan_evidence(original_relative: str, annotation_relative: str, reviewer: s
         if not found:
             raise EvidenceRepairError(f"配对计划未指向同一原图: {plan.name}")
         matched.append(str(plan.resolve()))
+    if not has_explicit_human_confirmation:
+        raise EvidenceRepairError("配对计划缺少human_confirmed证据")
     return matched
 
 
