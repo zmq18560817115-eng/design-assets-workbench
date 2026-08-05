@@ -46,6 +46,7 @@ class Image(Base):
     visibility = Column(String, default="team")
     uploader = Column(String, default="anonymous")  # 上传人
     phash = Column(String, default="", index=True)  # 感知哈希（去重）
+    original_sha256 = Column(String, default="", index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
     case = relationship("Case", back_populates="image", uselist=False)
@@ -864,6 +865,7 @@ class DisinfectionAnnotation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     batch_id = Column(String, ForeignKey("disinfection_annotation_batches.id"), index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="SET NULL"), nullable=True, index=True)
     annotated_image_path = Column(String, default="")
     original_image_path = Column(String, default="")
     source_sha256 = Column(String, nullable=False, index=True)
@@ -898,6 +900,28 @@ class DisinfectionAnnotation(Base):
     annotation_version = Column(Integer, default=1)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
     updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+
+class CompanyEvidenceRepairAudit(Base):
+    """Append-only proof for a tightly constrained company-evidence repair."""
+
+    __tablename__ = "company_evidence_repair_audits"
+    __table_args__ = (
+        UniqueConstraint("annotation_id", "original_sha256", name="uq_company_evidence_repair"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    annotation_id = Column(Integer, ForeignKey("disinfection_annotations.id", ondelete="RESTRICT"), index=True)
+    image_id = Column(Integer, ForeignKey("images.id", ondelete="RESTRICT"), index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="RESTRICT"), index=True)
+    original_sha256 = Column(String, nullable=False, index=True)
+    near_duplicate_override = Column(Boolean, default=True, nullable=False)
+    near_duplicate_case_id = Column(Integer, ForeignKey("cases.id", ondelete="SET NULL"), nullable=True)
+    perceptual_hash_distance = Column(Integer, nullable=True)
+    evidence_paths_json = Column(Text, default="[]")
+    reviewer = Column(String, nullable=False)
+    repair_reason = Column(String, nullable=False)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 
 class DisinfectionAnnotationVersion(Base):

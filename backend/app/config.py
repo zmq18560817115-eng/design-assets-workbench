@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BASE_DIR.parent
+COMPANY_ASSET_ROOT = Path(
+    os.getenv("COMPANY_ASSET_ROOT", PROJECT_DIR / "公司成品素材")
+).resolve()
 
 # Local development reads secrets from the repository-level .env file.
 # Existing process environment variables keep precedence in deployments.

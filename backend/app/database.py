@@ -51,6 +51,18 @@ def _auto_migrate():
 
     inspector = inspect(engine)
     tables = inspector.get_table_names()
+    if "images" in tables:
+        image_cols = {c["name"] for c in inspector.get_columns("images")}
+        if "original_sha256" not in image_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE images ADD COLUMN original_sha256 TEXT DEFAULT ''"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_images_original_sha256 ON images (original_sha256)"))
+    if "disinfection_annotations" in tables:
+        annotation_cols = {c["name"] for c in inspector.get_columns("disinfection_annotations")}
+        if "case_id" not in annotation_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE disinfection_annotations ADD COLUMN case_id INTEGER"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_disinfection_annotations_case_id ON disinfection_annotations (case_id)"))
     if "analysis" in tables:
         existing = {c["name"] for c in inspector.get_columns("analysis")}
         new_cols = {

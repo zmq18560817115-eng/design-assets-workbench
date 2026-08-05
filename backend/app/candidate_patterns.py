@@ -188,6 +188,17 @@ def _quality_blockers(annotation: models.DisinfectionAnnotation) -> list[str]:
 
 
 def _case_for_annotation(db: Session, annotation: models.DisinfectionAnnotation) -> models.Case | None:
+    linked_case_id = getattr(annotation, "case_id", None)
+    if linked_case_id:
+        linked = db.get(models.Case, linked_case_id)
+        if (
+            linked
+            and linked.product_category == annotation.product_category
+            and linked.image
+            and linked.image.source_type == "company_published"
+        ):
+            return linked
+        return None
     original = Path(annotation.original_image_path or "")
     if not original.name:
         return None
