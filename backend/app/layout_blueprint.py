@@ -34,6 +34,16 @@ def _intersection_ratio(left: dict[str, Any], right: dict[str, Any]) -> float:
     return intersection / smaller if smaller else 0.0
 
 
+def _contains(container: dict[str, Any], child: dict[str, Any]) -> bool:
+    tolerance = 1e-6
+    return (
+        child["x"] >= container["x"] - tolerance
+        and child["y"] >= container["y"] - tolerance
+        and child["x"] + child["width"] <= container["x"] + container["width"] + tolerance
+        and child["y"] + child["height"] <= container["y"] + container["height"] + tolerance
+    )
+
+
 def validate_modules(modules: list[dict[str, Any]], module_count: int | None) -> None:
     if module_count is not None and module_count != len(modules):
         raise ValueError("module_count 必须与 modules_json 实际模块数一致")
@@ -65,6 +75,14 @@ def validate_modules(modules: list[dict[str, Any]], module_count: int | None) ->
             continue
         for right in modules[index + 1:]:
             if right["type"] in OVERLAY_TYPES:
+                continue
+            if left["type"] != right["type"] and (
+                _contains(left, right) or _contains(right, left)
+            ):
+                # Human architecture annotations describe layers: layout
+                # blocks contain products, and copy may sit on a product photo.
+                # Cross-type containment is hierarchy, not a collision. Same-
+                # type duplicates and partial crossings remain strictly gated.
                 continue
             if _intersection_ratio(left, right) >= 0.92:
                 raise ValueError(f"模块 {left['id']} 与 {right['id']} 存在严重重叠")

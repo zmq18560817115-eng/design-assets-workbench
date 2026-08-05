@@ -296,6 +296,54 @@ class LayoutPatternCandidateReviewEvent(Base):
     created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
 
 
+class PairingAuthorizationEvent(Base):
+    """Owner authorization for an automatic pairing; never rewrites detection provenance."""
+
+    __tablename__ = "pairing_authorization_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "annotation_id", "authorization_status", "authorization_reason",
+            name="uq_pairing_authorization_event",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    annotation_id = Column(
+        Integer, ForeignKey("disinfection_annotations.id", ondelete="RESTRICT"),
+        nullable=False, index=True,
+    )
+    pairing_detection_source = Column(String, nullable=False, index=True)
+    authorization_status = Column(String, nullable=False, index=True)
+    authorized_by = Column(String, nullable=False)
+    authorization_reason = Column(String, nullable=False, index=True)
+    evidence_json = Column(Text, default="{}")
+    authorized_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
+
+
+class LayoutBlueprintVerificationEvent(Base):
+    """Append-only evidence explaining a human-confirmed blueprint version."""
+
+    __tablename__ = "layout_blueprint_verification_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "blueprint_id", "verification_source",
+            name="uq_layout_blueprint_verification_event",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    blueprint_id = Column(
+        Integer, ForeignKey("layout_blueprints.id", ondelete="RESTRICT"),
+        nullable=False, index=True,
+    )
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="RESTRICT"), nullable=False, index=True)
+    source_pattern_ids_json = Column(Text, default="[]")
+    reviewer = Column(String, nullable=False)
+    verification_source = Column(String, nullable=False, index=True)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
+
+
 class BusinessRequirement(Base):
     """Structured, persisted real-world brief used for layout retrieval."""
 
