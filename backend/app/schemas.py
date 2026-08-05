@@ -351,6 +351,18 @@ class LayoutPatternVerifyInput(BaseModel):
     design_owner_confirmed: bool = False
 
 
+class LayoutPatternCandidateAction(BaseModel):
+    action: Literal[
+        "keep", "merge", "reject", "rename", "owner_confirm",
+        "owner_unconfirm", "publish",
+    ]
+    reviewer: str = ""
+    reviewer_role: Literal["reviewer", "design_owner", "legacy"] = "reviewer"
+    merge_target_id: str = ""
+    name: str = ""
+    notes: str = ""
+
+
 class LayoutPatternCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     description: str = ""
@@ -414,6 +426,8 @@ class LayoutPatternOut(BaseModel):
     business_context_json: dict = Field(default_factory=dict)
     business_context_review_status: Literal["suggested", "verified", "stale"] = "suggested"
     business_context_reviewer: str = ""
+    source_candidate_id: str = ""
+    evidence_annotation_ids_json: list[int] = Field(default_factory=list)
     usage_notes: str
     version: int
     review_status: Literal["draft", "human_edited", "verified", "disabled"]

@@ -314,6 +314,8 @@ def _auto_migrate():
             "business_context_json": ("TEXT", "{}"),
             "business_context_review_status": ("TEXT", "suggested"),
             "business_context_reviewer": ("TEXT", ""),
+            "source_candidate_id": ("TEXT", ""),
+            "evidence_annotation_ids_json": ("TEXT", "[]"),
         }
         for col, (col_type, default) in pattern_fields.items():
             if col not in pattern_cols:
@@ -332,6 +334,11 @@ def _auto_migrate():
                         "ADD COLUMN generated_at DATETIME"
                     )
                 )
+        with engine.begin() as conn:
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_layout_patterns_source_candidate_id "
+                "ON layout_patterns (source_candidate_id) WHERE source_candidate_id != ''"
+            ))
     if "requirement_reference_analyses" in tables:
         ref_cols = {
             c["name"] for c in inspector.get_columns(

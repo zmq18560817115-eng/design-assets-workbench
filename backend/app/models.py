@@ -242,6 +242,8 @@ class LayoutPattern(Base):
     business_context_json = Column(Text, default="{}")
     business_context_review_status = Column(String, default="suggested", index=True)
     business_context_reviewer = Column(String, default="")
+    source_candidate_id = Column(String, default="")
+    evidence_annotation_ids_json = Column(Text, default="[]")
     usage_notes = Column(Text, default="")
     version = Column(Integer, default=1, nullable=False)
     review_status = Column(String, default="human_edited", index=True)
@@ -255,6 +257,41 @@ class LayoutPattern(Base):
         default=dt.datetime.utcnow,
         onupdate=dt.datetime.utcnow,
     )
+
+
+class LayoutPatternCandidateReview(Base):
+    """Independent candidate decision, owner confirmation and formal state."""
+
+    __tablename__ = "layout_pattern_candidate_reviews"
+
+    candidate_id = Column(String, primary_key=True)
+    decision = Column(String, default="pending", nullable=False, index=True)
+    owner_confirmed = Column(Boolean, default=False, nullable=False, index=True)
+    owner_reviewer = Column(String, default="")
+    merge_target_id = Column(String, default="", index=True)
+    display_name = Column(String, default="")
+    formal_pattern_id = Column(Integer, ForeignKey("layout_patterns.id"), nullable=True, unique=True)
+    formal_status = Column(String, default="not_created", nullable=False, index=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow)
+
+
+class LayoutPatternCandidateReviewEvent(Base):
+    """Append-only audit trail for candidate review and formal publication."""
+
+    __tablename__ = "layout_pattern_candidate_review_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(String, nullable=False, index=True)
+    action = Column(String, nullable=False, index=True)
+    previous_state = Column(Text, default="{}")
+    new_state = Column(Text, default="{}")
+    merge_target_id = Column(String, default="")
+    formal_pattern_id = Column(Integer, nullable=True, index=True)
+    reviewer = Column(String, default="")
+    reviewer_role = Column(String, default="")
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
 
 
 class BusinessRequirement(Base):

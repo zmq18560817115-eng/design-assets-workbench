@@ -32,7 +32,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    acceptance_pack, analysis_evaluation, batch, concept, config, crud, imagehash, layout_patterns, layout_search,
+    acceptance_pack, analysis_evaluation, batch, candidate_patterns, concept, config, crud, imagehash, layout_patterns, layout_search,
     llm, models, overlay, vlm,
     acceptance_pack, batch, concept, config, crud, imagehash, layout_blueprint, layout_patterns, layout_search,
     disinfection_annotations, llm, models, overlay, provider_workflow, vlm,
@@ -62,6 +62,7 @@ from .schemas import (
     LayoutPatternPatch,
     LayoutPatternRebuildInput,
     LayoutPatternVerifyInput,
+    LayoutPatternCandidateAction,
     LayoutSearchInput,
     LayoutSearchFeedbackCreate,
     LayoutSearchGroundTruthCreate,
@@ -1577,6 +1578,24 @@ def list_layout_patterns(
     if confidence_level:
         items = [item for item in items if item["confidence_level"] == confidence_level]
     return items
+
+
+@app.get("/api/layout-pattern-candidates")
+def list_layout_pattern_candidates(db: Session = Depends(get_db)):
+    return candidate_patterns.list_review_candidates(db)
+
+
+@app.post("/api/layout-pattern-candidates/{candidate_id}/actions")
+@app.patch("/api/layout-pattern-candidates/{candidate_id}")
+def act_on_layout_pattern_candidate(
+    candidate_id: str,
+    payload: LayoutPatternCandidateAction,
+    db: Session = Depends(get_db),
+):
+    try:
+        return candidate_patterns.apply_action(db, candidate_id, payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/api/layout-patterns", response_model=LayoutPatternOut)
