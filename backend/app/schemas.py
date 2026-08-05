@@ -342,6 +342,15 @@ class LayoutBlueprintVerifyInput(BaseModel):
     version: int | None = Field(default=None, ge=1)
 
 
+class LayoutPatternVerifyInput(BaseModel):
+    editor: str = Field(min_length=1, max_length=120)
+    representative_case_ids: list[int] = Field(min_length=1)
+    name_confirmed: bool = False
+    scenes_confirmed: bool = False
+    modules_confirmed: bool = False
+    design_owner_confirmed: bool = False
+
+
 class LayoutPatternCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     description: str = ""

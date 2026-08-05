@@ -217,11 +217,23 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(rejected_pattern.status_code, 400)
         verified_pattern = self.client.post(
             f"/api/layout-patterns/{pattern.json()['id']}/verify",
-            json={"editor": "layout-library-owner"},
+            json={
+                "editor": "layout-library-owner",
+                "representative_case_ids": pattern.json()["source_case_ids"][:1],
+                "name_confirmed": True,
+                "scenes_confirmed": True,
+                "modules_confirmed": True,
+                "design_owner_confirmed": True,
+            },
         )
-        self.assertEqual(verified_pattern.status_code, 200, verified_pattern.text)
-        self.assertEqual(verified_pattern.json()["version"], 2)
-        self.assertEqual(verified_pattern.json()["review_status"], "verified")
+        self.assertEqual(verified_pattern.status_code, 422, verified_pattern.text)
+        self.assertIn("至少3个不同公司案例", str(verified_pattern.json()))
+        # Preserve the legacy search/direction fixture below without bypassing
+        # the production verification endpoint tested above.
+        with SessionLocal() as db:
+            fixture_pattern = db.get(models.LayoutPattern, pattern.json()["id"])
+            fixture_pattern.review_status = "verified"
+            db.commit()
         pattern_library = self.client.get(
             "/api/layout-patterns",
             params={
@@ -233,7 +245,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(pattern_library.status_code, 200, pattern_library.text)
         self.assertEqual(
             [item["id"] for item in pattern_library.json()],
-            [verified_pattern.json()["id"]],
+            [pattern.json()["id"]],
         )
         requirement = self.client.post(
             "/api/business-requirements",
@@ -267,7 +279,7 @@ class PhaseOneFlowTest(unittest.TestCase):
         self.assertEqual(matched.status_code, 200, matched.text)
         self.assertEqual(
             matched.json()["pattern_matches"][0]["pattern"]["id"],
-            verified_pattern.json()["id"],
+            pattern.json()["id"],
         )
         self.assertEqual(
             matched.json()["case_matches"][0]["case_id"],

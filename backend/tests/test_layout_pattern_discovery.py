@@ -255,9 +255,19 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
         pattern = self.db.query(models.LayoutPattern).filter(
             models.LayoutPattern.discovery_method == DISCOVERY_METHOD
         ).first()
+        pattern.suitable_scenes_json = json.dumps(["产品说明"])
+        pattern.unsuitable_scenes_json = json.dumps(["极简封面"])
+        self.db.commit()
         result = self.client.post(
             f"/api/layout-patterns/{pattern.id}/verify",
-            json={"editor": "设计负责人"},
+            json={
+                "editor": "设计负责人",
+                "representative_case_ids": json.loads(pattern.evidence_case_ids_json)[:1],
+                "name_confirmed": True,
+                "scenes_confirmed": True,
+                "modules_confirmed": True,
+                "design_owner_confirmed": True,
+            },
         )
         self.assertEqual(result.status_code, 200, result.text)
         pattern.name = "人工确认名称"; self.db.commit()
@@ -265,6 +275,23 @@ class LayoutPatternDiscoveryTest(unittest.TestCase):
         self.db.refresh(pattern)
         self.assertEqual(pattern.name, "人工确认名称")
         self.assertEqual(pattern.review_status, "verified")
+
+    def test_15a_design_owner_gate_blocks_verified_write(self):
+        pattern = self.db.query(models.LayoutPattern).filter(
+            models.LayoutPattern.discovery_method == DISCOVERY_METHOD,
+            models.LayoutPattern.review_status == "draft",
+        ).first()
+        pattern.suitable_scenes_json = json.dumps(["产品说明"])
+        pattern.unsuitable_scenes_json = json.dumps(["极简封面"])
+        self.db.commit()
+        before = self.db.query(models.LayoutPattern).filter(models.LayoutPattern.review_status == "verified").count()
+        response = self.client.post(
+            f"/api/layout-patterns/{pattern.id}/verify",
+            json={"editor": "普通审核人", "representative_case_ids": json.loads(pattern.evidence_case_ids_json)[:1], "name_confirmed": True, "scenes_confirmed": True, "modules_confirmed": True, "design_owner_confirmed": False},
+        )
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertIn("设计负责人确认", str(response.json()))
+        self.assertEqual(before, self.db.query(models.LayoutPattern).filter(models.LayoutPattern.review_status == "verified").count())
 
     def test_16_disabled_pattern_is_not_restored(self):
         pattern = self.db.query(models.LayoutPattern).filter(

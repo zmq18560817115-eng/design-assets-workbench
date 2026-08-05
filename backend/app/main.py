@@ -61,6 +61,7 @@ from .schemas import (
     LayoutPatternUpdate,
     LayoutPatternPatch,
     LayoutPatternRebuildInput,
+    LayoutPatternVerifyInput,
     LayoutSearchInput,
     LayoutSearchFeedbackCreate,
     LayoutSearchGroundTruthCreate,
@@ -1671,7 +1672,7 @@ def revise_layout_pattern(
 )
 def verify_layout_pattern(
     pattern_id: int,
-    payload: LayoutBlueprintVerifyInput,
+    payload: LayoutPatternVerifyInput,
     db: Session = Depends(get_db),
 ):
     current = db.get(models.LayoutPattern, pattern_id)
@@ -1681,6 +1682,28 @@ def verify_layout_pattern(
         raise HTTPException(status_code=409, detail="已停用模式不能确认")
     if current.review_status == "verified":
         raise HTTPException(status_code=409, detail="模式已经确认")
+    serialized = crud.serialize_layout_pattern(current)
+    evidence_case_ids = set(serialized["evidence_case_ids_json"])
+    representative_ids = set(payload.representative_case_ids)
+    missing_requirements = []
+    if len(evidence_case_ids) < 3:
+        missing_requirements.append("至少3个不同公司案例")
+    if not representative_ids or not representative_ids.issubset(evidence_case_ids):
+        missing_requirements.append("代表案例明确且属于模式证据")
+    if not current.name.strip() or not payload.name_confirmed:
+        missing_requirements.append("模式名称已确认")
+    if (
+        not payload.scenes_confirmed
+        or not crud._json_list(current.suitable_scenes_json)
+        or not crud._json_list(current.unsuitable_scenes_json)
+    ):
+        missing_requirements.append("适用和不适用场景已确认")
+    if not payload.modules_confirmed or not crud._json_list(current.required_modules_json):
+        missing_requirements.append("必需模块和可选模块已确认")
+    if not payload.design_owner_confirmed:
+        missing_requirements.append("设计负责人确认")
+    if missing_requirements:
+        raise HTTPException(status_code=422, detail={"missing_requirements": missing_requirements})
     if current.pattern_code:
         current.review_status = "verified"
         current.reviewer = payload.editor
