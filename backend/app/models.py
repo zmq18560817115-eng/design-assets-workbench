@@ -243,6 +243,7 @@ class LayoutPattern(Base):
     business_context_review_status = Column(String, default="suggested", index=True)
     business_context_reviewer = Column(String, default="")
     source_candidate_id = Column(String, default="")
+    source_candidate_ids_json = Column(Text, default="[]")
     evidence_annotation_ids_json = Column(Text, default="[]")
     usage_notes = Column(Text, default="")
     version = Column(Integer, default=1, nullable=False)

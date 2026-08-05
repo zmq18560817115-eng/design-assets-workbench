@@ -315,6 +315,7 @@ def _auto_migrate():
             "business_context_review_status": ("TEXT", "suggested"),
             "business_context_reviewer": ("TEXT", ""),
             "source_candidate_id": ("TEXT", ""),
+            "source_candidate_ids_json": ("TEXT", "[]"),
             "evidence_annotation_ids_json": ("TEXT", "[]"),
         }
         for col, (col_type, default) in pattern_fields.items():

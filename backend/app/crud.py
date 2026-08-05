@@ -540,6 +540,7 @@ def serialize_layout_pattern(pattern: models.LayoutPattern) -> dict:
         "business_context_review_status": pattern.business_context_review_status or "suggested",
         "business_context_reviewer": pattern.business_context_reviewer or "",
         "source_candidate_id": pattern.source_candidate_id or "",
+        "source_candidate_ids_json": _json_list(pattern.source_candidate_ids_json),
         "evidence_annotation_ids_json": _json_list(pattern.evidence_annotation_ids_json),
         "usage_notes": pattern.usage_notes,
         "version": pattern.version,

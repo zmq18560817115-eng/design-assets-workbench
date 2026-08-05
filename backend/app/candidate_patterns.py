@@ -16,6 +16,10 @@ DECISIONS = {"pending", "keep", "merge", "reject"}
 OWNER_ROLE = "design_owner"
 
 
+class EvidenceAggregationError(ValueError):
+    pass
+
+
 def load_candidates() -> list[dict[str, Any]]:
     data = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
     return list(data.get("candidates") or [])
@@ -104,6 +108,7 @@ def list_review_candidates(db: Session) -> dict[str, Any]:
         item = {**candidate, **state_dict(state), "history": events.get(candidate["candidate_id"], [])}
         item["pattern_name_suggestion"] = state.display_name or candidate.get("pattern_name_suggestion", "")
         item["missing_requirements"] = publication_missing(db, candidate, state)
+        item["evidence_preview"] = evidence_preview(db, candidate["candidate_id"])
         item["current_step"] = 1 if state.decision == "pending" else 2 if not state.owner_confirmed else 3
         item["is_core_pending"] = state.formal_status != "verified" and state.decision not in {"merge", "reject"}
         items.append(item)
@@ -216,6 +221,116 @@ def evidence(db: Session, candidate: dict[str, Any]) -> tuple[list[models.Disinf
     return ordered, case_ids, blueprint_ids
 
 
+def aggregate_evidence(db: Session, root_candidate_id: str) -> dict[str, Any]:
+    """Resolve the complete merge graph into one immutable publication snapshot."""
+    candidates = candidate_map()
+    states = {row.candidate_id: row for row in db.query(models.LayoutPatternCandidateReview).all()}
+    root = candidates.get(root_candidate_id)
+    root_state = states.get(root_candidate_id)
+    if not root or not root_state:
+        raise EvidenceAggregationError("根候选不存在")
+    if root_state.decision != "keep":
+        raise EvidenceAggregationError("正式证据根候选必须是keep状态")
+
+    terminal_cache: dict[str, str] = {}
+    def terminal(candidate_id: str, path: tuple[str, ...] = ()) -> str:
+        if candidate_id in terminal_cache:
+            return terminal_cache[candidate_id]
+        if candidate_id in path:
+            raise EvidenceAggregationError(f"循环合并: {' -> '.join((*path, candidate_id))}")
+        candidate = candidates.get(candidate_id)
+        state = states.get(candidate_id)
+        if not candidate or not state:
+            raise EvidenceAggregationError(f"合并目标不存在: {candidate_id}")
+        if state.decision == "reject":
+            raise EvidenceAggregationError(f"reject候选不能进入聚合: {candidate_id}")
+        if state.decision == "keep":
+            terminal_cache[candidate_id] = candidate_id
+            return candidate_id
+        if state.decision != "merge" or not state.merge_target_id:
+            raise EvidenceAggregationError(f"无根合并链: {candidate_id}")
+        target = candidates.get(state.merge_target_id)
+        if not target:
+            raise EvidenceAggregationError(f"合并目标不存在: {state.merge_target_id}")
+        if target.get("category") != candidate.get("category"):
+            raise EvidenceAggregationError(f"跨品类合并: {candidate_id} -> {state.merge_target_id}")
+        resolved = terminal(state.merge_target_id, (*path, candidate_id))
+        terminal_cache[candidate_id] = resolved
+        return resolved
+
+    for candidate_id, state in states.items():
+        if state.decision == "merge":
+            terminal(candidate_id)
+    source_ids = [root_candidate_id] + sorted(
+        candidate_id for candidate_id, state in states.items()
+        if state.decision == "merge" and terminal(candidate_id) == root_candidate_id
+    )
+    if any(candidates[item]["category"] != root["category"] for item in source_ids):
+        raise EvidenceAggregationError("聚合包含跨品类候选")
+
+    raw_annotation_ids = [
+        annotation_id for candidate_id in source_ids
+        for annotation_id in candidates[candidate_id].get("evidence_annotation_ids", [])
+    ]
+    annotation_ids = list(dict.fromkeys(raw_annotation_ids))
+    aggregate = {**root, "evidence_annotation_ids": annotation_ids}
+    annotations, case_ids, blueprint_ids = evidence(db, aggregate)
+    found_ids = {item.id for item in annotations}
+    missing_annotation_ids = [item for item in annotation_ids if item not in found_ids]
+    if missing_annotation_ids:
+        raise EvidenceAggregationError(f"无法追溯的标注: {missing_annotation_ids}")
+    blocked = [item.id for item in annotations if _quality_blockers(item)]
+    if blocked:
+        raise EvidenceAggregationError(f"needs_box_fix证据: {blocked}")
+    non_company = [item.id for item in annotations if item.source_type != "company_published"]
+    if non_company:
+        raise EvidenceAggregationError(f"非company_published证据: {non_company}")
+    annotation_cases = []
+    for annotation in annotations:
+        case = _case_for_annotation(db, annotation)
+        if not case:
+            raise EvidenceAggregationError(f"无法追溯公司案例的标注: {annotation.id}")
+        if not case.image or case.image.source_type != "company_published":
+            raise EvidenceAggregationError(f"非company_published案例: {case.id}")
+        annotation_cases.append({"annotation_id": annotation.id, "case_id": case.id})
+    if len(case_ids) < 3:
+        raise EvidenceAggregationError("去重后少于3个公司案例")
+    _, own_case_ids, _ = evidence(db, root)
+    return {
+        "root_candidate_id": root_candidate_id,
+        "source_candidate_ids": source_ids,
+        "merged_candidate_count": len(source_ids) - 1,
+        "own_case_count": len(own_case_ids),
+        "raw_annotation_count": len(raw_annotation_ids),
+        "annotation_ids": annotation_ids,
+        "case_ids": case_ids,
+        "blueprint_ids": blueprint_ids,
+        "annotation_cases": annotation_cases,
+        "deduplicated_count": len(raw_annotation_ids) - len(annotation_ids),
+        "case_deduplicated_count": len(annotation_cases) - len(case_ids),
+        "excluded_evidence": [],
+        "evidence_count": len(case_ids),
+    }
+
+
+def evidence_preview(db: Session, candidate_id: str) -> dict[str, Any]:
+    try:
+        return {**aggregate_evidence(db, candidate_id), "errors": []}
+    except EvidenceAggregationError as exc:
+        candidate = candidate_map().get(candidate_id, {})
+        _, case_ids, _ = evidence(db, candidate) if candidate else ([], [], [])
+        return {
+            "root_candidate_id": candidate_id,
+            "source_candidate_ids": [candidate_id] if candidate else [],
+            "merged_candidate_count": 0,
+            "own_case_count": len(case_ids),
+            "evidence_count": len(case_ids), "case_ids": case_ids,
+            "annotation_ids": list(dict.fromkeys(candidate.get("evidence_annotation_ids", []))),
+            "deduplicated_count": 0, "case_deduplicated_count": 0,
+            "excluded_evidence": [], "errors": [str(exc)],
+        }
+
+
 def publication_missing(db: Session, candidate: dict[str, Any], row: models.LayoutPatternCandidateReview) -> list[str]:
     missing = []
     if row.decision != "keep": missing.append("候选尚未明确保留")
@@ -226,11 +341,11 @@ def publication_missing(db: Session, candidate: dict[str, Any], row: models.Layo
     if not str(candidate.get("reading_order") or "").strip(): missing.append("阅读顺序缺失")
     required, optional = candidate.get("required_modules"), candidate.get("optional_modules")
     if not isinstance(required, list) or not required or not isinstance(optional, list): missing.append("必需模块或可选模块不合法")
-    annotations, case_ids, _ = evidence(db, candidate)
-    if len(case_ids) < 3: missing.append("少于3个合格公司案例证据")
-    if len(annotations) != len(set(candidate.get("evidence_annotation_ids") or [])): missing.append("证据来源不完整")
-    if any(_quality_blockers(item) for item in annotations): missing.append("证据包含needs_box_fix案例")
-    if any(item.source_type != "company_published" for item in annotations): missing.append("证据包含非公司案例")
+    if row.decision == "keep":
+        try:
+            aggregate_evidence(db, candidate["candidate_id"])
+        except EvidenceAggregationError as exc:
+            missing.append(str(exc))
     return missing
 
 
@@ -259,7 +374,11 @@ def publish(db: Session, candidate: dict[str, Any], row: models.LayoutPatternCan
     missing = publication_missing(db, candidate, row)
     if missing:
         raise ValueError("；".join(missing))
-    annotations, case_ids, blueprint_ids = evidence(db, candidate)
+    snapshot = aggregate_evidence(db, row.candidate_id)
+    annotation_ids = snapshot["annotation_ids"]
+    case_ids = snapshot["case_ids"]
+    blueprint_ids = snapshot["blueprint_ids"]
+    annotations = db.query(models.DisinfectionAnnotation).filter(models.DisinfectionAnnotation.id.in_(annotation_ids)).all()
     representative_id = (candidate.get("representative_ids") or [annotations[0].id])[0]
     representative = next((item for item in annotations if item.id == representative_id), annotations[0])
     modules = _modules(representative)
@@ -279,7 +398,8 @@ def publish(db: Session, candidate: dict[str, Any], row: models.LayoutPatternCan
         suitable_scenes_json=json.dumps(candidate["suitable_pages"], ensure_ascii=False),
         unsuitable_scenes_json=json.dumps(candidate["unsuitable_pages"], ensure_ascii=False),
         evidence_case_ids_json=json.dumps(case_ids), evidence_blueprint_ids_json=json.dumps(blueprint_ids),
-        evidence_annotation_ids_json=json.dumps([item.id for item in annotations]), evidence_count=len(case_ids),
+        evidence_annotation_ids_json=json.dumps(annotation_ids), evidence_count=len(case_ids),
+        source_candidate_ids_json=json.dumps(snapshot["source_candidate_ids"], ensure_ascii=False),
         source_case_ids=json.dumps(case_ids), source_blueprint_ids=json.dumps(blueprint_ids),
         product_category_tags_json=json.dumps([candidate["category"]], ensure_ascii=False),
         business_context_json=json.dumps({"product_categories": [candidate["category"]]}, ensure_ascii=False),

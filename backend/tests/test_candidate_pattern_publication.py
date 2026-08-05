@@ -114,9 +114,81 @@ class CandidatePatternPublicationTest(unittest.TestCase):
         pattern = self.db.get(models.LayoutPattern, first["formal_pattern_id"])
         self.assertEqual(pattern.review_status, "verified")
         self.assertEqual(pattern.source_candidate_id, "cup-01")
+        self.assertEqual(json.loads(pattern.source_candidate_ids_json), ["cup-01"])
         self.assertEqual(len(json.loads(pattern.evidence_case_ids_json)), 3)
         actions = [item.action for item in self.db.query(models.LayoutPatternCandidateReviewEvent).filter_by(candidate_id="cup-01").all()]
         self.assertIn("formal_pattern_created", actions); self.assertIn("formal_verified", actions)
+
+    def test_no_merge_keeps_evidence_count(self):
+        state = self.db.get(models.LayoutPatternCandidateReview, "cup-01"); state.decision = "keep"; self.db.commit()
+        result = candidate_patterns.aggregate_evidence(self.db, "cup-01")
+        self.assertEqual(result["evidence_count"], 3)
+        self.assertEqual(result["source_candidate_ids"], ["cup-01"])
+
+    def test_single_and_multi_level_merge_aggregate_and_deduplicate(self):
+        state1 = self.db.get(models.LayoutPatternCandidateReview, "cup-01"); state1.decision = "keep"
+        state2 = self.db.get(models.LayoutPatternCandidateReview, "cup-02"); state2.decision = "merge"; state2.merge_target_id = "cup-01"
+        state3 = self.db.get(models.LayoutPatternCandidateReview, "pump-01")
+        # Recast the third fixture as the same category solely for recursive aggregation coverage.
+        self.candidates[2]["category"] = "恒温杯"; self.candidates[2]["evidence_annotation_ids"] = [6, 7, 8]
+        candidate_patterns.CANDIDATE_PATH.write_text(json.dumps({"candidates": self.candidates}, ensure_ascii=False), encoding="utf-8")
+        for annotation_id in (7, 8):
+            annotation = self.db.get(models.DisinfectionAnnotation, annotation_id); annotation.product_category = "恒温杯"
+            annotation_case = self.db.query(models.Case).join(models.Image).filter(models.Image.filename == f"case-{annotation_id}.png").one(); annotation_case.product_category = "恒温杯"
+        state3.decision = "merge"; state3.merge_target_id = "cup-02"; self.db.commit()
+        result = candidate_patterns.aggregate_evidence(self.db, "cup-01")
+        self.assertEqual(result["source_candidate_ids"], ["cup-01", "cup-02", "pump-01"])
+        self.assertEqual(result["annotation_ids"], [1, 2, 3, 4, 5, 6, 7, 8])
+        self.assertEqual(result["deduplicated_count"], 1)
+        self.assertEqual(result["evidence_count"], 8)
+
+    def test_distinct_annotations_for_the_same_case_are_deduplicated(self):
+        one = self.db.get(models.LayoutPatternCandidateReview, "cup-01"); one.decision = "keep"
+        two = self.db.get(models.LayoutPatternCandidateReview, "cup-02"); two.decision = "merge"; two.merge_target_id = "cup-01"
+        annotation = self.db.get(models.DisinfectionAnnotation, 4)
+        annotation.original_image_path = str(Path(annotation.original_image_path).with_name("case-1.png"))
+        self.db.commit()
+        result = candidate_patterns.aggregate_evidence(self.db, "cup-01")
+        self.assertEqual(result["annotation_ids"], [1, 2, 3, 4, 5, 6])
+        self.assertEqual(result["evidence_count"], 5)
+        self.assertEqual(result["case_deduplicated_count"], 1)
+
+    def test_cycle_and_rootless_chain_are_rejected(self):
+        one = self.db.get(models.LayoutPatternCandidateReview, "cup-01"); two = self.db.get(models.LayoutPatternCandidateReview, "cup-02")
+        root = self.db.get(models.LayoutPatternCandidateReview, "pump-01"); root.decision = "keep"
+        one.decision = two.decision = "merge"; one.merge_target_id = "cup-02"; two.merge_target_id = "cup-01"; self.db.commit()
+        with self.assertRaisesRegex(ValueError, "循环合并"):
+            candidate_patterns.aggregate_evidence(self.db, "pump-01")
+        one.decision = "pending"; one.merge_target_id = ""; two.merge_target_id = "cup-01"; self.db.commit()
+        with self.assertRaisesRegex(ValueError, "无根合并链"):
+            candidate_patterns.aggregate_evidence(self.db, "pump-01")
+        one.decision = "merge"; one.merge_target_id = "missing-candidate"; two.decision = "pending"; self.db.commit()
+        with self.assertRaisesRegex(ValueError, "合并目标不存在"):
+            candidate_patterns.aggregate_evidence(self.db, "pump-01")
+
+    def test_reject_and_independent_keep_are_not_aggregated(self):
+        one = self.db.get(models.LayoutPatternCandidateReview, "cup-01"); one.decision = "keep"
+        two = self.db.get(models.LayoutPatternCandidateReview, "cup-02"); two.decision = "reject"
+        three = self.db.get(models.LayoutPatternCandidateReview, "pump-01"); three.decision = "keep"; self.db.commit()
+        result = candidate_patterns.aggregate_evidence(self.db, "cup-01")
+        self.assertEqual(result["source_candidate_ids"], ["cup-01"])
+
+    def test_non_company_and_untraceable_evidence_are_rejected(self):
+        state = self.db.get(models.LayoutPatternCandidateReview, "cup-01"); state.decision = "keep"
+        annotation = self.db.get(models.DisinfectionAnnotation, 1); annotation.source_type = "external_reference"; self.db.commit()
+        with self.assertRaisesRegex(ValueError, "非company_published"):
+            candidate_patterns.aggregate_evidence(self.db, "cup-01")
+        annotation.source_type = "company_published"; annotation.original_image_path = "missing-ambiguous.png"; self.db.commit()
+        with self.assertRaisesRegex(ValueError, "无法追溯公司案例"):
+            candidate_patterns.aggregate_evidence(self.db, "cup-01")
+
+    def test_published_snapshot_does_not_change_with_candidate_state(self):
+        self.action("cup-01", "keep", reviewer_role="reviewer"); self.action("cup-01", "owner_confirm")
+        published = self.action("cup-01", "publish"); pattern = self.db.get(models.LayoutPattern, published["formal_pattern_id"])
+        frozen_annotations = pattern.evidence_annotation_ids_json; frozen_sources = pattern.source_candidate_ids_json
+        state = self.db.get(models.LayoutPatternCandidateReview, "cup-02"); state.decision = "merge"; state.merge_target_id = "cup-01"; self.db.commit()
+        self.assertEqual(pattern.evidence_annotation_ids_json, frozen_annotations)
+        self.assertEqual(pattern.source_candidate_ids_json, frozen_sources)
 
     def test_merge_and_reject_archive_without_deleting_candidates(self):
         self.action("cup-01", "merge", merge_target_id="cup-02", reviewer_role="reviewer")

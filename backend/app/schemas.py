@@ -427,6 +427,7 @@ class LayoutPatternOut(BaseModel):
     business_context_review_status: Literal["suggested", "verified", "stale"] = "suggested"
     business_context_reviewer: str = ""
     source_candidate_id: str = ""
+    source_candidate_ids_json: list[str] = Field(default_factory=list)
     evidence_annotation_ids_json: list[int] = Field(default_factory=list)
     usage_notes: str
     version: int

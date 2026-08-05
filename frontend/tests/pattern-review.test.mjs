@@ -25,6 +25,9 @@ test("publication workflow exposes explicit Chinese actions and history", () => 
     assert.match(page, new RegExp(label));
   }
   assert.match(page, /candidate\.missing_requirements\.length === 0/);
+  for (const label of ["自身案例", "合并候选", "聚合后案例", "查看证据聚合预览"]) {
+    assert.match(page, new RegExp(label));
+  }
 });
 
 test("candidate route proxies persistence to the backend", () => {
