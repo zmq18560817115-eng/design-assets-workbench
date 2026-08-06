@@ -559,6 +559,9 @@ def create_business_requirement(
     payload: BusinessRequirementCreate,
 ) -> models.BusinessRequirement:
     values = payload.model_dump()
+    if values.get("status") != "draft":
+        raise ValueError("新需求只能保存为 draft，必须通过独立确认流程")
+    values["confirmed_at"] = None
     mandatory_elements = values.pop("mandatory_elements")
     list_fields = {
         key: values.pop(key)
@@ -612,11 +615,18 @@ def serialize_business_requirement(
 ) -> dict:
     return {
         "id": requirement.id,
+        "project_id": requirement.project_id,
         "title": requirement.title,
         "request_text": requirement.request_text,
         "industry": requirement.industry,
         "product_category": requirement.product_category,
+        "product_name": requirement.product_name or "",
         "channel": requirement.channel,
+        "page_role": requirement.page_role or "",
+        "business_priority": requirement.business_priority or "",
+        "brief_source": requirement.brief_source or "",
+        "reviewer": requirement.reviewer or "",
+        "confirmed_at": requirement.confirmed_at,
         "canvas_ratio": requirement.canvas_ratio,
         "orientation": requirement.orientation,
         "campaign_stage": requirement.campaign_stage,
@@ -653,6 +663,8 @@ def update_business_requirement(
     if requirement.status == "archived":
         raise ValueError("已归档需求不能修改")
     values = payload.model_dump()
+    if values.get("status") == "confirmed" and requirement.status != "confirmed":
+        raise ValueError("不能通过编辑接口直接确认需求")
     reference_ids = list(
         dict.fromkeys(
             values.pop("reference_case_ids_json")

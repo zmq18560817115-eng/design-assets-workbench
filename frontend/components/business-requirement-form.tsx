@@ -4,6 +4,8 @@ import { BusinessRequirementCreate, api } from "@/lib/api";
 import { useMemo, useState } from "react";
 
 export const emptyRequirement: BusinessRequirementCreate = {
+  project_id: null, product_name: "", page_role: "", business_priority: "",
+  brief_source: "", reviewer: "", confirmed_at: null,
   title: "", request_text: "", industry: "", product_category: "", channel: "",
   canvas_ratio: "3:4", orientation: "portrait", campaign_stage: "",
   business_goal: "", target_audience: "", key_message: "", mandatory_elements: [],
@@ -124,6 +126,14 @@ export function BusinessRequirementForm({
             }} />
           {form.reference_image_path && <span className="mt-1 block text-xs text-gray-400">{form.reference_image_path}</span>}
         </label>
+      </Section>
+      <Section title="真实需求确认信息">
+        <Input label="项目 ID" value={form.project_id ? String(form.project_id) : ""} onChange={(v) => set("project_id", v ? Number(v) : null)} required />
+        <Input label="产品名称" value={form.product_name || ""} onChange={(v) => set("product_name", v)} />
+        <Input label="页面角色" value={form.page_role || ""} onChange={(v) => set("page_role", v)} />
+        <Input label="业务优先级" value={form.business_priority || ""} onChange={(v) => set("business_priority", v)} />
+        <Input label="审核人" value={form.reviewer || ""} onChange={(v) => set("reviewer", v)} />
+        <TextArea label="真实 Brief 来源（飞书链接或可追溯文档）" value={form.brief_source || ""} onChange={(v) => set("brief_source", v)} />
       </Section>
       {message && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-700">{message}</p>}
       <button disabled={disabled || Boolean(conflict.length)} className="rounded-xl bg-ink px-6 py-3 text-sm text-white disabled:opacity-40">

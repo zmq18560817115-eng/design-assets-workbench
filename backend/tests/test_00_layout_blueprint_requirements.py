@@ -22,6 +22,8 @@ from pydantic import ValidationError  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas import LayoutBlueprintInput  # noqa: E402
 from app.agents import run_pipeline  # noqa: E402
+from app.database import SessionLocal  # noqa: E402
+from app import models  # noqa: E402
 
 
 def image_bytes(color: str = "#edf3f8") -> bytes:
@@ -119,7 +121,16 @@ class LayoutBlueprintRequirementV2Test(unittest.TestCase):
         }
 
     def test_03_requirement_create_update_confirm_and_validation(self):
-        payload = self.requirement_payload()
+        project = self.client.post("/api/projects", json={
+            "name": "Requirement gate project", "description": "real brief test",
+            "business_line": "maternal", "status": "active", "is_gold": False,
+        })
+        self.assertEqual(project.status_code, 200, project.text)
+        payload = {
+            **self.requirement_payload(), "project_id": project.json()["id"],
+            "product_name": "Test product", "page_role": "selling-point",
+            "brief_source": "feishu://real-brief/test", "reviewer": "Test owner",
+        }
         created = self.client.post("/api/business-requirements", json=payload)
         self.assertEqual(created.status_code, 200, created.text)
         requirement_id = created.json()["id"]
@@ -129,7 +140,8 @@ class LayoutBlueprintRequirementV2Test(unittest.TestCase):
         )
         self.assertEqual(updated.status_code, 200, updated.text)
         confirmed = self.client.post(
-            f"/api/business-requirements/{requirement_id}/confirm"
+            f"/api/business-requirements/{requirement_id}/confirm",
+            json={"reviewer": "Test owner", "notes": "fields checked"},
         )
         self.assertEqual(confirmed.json()["status"], "confirmed")
         conflict = self.client.post(
@@ -142,6 +154,16 @@ class LayoutBlueprintRequirementV2Test(unittest.TestCase):
             json={**payload, "title": "无效参考", "reference_case_ids_json": [999999]},
         )
         self.assertEqual(missing.status_code, 400)
+        # Keep this test isolated even when a developer explicitly points the
+        # suite at a persistent local database.
+        db = SessionLocal()
+        try:
+            db.query(models.BusinessRequirementReviewEvent).filter_by(requirement_id=requirement_id).delete()
+            db.query(models.BusinessRequirement).filter_by(id=requirement_id).delete()
+            db.query(models.Project).filter_by(id=project.json()["id"]).delete()
+            db.commit()
+        finally:
+            db.close()
 
     def test_04_invalid_ai_json_falls_back_and_strict_mode_errors(self):
         path = _root / "invalid-ai.png"

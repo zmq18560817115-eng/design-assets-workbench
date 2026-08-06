@@ -265,7 +265,7 @@ class PhaseOneFlowTest(unittest.TestCase):
                 "information_density": "medium",
                 "reference_case_ids": [case["id"]],
                 "created_by": "业务设计师",
-                "status": "ready",
+                "status": "draft",
             },
         )
         self.assertEqual(requirement.status_code, 200, requirement.text)

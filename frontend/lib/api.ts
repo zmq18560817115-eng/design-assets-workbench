@@ -317,11 +317,18 @@ export interface LayoutPatternCreate {
 }
 
 export interface BusinessRequirementCreate {
+  project_id?: number | null;
   title: string;
   request_text: string;
   industry: string;
   product_category: string;
+  product_name?: string;
   channel: string;
+  page_role?: string;
+  business_priority?: string;
+  brief_source?: string;
+  reviewer?: string;
+  confirmed_at?: string | null;
   canvas_ratio: string;
   orientation: "" | "portrait" | "landscape" | "square";
   campaign_stage: string;
@@ -349,6 +356,20 @@ export interface BusinessRequirement extends BusinessRequirementCreate {
   id: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface SearchCaseContext {
+  id: number; case_id: number; case_name: string; product_category: string;
+  source_type: string; project_id: number | null; image_id: number; image_url: string;
+  annotation_id: number | null; blueprint_id: number | null; pattern_ids: number[];
+  use_scene: string | null; content_purpose: string | null; channel: string | null;
+  page_role: string | null; target_audience_json: string[] | null;
+  evidence_strength: "standard" | "weak";
+  field_sources: Record<string, { status?: string; [key: string]: unknown }>;
+  suggestions: Record<string, { value?: string; status?: string; [key: string]: unknown }>;
+  confirmation_status: "draft" | "verified"; reviewer: string | null;
+  verified_at: string | null; version: number; missing_fields: string[];
+  history?: Array<Record<string, unknown>>;
 }
 
 export interface BusinessRequirementMatch {
@@ -679,10 +700,27 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then((r) => j<BusinessRequirement>(r)),
-  confirmBusinessRequirement: (id: number | string) =>
+  confirmBusinessRequirement: (id: number | string, reviewer: string, notes = "") =>
     fetch(`/api/business-requirements/${id}/confirm`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewer, notes }),
     }).then((r) => j<BusinessRequirement>(r)),
+  returnBusinessRequirement: (id: number | string, reviewer: string, notes = "") =>
+    fetch(`/api/business-requirements/${id}/return`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewer, notes }),
+    }).then((r) => j<BusinessRequirement>(r)),
+  searchCaseContexts: (params = "") =>
+    fetch(`/api/admin/search-case-contexts${params ? `?${params}` : ""}`, { cache: "no-store" })
+      .then((r) => j<{ target_count: number; item_count: number; items: SearchCaseContext[] }>(r)),
+  initializeSearchCaseContexts: (execute = false) =>
+    fetch(`/api/admin/search-case-contexts/initialize?execute=${execute}`, { method: "POST" })
+      .then((r) => j<Record<string, unknown>>(r)),
+  updateSearchCaseContexts: (payload: { case_ids: number[]; values: Record<string, unknown>; reviewer: string; notes?: string; verify?: boolean }) =>
+    fetch("/api/admin/search-case-contexts/batch", {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    }).then((r) => j<{ affected_count: number; items: SearchCaseContext[] }>(r)),
   uploadRequirementReference: (file: File) => {
     const body = new FormData();
     body.append("file", file);

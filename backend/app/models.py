@@ -350,11 +350,18 @@ class BusinessRequirement(Base):
     __tablename__ = "business_requirements"
 
     id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="RESTRICT"), nullable=True, index=True)
     title = Column(String, nullable=False, index=True)
     request_text = Column(Text, default="")
     industry = Column(String, default="", index=True)
     product_category = Column(String, default="", index=True)
+    product_name = Column(String, default="", index=True)
     channel = Column(String, default="", index=True)
+    page_role = Column(String, default="", index=True)
+    business_priority = Column(String, default="", index=True)
+    brief_source = Column(Text, default="")
+    reviewer = Column(String, default="", index=True)
+    confirmed_at = Column(DateTime, nullable=True, index=True)
     canvas_ratio = Column(String, default="", index=True)
     orientation = Column(String, default="", index=True)
     campaign_stage = Column(String, default="", index=True)
@@ -970,6 +977,60 @@ class CompanyEvidenceRepairAudit(Base):
     reviewer = Column(String, nullable=False)
     repair_reason = Column(String, nullable=False)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
+class BusinessRequirementReviewEvent(Base):
+    """Append-only confirmation and return history for a real brief."""
+
+    __tablename__ = "business_requirement_review_events"
+    id = Column(Integer, primary_key=True, index=True)
+    requirement_id = Column(Integer, ForeignKey("business_requirements.id", ondelete="RESTRICT"), nullable=False, index=True)
+    action = Column(String, nullable=False, index=True)
+    previous_state = Column(String, nullable=False)
+    new_state = Column(String, nullable=False)
+    changed_fields_json = Column(Text, default="[]")
+    reviewer = Column(String, nullable=False, index=True)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False, index=True)
+
+
+class CaseBusinessContext(Base):
+    """Human-confirmable business context for one searchable company case."""
+
+    __tablename__ = "case_business_contexts"
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="RESTRICT"), nullable=False, unique=True, index=True)
+    use_scene = Column(String, nullable=True)
+    content_purpose = Column(String, nullable=True, index=True)
+    channel = Column(String, nullable=True, index=True)
+    page_role = Column(String, nullable=True, index=True)
+    target_audience_json = Column(Text, nullable=True)
+    evidence_strength = Column(String, default="standard", nullable=False, index=True)
+    field_sources_json = Column(Text, default="{}", nullable=False)
+    suggestion_json = Column(Text, default="{}", nullable=False)
+    source_fingerprint = Column(String, nullable=False, index=True)
+    confirmation_status = Column(String, default="draft", nullable=False, index=True)
+    reviewer = Column(String, nullable=True, index=True)
+    verified_at = Column(DateTime, nullable=True, index=True)
+    version = Column(Integer, default=1, nullable=False)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow, nullable=False)
+
+
+class CaseBusinessContextEvent(Base):
+    """Append-only history for context initialization, edits, and verification."""
+
+    __tablename__ = "case_business_context_events"
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, ForeignKey("cases.id", ondelete="RESTRICT"), nullable=False, index=True)
+    action = Column(String, nullable=False, index=True)
+    previous_state = Column(String, nullable=False)
+    new_state = Column(String, nullable=False)
+    changed_fields_json = Column(Text, default="[]", nullable=False)
+    field_sources_json = Column(Text, default="{}", nullable=False)
+    reviewer = Column(String, nullable=True, index=True)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False, index=True)
 
 
 class DisinfectionAnnotationVersion(Base):

@@ -556,11 +556,18 @@ class AnalysisResultRetryInput(BaseModel):
 
 
 class BusinessRequirementCreate(BaseModel):
+    project_id: int | None = Field(default=None, ge=1)
     title: str = Field(min_length=1, max_length=180)
     request_text: str = ""
     industry: str = ""
     product_category: str = ""
+    product_name: str = ""
     channel: str = ""
+    page_role: str = ""
+    business_priority: str = ""
+    brief_source: str = ""
+    reviewer: str = ""
+    confirmed_at: dt.datetime | None = None
     canvas_ratio: str = ""
     orientation: Literal["", "portrait", "landscape", "square"] = ""
     campaign_stage: str = ""
@@ -615,6 +622,11 @@ class BusinessRequirementOut(BusinessRequirementCreate):
     id: int
     created_at: dt.datetime
     updated_at: dt.datetime
+
+
+class BusinessRequirementReviewInput(BaseModel):
+    reviewer: str = Field(min_length=1, max_length=120)
+    notes: str = ""
 
 
 class LayoutSearchInput(BaseModel):

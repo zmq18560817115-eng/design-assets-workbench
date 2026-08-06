@@ -32,7 +32,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from . import (
-    acceptance_pack, analysis_evaluation, batch, candidate_patterns, concept, config, crud, imagehash, layout_patterns, layout_search,
+    acceptance_pack, analysis_evaluation, batch, business_requirement_review, candidate_patterns, concept, config, crud, imagehash, layout_patterns, layout_search,
     llm, models, overlay, vlm,
     acceptance_pack, batch, concept, config, crud, imagehash, layout_blueprint, layout_patterns, layout_search,
     disinfection_annotations, llm, models, overlay, provider_workflow, vlm,
@@ -43,12 +43,14 @@ from . import platform as plat
 from . import search as multimodal_search
 from .agents import run_pipeline
 from .database import SessionLocal, close_db, get_db, init_db
+from .case_business_context_routes import router as case_business_context_router
 from .schemas import (
     AnalysisResult,
     BusinessRequirementCreate,
     BusinessRequirementUpdate,
     BusinessRequirementMatchOut,
     BusinessRequirementOut,
+    BusinessRequirementReviewInput,
     CaseOut,
     CaseBusinessUpdate,
     CaseReviewInput,
@@ -107,6 +109,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(case_business_context_router)
 
 # 静态托管上传的图片
 app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploads")
@@ -1879,6 +1882,7 @@ def patch_business_requirement(
 )
 def confirm_business_requirement(
     requirement_id: int,
+    payload: BusinessRequirementReviewInput,
     db: Session = Depends(get_db),
 ):
     requirement = db.get(models.BusinessRequirement, requirement_id)
@@ -1886,10 +1890,47 @@ def confirm_business_requirement(
         raise HTTPException(status_code=404, detail="业务需求不存在")
     if requirement.status == "archived":
         raise HTTPException(status_code=409, detail="已归档需求不能确认")
-    requirement.status = "confirmed"
-    db.commit()
-    db.refresh(requirement)
-    return crud.serialize_business_requirement(requirement)
+    try:
+        reviewed = business_requirement_review.review(
+            db, requirement, action="confirm", reviewer=payload.reviewer,
+            notes=payload.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return crud.serialize_business_requirement(reviewed)
+
+
+@app.post("/api/business-requirements/{requirement_id}/return", response_model=BusinessRequirementOut)
+def return_business_requirement(
+    requirement_id: int,
+    payload: BusinessRequirementReviewInput,
+    db: Session = Depends(get_db),
+):
+    requirement = db.get(models.BusinessRequirement, requirement_id)
+    if not requirement:
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    try:
+        reviewed = business_requirement_review.review(
+            db, requirement, action="return", reviewer=payload.reviewer,
+            notes=payload.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return crud.serialize_business_requirement(reviewed)
+
+
+@app.get("/api/business-requirements/{requirement_id}/review-history")
+def business_requirement_review_history(requirement_id: int, db: Session = Depends(get_db)):
+    if not db.get(models.BusinessRequirement, requirement_id):
+        raise HTTPException(status_code=404, detail="业务需求不存在")
+    return [{
+        "id": row.id, "action": row.action,
+        "previous_state": row.previous_state, "new_state": row.new_state,
+        "changed_fields": json.loads(row.changed_fields_json or "[]"),
+        "reviewer": row.reviewer, "notes": row.notes, "created_at": row.created_at,
+    } for row in db.query(models.BusinessRequirementReviewEvent).filter_by(
+        requirement_id=requirement_id
+    ).order_by(models.BusinessRequirementReviewEvent.id).all()]
 
 
 @app.post(

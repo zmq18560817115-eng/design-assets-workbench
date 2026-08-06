@@ -281,6 +281,12 @@ def _auto_migrate():
             c["name"] for c in inspector.get_columns("business_requirements")
         }
         requirement_fields = {
+            "project_id": ("INTEGER", None),
+            "product_name": ("TEXT", ""),
+            "page_role": ("TEXT", ""),
+            "business_priority": ("TEXT", ""),
+            "brief_source": ("TEXT", ""),
+            "reviewer": ("TEXT", ""),
             "content_purpose": ("TEXT", ""),
             "required_modules_json": ("TEXT", "[]"),
             "optional_modules_json": ("TEXT", "[]"),
@@ -294,13 +300,17 @@ def _auto_migrate():
         }
         for col, (col_type, default) in requirement_fields.items():
             if col not in requirement_cols:
+                default_sql = "" if default is None else f" DEFAULT '{default}'"
                 with engine.begin() as conn:
                     conn.execute(
                         text(
                             f"ALTER TABLE business_requirements ADD COLUMN {col} "
-                            f"{col_type} DEFAULT '{default}'"
+                            f"{col_type}{default_sql}"
                         )
                     )
+        if "confirmed_at" not in requirement_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE business_requirements ADD COLUMN confirmed_at DATETIME"))
     if "layout_patterns" in tables:
         pattern_cols = {
             c["name"] for c in inspector.get_columns("layout_patterns")
