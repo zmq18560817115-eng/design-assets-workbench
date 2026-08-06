@@ -44,6 +44,7 @@ from . import search as multimodal_search
 from .agents import run_pipeline
 from .database import SessionLocal, close_db, get_db, init_db
 from .case_business_context_routes import router as case_business_context_router
+from .real_search_acceptance_routes import router as real_search_acceptance_router
 from .schemas import (
     AnalysisResult,
     BusinessRequirementCreate,
@@ -110,6 +111,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(case_business_context_router)
+app.include_router(real_search_acceptance_router)
 
 # 静态托管上传的图片
 app.mount("/uploads", StaticFiles(directory=str(config.UPLOAD_DIR)), name="uploads")

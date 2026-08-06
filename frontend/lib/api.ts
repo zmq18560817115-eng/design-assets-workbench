@@ -294,6 +294,8 @@ export interface LayoutSearchDataset {
   name: string;
   description: string;
   dataset_kind: "real" | "fixture";
+  search_version: string;
+  scoring_version: string;
   created_by: string;
   frozen_at: string | null;
   last_run_at: string | null;
@@ -439,6 +441,33 @@ export interface LayoutSearchResponse {
     } | null;
   };
   scoring_version: string;
+}
+
+export interface RealSearchAcceptanceResult extends LayoutSearchResult {
+  image_url: string;
+  product_category: string;
+  content_purpose?: string;
+  page_role?: string;
+  source_evidence: Record<string, unknown>;
+}
+
+export interface RealSearchAcceptanceDataset {
+  dataset_version: string;
+  name: string;
+  scoring_version: string;
+  calibration_count: number;
+  holdout_count: number;
+  holdout_executed: boolean;
+  holdout_read: boolean;
+  completed_count: number;
+  calibration: Array<{
+    requirement: Pick<BusinessRequirement, "id" | "title" | "raw_requirement" | "product_category" | "content_purpose" | "page_role">;
+    search_run_id: number;
+    scoring_version: string;
+    cases: RealSearchAcceptanceResult[];
+    patterns: RealSearchAcceptanceResult[];
+    feedback: Array<{ id: number; result_type: string; result_id: number; rank: number; relevance: string; reviewer: string; notes: string; created_at: string }>;
+  }>;
 }
 
 export interface LayoutDirection extends LayoutBlueprintInput {
@@ -767,6 +796,16 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then((r) => j<{ id: number }>(r)),
+  realSearchAcceptance: (version: string) =>
+    fetch(`/api/layout-search/acceptance/${encodeURIComponent(version)}`, { cache: "no-store" }).then((r) =>
+      j<RealSearchAcceptanceDataset>(r)
+    ),
+  addRealSearchAcceptanceFeedback: (
+    version: string,
+    payload: { requirement_id: number; result_type: "pattern" | "case" | "none"; result_id: number; relevance: "relevant" | "irrelevant" | "uncertain"; reviewer: string; notes: string }
+  ) => fetch(`/api/layout-search/acceptance/${encodeURIComponent(version)}/feedback`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+  }).then((r) => j<{ id: number }>(r)),
   layoutSearchEvaluation: (datasetVersion = "") =>
     fetch(`/api/layout-search/evaluation${datasetVersion ? `?dataset_version=${encodeURIComponent(datasetVersion)}` : ""}`, { cache: "no-store" }).then((r) =>
       j<LayoutSearchEvaluation>(r)

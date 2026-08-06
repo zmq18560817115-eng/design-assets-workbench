@@ -513,10 +513,48 @@ class LayoutSearchDataset(Base):
     name = Column(String, nullable=False)
     description = Column(Text, default="")
     dataset_kind = Column(String, default="real", nullable=False, index=True)
+    search_version = Column(String, default="layout-search-rules-v1", nullable=False)
+    scoring_version = Column(String, default="layout-search-rules-v1", nullable=False)
     created_by = Column(String, nullable=False)
     frozen_at = Column(DateTime, nullable=True, index=True)
     last_run_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow, index=True)
+
+
+class LayoutSearchDatasetRequirement(Base):
+    """Fixed requirement membership without storing or exposing relevance answers."""
+
+    __tablename__ = "layout_search_dataset_requirements"
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id", "requirement_id",
+            name="uq_layout_search_dataset_requirement",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    dataset_id = Column(
+        Integer,
+        ForeignKey("layout_search_datasets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    requirement_id = Column(
+        Integer,
+        ForeignKey("business_requirements.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    dataset_split = Column(String, nullable=False, index=True)
+    search_run_id = Column(
+        Integer,
+        ForeignKey("layout_search_runs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    holdout_executed = Column(Boolean, default=False, nullable=False)
+    holdout_read = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
 
 
 class AnalysisEvaluationDataset(Base):

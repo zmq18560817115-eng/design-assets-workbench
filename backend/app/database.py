@@ -387,3 +387,14 @@ def _auto_migrate():
                     "ALTER TABLE requirement_reference_analyses "
                     "ADD COLUMN verified_at DATETIME"
                 ))
+    if "layout_search_datasets" in tables:
+        dataset_cols = {
+            c["name"] for c in inspector.get_columns("layout_search_datasets")
+        }
+        for col in ("search_version", "scoring_version"):
+            if col not in dataset_cols:
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        f"ALTER TABLE layout_search_datasets ADD COLUMN {col} "
+                        "TEXT DEFAULT 'layout-search-rules-v1'"
+                    ))

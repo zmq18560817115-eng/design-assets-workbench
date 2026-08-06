@@ -260,6 +260,7 @@ def _latest_case_blueprints(
     include_unverified: bool,
     *,
     evidence_scope: str = "company",
+    allowed_case_ids: set[int] | None = None,
 ) -> list[tuple[models.Case, models.LayoutBlueprint, bool]]:
     rows = (
         db.query(models.LayoutBlueprint)
@@ -294,6 +295,8 @@ def _latest_case_blueprints(
             latest_verified.setdefault(row.case_id, row)
     result = []
     for case_id, latest in latest_any.items():
+        if allowed_case_ids is not None and case_id not in allowed_case_ids:
+            continue
         selected = latest_verified.get(case_id)
         if selected:
             result.append((selected.case, selected, True))
@@ -579,6 +582,9 @@ def run_search(
     case_limit: int = 20,
     include_unverified: bool = False,
     reanalyze_reference: bool = False,
+    allowed_case_ids: set[int] | None = None,
+    strict_product_category: bool = False,
+    commit: bool = True,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     reference_row = analyze_reference(
@@ -593,6 +599,9 @@ def run_search(
     verified_patterns = _formal_verified_patterns(db)
     pattern_results, excluded = [], []
     for pattern in verified_patterns:
+        pattern_categories = set(_list(pattern.product_category_tags_json))
+        if strict_product_category and requirement.product_category not in pattern_categories:
+            continue
         item, forbidden = _score_candidate(
             requirement, result_type="pattern", source=pattern,
             blueprint=pattern, verified=True,
@@ -603,8 +612,10 @@ def run_search(
 
     case_results = []
     for case, blueprint, verified in _latest_case_blueprints(
-        db, include_unverified
+        db, include_unverified, allowed_case_ids=allowed_case_ids
     ):
+        if strict_product_category and case.product_category != requirement.product_category:
+            continue
         related = [
             pattern.id for pattern in verified_patterns
             if case.id in set(_list(
@@ -701,8 +712,11 @@ def run_search(
         elapsed_ms=elapsed_ms,
     )
     db.add(run)
-    db.commit()
-    db.refresh(run)
+    if commit:
+        db.commit()
+        db.refresh(run)
+    else:
+        db.flush()
     return {
         "requirement": crud.serialize_business_requirement(requirement),
         "search_run_id": run.id,
@@ -815,20 +829,31 @@ def _dataset_dict(db: Session, row: models.LayoutSearchDataset) -> dict[str, Any
     truth = db.query(models.LayoutSearchGroundTruth).filter(
         models.LayoutSearchGroundTruth.dataset_version == row.dataset_version
     ).all()
-    requirement_ids = {item.requirement_id for item in truth}
+    members = db.query(models.LayoutSearchDatasetRequirement).filter_by(
+        dataset_id=row.id
+    ).all()
+    requirement_ids = (
+        {item.requirement_id for item in members}
+        if members else {item.requirement_id for item in truth}
+    )
+    calibration_ids = (
+        {item.requirement_id for item in members if item.dataset_split == "calibration"}
+        if members else {item.requirement_id for item in truth if item.dataset_split == "calibration"}
+    )
+    holdout_ids = (
+        {item.requirement_id for item in members if item.dataset_split == "holdout"}
+        if members else {item.requirement_id for item in truth if item.dataset_split == "holdout"}
+    )
     return {
         "id": row.id, "dataset_version": row.dataset_version, "name": row.name,
         "description": row.description, "dataset_kind": row.dataset_kind,
+        "search_version": row.search_version,
+        "scoring_version": row.scoring_version,
         "created_by": row.created_by, "frozen_at": row.frozen_at,
         "last_run_at": row.last_run_at, "created_at": row.created_at,
         "requirement_count": len(requirement_ids), "annotation_count": len(truth),
-        "calibration_requirement_count": len({
-            item.requirement_id for item in truth
-            if item.dataset_split == "calibration"
-        }),
-        "holdout_requirement_count": len({
-            item.requirement_id for item in truth if item.dataset_split == "holdout"
-        }),
+        "calibration_requirement_count": len(calibration_ids),
+        "holdout_requirement_count": len(holdout_ids),
     }
 
 

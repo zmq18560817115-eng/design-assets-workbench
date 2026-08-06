@@ -645,6 +645,15 @@ class LayoutSearchFeedbackCreate(BaseModel):
     notes: str = ""
 
 
+class RealSearchAcceptanceFeedbackCreate(BaseModel):
+    requirement_id: int = Field(ge=1)
+    result_type: Literal["pattern", "case", "none"]
+    result_id: int = Field(default=0, ge=0)
+    relevance: Literal["relevant", "irrelevant", "uncertain"]
+    reviewer: str = Field(min_length=1, max_length=120)
+    notes: str = ""
+
+
 class LayoutPatternMatchOut(BaseModel):
     pattern: LayoutPatternOut
     score: float
