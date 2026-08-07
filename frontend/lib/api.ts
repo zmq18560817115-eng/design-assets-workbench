@@ -451,6 +451,15 @@ export interface RealSearchAcceptanceResult extends LayoutSearchResult {
   source_evidence: Record<string, unknown>;
 }
 
+export type AcceptanceDecision = {
+  requirement_id: number;
+  result_type: "pattern" | "case" | "none";
+  result_id: number;
+  relevance: "relevant" | "irrelevant" | "uncertain";
+  reasons: string[];
+  notes: string;
+};
+
 export interface RealSearchAcceptanceDataset {
   dataset_version: string;
   name: string;
@@ -461,7 +470,7 @@ export interface RealSearchAcceptanceDataset {
   holdout_read: boolean;
   completed_count: number;
   calibration: Array<{
-    requirement: Pick<BusinessRequirement, "id" | "title" | "raw_requirement" | "product_category" | "content_purpose" | "page_role">;
+    requirement: Pick<BusinessRequirement, "id" | "title" | "raw_requirement" | "product_category" | "content_purpose" | "page_role" | "required_modules_json" | "forbidden_modules_json">;
     search_run_id: number;
     scoring_version: string;
     cases: RealSearchAcceptanceResult[];
@@ -806,6 +815,10 @@ export const api = {
   ) => fetch(`/api/layout-search/acceptance/${encodeURIComponent(version)}/feedback`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   }).then((r) => j<{ id: number }>(r)),
+  submitRealSearchAcceptance: (version: string, payload: { reviewer: string; decisions: AcceptanceDecision[] }) =>
+    fetch(`/api/layout-search/acceptance/${encodeURIComponent(version)}/submit`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    }).then((r) => j<{ created: number; total: number; idempotent: boolean }>(r)),
   layoutSearchEvaluation: (datasetVersion = "") =>
     fetch(`/api/layout-search/evaluation${datasetVersion ? `?dataset_version=${encodeURIComponent(datasetVersion)}` : ""}`, { cache: "no-store" }).then((r) =>
       j<LayoutSearchEvaluation>(r)

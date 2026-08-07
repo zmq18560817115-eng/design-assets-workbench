@@ -192,6 +192,8 @@ def acceptance_detail(db: Session, dataset: models.LayoutSearchDataset) -> dict[
                 "product_category": requirement.product_category,
                 "content_purpose": requirement.content_purpose,
                 "page_role": requirement.page_role,
+                "required_modules_json": json.loads(requirement.required_modules_json or "[]"),
+                "forbidden_modules_json": json.loads(requirement.forbidden_modules_json or "[]"),
             },
             "search_run_id": run.id if run else None,
             "scoring_version": run.scoring_version if run else layout_search.SCORING_VERSION,
@@ -254,3 +256,83 @@ def add_judgment(
     )
     db.add(row); db.commit(); db.refresh(row)
     return {"id": row.id, "created_at": row.created_at}
+
+
+def _expected_decision_keys(db: Session, dataset: models.LayoutSearchDataset) -> set[tuple[int, str, int]]:
+    keys: set[tuple[int, str, int]] = set()
+    members = db.query(models.LayoutSearchDatasetRequirement).filter_by(
+        dataset_id=dataset.id, dataset_split="calibration"
+    ).all()
+    for member in members:
+        run = db.get(models.LayoutSearchRun, member.search_run_id) if member.search_run_id else None
+        snapshot = json.loads(run.result_snapshot_json or "{}") if run else {}
+        case_rows, pattern_rows = snapshot.get("cases", []), snapshot.get("patterns", [])
+        if not case_rows and not pattern_rows:
+            keys.add((member.requirement_id, "none", 0))
+            continue
+        keys.update((member.requirement_id, "case", int(row["id"])) for row in case_rows)
+        keys.update((member.requirement_id, "pattern", int(row["id"])) for row in pattern_rows)
+    return keys
+
+
+def submit_ground_truth(
+    db: Session, dataset_version: str, *, reviewer: str,
+    decisions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Atomically publish a complete human-reviewed calibration draft."""
+    reviewer = reviewer.strip()
+    if not reviewer:
+        raise AcceptancePreparationError("提交正式验收结果必须填写审核人")
+    dataset = db.query(models.LayoutSearchDataset).filter_by(
+        dataset_version=dataset_version
+    ).first()
+    if not dataset:
+        raise AcceptancePreparationError("验收数据集不存在")
+    if dataset.frozen_at:
+        raise AcceptancePreparationError("验收数据集已冻结")
+    expected = _expected_decision_keys(db, dataset)
+    supplied = {
+        (int(row["requirement_id"]), str(row["result_type"]), int(row["result_id"]))
+        for row in decisions
+    }
+    if len(supplied) != len(decisions) or supplied != expected:
+        missing = len(expected - supplied)
+        extra = len(supplied - expected)
+        raise AcceptancePreparationError(f"必须完成全部判断后提交（缺少{missing}项，多出{extra}项）")
+    existing = db.query(models.LayoutSearchGroundTruth).filter_by(
+        dataset_version=dataset_version
+    ).all()
+    decision_by_key = {
+        (int(row["requirement_id"]), str(row["result_type"]), int(row["result_id"])): row
+        for row in decisions
+    }
+    relevance_map = {
+        "relevant": "relevant", "irrelevant": "irrelevant",
+        "uncertain": "partially_relevant",
+    }
+    if existing:
+        existing_keys = {(row.requirement_id, row.result_type, row.result_id) for row in existing}
+        if existing_keys == expected and all(
+            row.reviewer == reviewer
+            and row.expected_relevance == relevance_map[decision_by_key[(row.requirement_id, row.result_type, row.result_id)]["relevance"]]
+            for row in existing
+        ):
+            return {"created": 0, "total": len(existing), "idempotent": True}
+        raise AcceptancePreparationError("该数据集已存在正式验收结果，禁止部分覆盖")
+    try:
+        for row in decisions:
+            reason_parts = [str(value).strip() for value in row.get("reasons", []) if str(value).strip()]
+            if str(row.get("notes", "")).strip():
+                reason_parts.append(str(row["notes"]).strip())
+            db.add(models.LayoutSearchGroundTruth(
+                requirement_id=int(row["requirement_id"]),
+                result_type=str(row["result_type"]), result_id=int(row["result_id"]),
+                expected_relevance=relevance_map[str(row["relevance"])],
+                reviewer=reviewer, reason="；".join(reason_parts),
+                dataset_version=dataset_version, dataset_split="calibration",
+            ))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return {"created": len(decisions), "total": len(decisions), "idempotent": False}

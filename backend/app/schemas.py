@@ -654,6 +654,20 @@ class RealSearchAcceptanceFeedbackCreate(BaseModel):
     notes: str = ""
 
 
+class RealSearchAcceptanceDecision(BaseModel):
+    requirement_id: int = Field(ge=1)
+    result_type: Literal["pattern", "case", "none"]
+    result_id: int = Field(default=0, ge=0)
+    relevance: Literal["relevant", "irrelevant", "uncertain"]
+    reasons: list[str] = Field(default_factory=list)
+    notes: str = ""
+
+
+class RealSearchAcceptanceSubmit(BaseModel):
+    reviewer: str = Field(min_length=1, max_length=120)
+    decisions: list[RealSearchAcceptanceDecision] = Field(min_length=1)
+
+
 class LayoutPatternMatchOut(BaseModel):
     pattern: LayoutPatternOut
     score: float
