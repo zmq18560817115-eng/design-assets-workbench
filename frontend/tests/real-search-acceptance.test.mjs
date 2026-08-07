@@ -8,6 +8,7 @@ test("page uses plain-language four-step review", () => {
   for (const label of ["真实需求推荐验收", "第一步：看需求", "第二步：看系统推荐", "第四步：统一确认", "适合作为参考", "不适合作为参考", "暂时无法判断"]) assert.match(page, new RegExp(label));
   assert.match(page, /查看技术信息/);
   assert.match(page, /查看原始Brief/);
+  assert.match(page, /清空本机草稿/);
 });
 
 test("draft stays local and uncertain suggestions are not bulk applied", () => {
